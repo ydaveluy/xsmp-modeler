@@ -1,0 +1,26 @@
+{
+    "projectName": "Xsmp",
+    "languages": [{
+        "id": "xsmpproject",
+        "grammar": "src/language/xsmpproject.langium",
+        "fileExtensions": [".project"],
+        "textMate": {
+            "out": "syntaxes/xsmpproject.tmLanguage.json"
+        },
+        "monarch": {
+            "out": "src/syntaxes/xsmpproject.monarch.ts"
+        }
+    },
+    {
+        "id": "xsmpcat",
+        "grammar": "src/language/xsmpcat.langium",
+        "fileExtensions": [".xsmpcat"],
+        "textMate": {
+            "out": "syntaxes/xsmpcat.tmLanguage.json"
+        },
+        "monarch": {
+            "out": "src/syntaxes/xsmpcat.monarch.ts"
+        }
+    }],
+    "out": "src/language/generated"
+}
