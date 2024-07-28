@@ -51,7 +51,7 @@
         "langium-cli": "~3.1.0",
         "shx": "~0.3.4",
         "typescript": "~5.1.6",
-        "vite": "~5.2.7",
+        "vite": "~5.3.5",
         "vitest": "~1.4.0",
         "vitest-sonar-reporter": "^2.0.0",
         "vscode": "npm:@codingame/monaco-vscode-api@~3.2.3"
