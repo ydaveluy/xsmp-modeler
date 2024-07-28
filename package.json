@@ -48,10 +48,11 @@
         "eslint": "~8.57.0",
         "http-server": "~14.1.1",
         "langium-cli": "~3.1.0",
-        "typescript": "~5.1.6",
         "shx": "~0.3.4",
+        "typescript": "~5.1.6",
         "vite": "~5.2.7",
         "vitest": "~1.4.0",
+        "vitest-sonar-reporter": "^2.0.0",
         "vscode": "npm:@codingame/monaco-vscode-api@~3.2.3"
     },
     "volta": {
@@ -74,7 +75,8 @@
                     "xsmpproject"
                 ],
                 "extensions": [
-                    ".profile",".tool"
+                    ".profile",
+                    ".tool"
                 ],
                 "filenames": [
                     "xsmp.project"

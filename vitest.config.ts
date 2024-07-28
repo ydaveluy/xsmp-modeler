@@ -15,6 +15,9 @@ export default defineConfig({
         deps: {
             interopDefault: true
         },
+        reporters: [
+            ['vitest-sonar-reporter', { outputFile: 'sonar-report.xml' }],
+        ],
         include: ['test/**/*.test.ts']
     }
 });

@@ -10,18 +10,15 @@ on:
 
 jobs:
   build:
-    name: CI (${{ matrix.os }})
+    name: CI
     strategy:
       fail-fast: false
-      matrix:
-        os: [
-         # windows-latest, 
-          ubuntu-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
     - name: Use Node.js
       uses: actions/setup-node@v3
       with:
@@ -37,7 +34,23 @@ jobs:
       if: success() || failure()
       shell: bash
       run: |
-        npm run test
+        npm run coverage
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # Generate a token on SonarQube, add it to the secrets of this repo with the name SONAR_TOKEN (Settings > Secrets > Actions > add new repository secret)
+      with:
+        # Additional arguments for the sonarcloud scanner
+        args:
+          -Dsonar.projectKey=ydaveluy_xsmp-modeler
+          -Dsonar.organization=ydaveluy
+          -Dsonar.sources=src/ 
+          -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+          -Dsonar.exclusions=dist/**
+          -Dsonar.coverage.exclusions=**/*.test.*
+          -Dsonar.testExecutionReportPaths=sonar-report.xml
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
