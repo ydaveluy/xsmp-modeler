@@ -1,8 +1,8 @@
-import type { LanguageClientOptions, ServerOptions} from 'vscode-languageclient/node.js';
+import type { LanguageClientOptions, ServerOptions } from 'vscode-languageclient/node.js';
 import * as vscode from 'vscode';
 import * as path from 'node:path';
 import { LanguageClient, TransportKind } from 'vscode-languageclient/node.js';
-import { builtinEcssSmp } from '../language/builtins.js';
+import { builtins } from '../language/builtins.js';
 
 
 let client: LanguageClient;
@@ -38,6 +38,11 @@ function startLanguageClient(context: vscode.ExtensionContext): LanguageClient {
     // Options to control the language client
     const clientOptions: LanguageClientOptions = {
         documentSelector: [{ scheme: 'file', language: 'xsmpproject' }, { scheme: 'file', language: 'xsmpcat' }]
+        ,
+        markdown: {
+            isTrusted: true, supportHtml: true
+        }
+
     };
 
     // Create the language client and start the client.
@@ -66,18 +71,30 @@ export class DslLibraryFileSystemProvider implements vscode.FileSystemProvider {
 
     stat(uri: vscode.Uri): vscode.FileStat {
         const date = Date.now();
+        const value = builtins.get(uri.toString())
+        if (value)
+            return {
+                ctime: date,
+                mtime: date,
+                size: Buffer.from(value).length,
+                type: vscode.FileType.File
+            };
+
         return {
             ctime: date,
             mtime: date,
-            size: Buffer.from(builtinEcssSmp).length,
-            type: vscode.FileType.File
+            size: 0,
+            type: vscode.FileType.Unknown
         };
     }
 
     readFile(uri: vscode.Uri): Uint8Array {
-        // We could return different libraries based on the URI
-        // We have only one, so we always return the same
-        return new Uint8Array(Buffer.from(builtinEcssSmp));
+
+        const value = builtins.get(uri.toString())
+        if (value)
+            return new Uint8Array(Buffer.from(value));
+
+        return new Uint8Array();
     }
 
     // The following class members only serve to satisfy the interface
@@ -87,7 +104,7 @@ export class DslLibraryFileSystemProvider implements vscode.FileSystemProvider {
 
     watch() {
         return {
-            dispose: () => {}
+            dispose: () => { }
         };
     }
 

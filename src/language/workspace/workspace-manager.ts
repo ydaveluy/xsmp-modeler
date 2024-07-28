@@ -3,11 +3,11 @@ import {
     DefaultWorkspaceManager,
     LangiumDocument,
     LangiumDocumentFactory,
-    LangiumSharedCoreServices
+    LangiumSharedCoreServices,
+    WorkspaceFolder
 } from "langium";
-import { WorkspaceFolder } from 'vscode-languageserver';
+import { builtins } from '../builtins.js';
 import { URI } from "vscode-uri";
-import { builtinEcssSmp } from './builtins.js';
 
 export class XsmpWorkspaceManager extends DefaultWorkspaceManager {
 
@@ -23,7 +23,11 @@ export class XsmpWorkspaceManager extends DefaultWorkspaceManager {
         collector: (document: LangiumDocument<AstNode>) => void
     ): Promise<void> {
         await super.loadAdditionalDocuments(folders, collector);
-        // Load our library using the `builtin` URI schema
-        collector(this.documentFactory.fromString(builtinEcssSmp, URI.parse('builtin:///ecss.smp.xsmpcat')));
+
+        // load all buildins documents (ecss.smp.smp.xsmpcat, profiles, tools, ...)
+        for (const [uri, value] of builtins) {
+            collector(this.documentFactory.fromString(value, URI.parse(uri)));
+        }
     }
 }
+

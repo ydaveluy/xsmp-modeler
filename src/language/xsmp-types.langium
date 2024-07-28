@@ -12,21 +12,23 @@ type ParameterDirectionKind_out = 'out';
 type ParameterDirectionKind_inout = 'inout';
 type ParameterDirectionKind_return = 'return';
 
+type WithBody=  Structure | ReferenceType | Namespace;
+
 interface Catalogue extends Document {
-	namespace:Namespace[]
+	elements:Namespace[]
 }
 
 interface Document extends NamedElement {
 }
 
-interface NamedElement  {
+interface NamedElement {
 	name?: string
 	attributes: Attribute[]
 }
 
 
 interface Attribute {
-	^type: @Type
+	^type: @AttributeType
 	value?: Expression
 }
 
@@ -38,15 +40,14 @@ interface VisibilityElement extends NamedElement {
 }
 
 
-
+type BodyMember = Constant|Field|Property|Operation|Association|Container|Reference_|EntryPoint|EventSink|EventSource;
 
 interface Namespace extends NamedElement {
-	namespace:Namespace[]
-	type:Type[]
+	elements:(Namespace|Type)[]
 }
 
 interface Structure extends ValueType {
-	element:(Constant|Field|Property|Operation|Association)[]
+	elements:BodyMember[]
 }
 
 interface ValueType extends LanguageType {
@@ -56,7 +57,7 @@ interface LanguageType extends Type {
 }
 
 interface Class extends Structure {
-	base?: @Type
+	base?: @Class
 }
 
 
@@ -64,36 +65,35 @@ interface Exception extends Class {
 }
 
 interface Interface extends ReferenceType {
-	base: @Type[]
-	element:(Constant|Property|Operation)[]
+	base: @Interface[]
 }
 
 interface ReferenceType extends LanguageType {
+	elements:BodyMember[]
 }
 
 interface Model extends Component {
 }
 
 interface Component extends ReferenceType {
-	^interface: @Type[]
-	base?: @Type
-	element:(Constant|Field|Property|Operation|Association|Container|Reference_|EntryPoint|EventSink|EventSource)[]
+	^interface: @Interface[]
+	base?: @Component
 }
 
 interface Service extends Component {
 }
 
 interface ArrayType extends ValueType {
-	itemType: @Type
+	itemType: @ValueType
 	size: Expression
 }
 
 interface ValueReference extends LanguageType {
-	^type?: @Type
+	^type: @ValueType
 }
 
 interface Integer extends SimpleType {
-	primitiveType?: @Type
+	primitiveType?: @PrimitiveType
 	minimum?: Expression
 	maximum?: Expression
 }
@@ -102,14 +102,14 @@ interface SimpleType extends ValueType {
 }
 
 interface Float extends SimpleType {
-	primitiveType?: @Type
+	primitiveType?: @PrimitiveType
 	minimum?: Expression
 	maximum?: Expression
 	range?: RangeKind
 }
 
 interface EventType extends Type {
-	eventArgs?: @Type
+	eventArgs?: @SimpleType
 }
 
 interface StringType extends SimpleType {
@@ -123,7 +123,7 @@ interface NativeType extends LanguageType {
 }
 
 interface AttributeType extends Type {
-	^type: @Type
+	^type: @ValueType
 	default?: Expression
 }
 
@@ -136,7 +136,7 @@ interface EnumerationLiteral extends NamedElement {
 }
 
 interface Field extends VisibilityElement, Resolvable {
-	^type: @Type
+	^type: @ValueType
 	default?: Expression
 }
 
@@ -144,37 +144,37 @@ interface Resolvable extends NamedElement {
 }
 
 interface Constant extends VisibilityElement {
-	^type: @Type
+	^type: @SimpleType
 	value: Expression
 }
 
 interface Property extends VisibilityElement, Resolvable {
-	^type: @Type
+	^type: @ValueType
 	attachedField?: @Field
-	getRaises: @Type[]
-	setRaises: @Type[]
+	getRaises: @Exception[]
+	setRaises: @Exception[]
 }
 
 interface Operation extends VisibilityElement, Resolvable {
 	returnParameter?: Parameter
 	parameter: Parameter[]
-	raisedException: @Type[]
+	raisedException: @Exception[]
 }
 
 interface Parameter extends NamedElement {
-	^type: @Type
+	^type: @LanguageType
 	default?: Expression
 	direction?: ParameterDirectionKind
 }
 
 interface Association extends VisibilityElement {
-	^type: @Type
+	^type: @LanguageType
 	default?: Expression
 }
 
 interface Container extends NamedElementWithMultiplicity, Resolvable {
-	^type: @Type
-	defaultComponent?: @Type
+	^type: @ReferenceType
+	defaultComponent?: @Component
 }
 
 interface NamedElementWithMultiplicity extends NamedElement {
@@ -189,7 +189,7 @@ interface Multiplicity {
 }
 
 interface Reference_ extends NamedElementWithMultiplicity, Resolvable {
-	^interface: @Type
+	^interface: @Interface
 }
 
 interface EntryPoint extends NamedElement, Resolvable {
@@ -198,20 +198,19 @@ interface EntryPoint extends NamedElement, Resolvable {
 }
 
 interface EventSink extends NamedElement, Resolvable {
-	^type: @Type
+	^type: @EventType
 }
 
 interface EventSource extends NamedElement, Resolvable {
-	^type: @Type
+	^type: @EventType
 }
 
 
 interface Project extends Document {
-	profile:@Profile
+	profile:@Profile[]
 	tools:@Tool[]
 	sourcePaths:string[]
 	dependencies:@Project[]
-
 	element: NamedElement[]
 }
 
@@ -224,18 +223,19 @@ interface Profile extends Document {
 interface Expression {
 }
 interface BinaryOperation extends Expression {
-	leftOperand?: Expression
-	rightOperand?: Expression
-	feature?: string
+	leftOperand: Expression
+	rightOperand: Expression
+	feature: string
 }
 
 interface UnaryOperation extends Expression {
-	operand?: Expression
-	feature?: string
+	operand: Expression
+	feature: string
 }
 
+type ConstantOrEnumerationLiteral = Constant|EnumerationLiteral
 interface NamedElementReference extends Expression {
-	value: @NamedElement
+	value: @ConstantOrEnumerationLiteral
 }
 
 interface ParenthesizedExpression extends Expression {
@@ -243,8 +243,8 @@ interface ParenthesizedExpression extends Expression {
 }
 
 interface DesignatedInitializer extends Expression {
-	field?: @Field
-	expr?: Expression
+	field: @Field
+	expr: Expression
 }
 
 interface CollectionLiteral extends Expression {
@@ -252,11 +252,11 @@ interface CollectionLiteral extends Expression {
 }
 
 interface IntegerLiteral extends Expression {
-	text?: string
+	text: string
 }
 
 interface FloatingLiteral extends Expression {
-	text?: string
+	text: string
 }
 
 interface StringLiteral extends Expression {
@@ -264,14 +264,14 @@ interface StringLiteral extends Expression {
 }
 
 interface CharacterLiteral extends Expression {
-	value?: string
+	value: string
 }
 
 interface BuiltInConstant extends BuiltInExpression {
 }
 
 interface BuiltInExpression extends Expression {
-	name?: string
+	name: string
 }
 
 interface BuiltInFunction extends BuiltInExpression {

@@ -1,0 +1,12 @@
+/**
+ * project 1 without dependency
+ * @deprecated
+ */
+project "project1"
+
+
+/// source folder containing xsmpcat files
+source "smdl"
+
+tool "org.eclipse.xsmp.tool.adoc"
+

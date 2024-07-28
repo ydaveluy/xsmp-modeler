@@ -2,20 +2,61 @@ grammar Xsmpproject
 import 'Terminals'
 import 'xsmp-types'
 
-entry Project returns Project:
+entry Document returns Document:
+    Project | Profile | Tool;
+
+Project returns Project:
+    /**
+     * `project "<project-name>"`
+     * 
+     * A **Project** is a document that defines the project configuration.
+     * 
+     * It contains an optional profile, source folder(s) where modeling files are located, activated tool(s) and project dependencies.
+     */
     'project' name=STRING  
-     
-     ('tool' tools+=[Tool:STRING] |
-     'source' sourcePaths+=STRING |
-     'dependency' dependencies+=[Project:STRING] |
-     'profile' profile=[Profile:STRING]
-      )*
+    (
+        /**
+         * `profile "<profile-name>"`
+         * 
+         * A **Profile** defines a whole configuration context applied to the project.
+         */
+        'profile' profile+=[Profile:STRING] |
+        /**
+         * `tool "<tool-name>"`
+         * 
+         * A **Tool** specifies an additional code generator or validator used for the project.
+         */
+        'tool' tools+=[Tool:STRING] |
+        /**
+         * `source "<path>"`
+         * 
+         * The **Source<** directive defines the location of modeling files.
+         * The path can be either a folder or a filename relative to the project root.
+         */
+        'source' sourcePaths+=STRING |
+        /**
+         * `dependency "<project-name>"`
+         * 
+         * A **Dependency** establishes a relationship with another **Project**, granting the current **Project** visibility over the dependent project's modeling files.
+         */
+        'dependency' dependencies+=[Project:STRING] 
+    )*
 ;
 
 Profile returns Profile:
+    /**
+     * `profile "<profile-name>"`
+     * 
+     * A built-in **Profile**.
+     */
     'profile' name=STRING;
 
 Tool returns Tool:
+    /**
+     * `tool "<tool-name>"`
+     * 
+     * A built-in **Tool**.
+     */
     'tool' name=STRING;
 
 

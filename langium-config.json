@@ -3,7 +3,7 @@
     "languages": [{
         "id": "xsmpproject",
         "grammar": "src/language/xsmpproject.langium",
-        "fileExtensions": [".project"],
+        "fileExtensions": [".project",".profile",".tool"],
         "textMate": {
             "out": "syntaxes/xsmpproject.tmLanguage.json"
         },

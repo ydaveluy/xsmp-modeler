@@ -1,0 +1,24 @@
+/**
+ * @deprecated
+ */
+catalogue catalogue2
+
+
+namespace ns2
+{
+/**
+ * @uuid  8598d697-fb84-41ce-a685-6912006ed660
+ */
+
+    public model M2 extends ns1.M1
+    {
+        constant Int32 cst = 42
+        field Smp.Bool boolField
+        @Failure(false)
+        @Failure(true)
+        @View(ViewKind.VK_All)
+        field Bool test
+    }
+    
+
+}

@@ -35,6 +35,9 @@ describe('Linking tests', () => {
                     field Int64 b
                }
             }
+            namespace ns2
+            {
+            }
         `);
 
         expect(
@@ -45,8 +48,8 @@ describe('Linking tests', () => {
             checkDocumentValid(document)
                 || document.parseResult.value.namespace.map(g => g.name).join('\n')
         ).toBe(s`
-            Smp
-            Smp2
+            ns
+            ns2
         `);
     });
 });

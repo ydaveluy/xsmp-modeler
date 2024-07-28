@@ -4,26 +4,38 @@ import { expandToString as s } from "langium/generate";
 import { parseHelper } from "langium/test";
 import type { Diagnostic } from "vscode-languageserver-types";
 import { createXsmpServices } from "../../src/language/xsmp-module.js";
-import { Model, isModel } from "../../src/language/generated/ast.js";
+import { Catalogue, isCatalogue } from "../../src/language/generated/ast.js";
 
 let services: ReturnType<typeof createXsmpServices>;
-let parse:    ReturnType<typeof parseHelper<Model>>;
-let document: LangiumDocument<Model> | undefined;
+let parse:    ReturnType<typeof parseHelper<Catalogue>>;
+let document: LangiumDocument<Catalogue> | undefined;
 
 beforeAll(async () => {
     services = createXsmpServices(EmptyFileSystem);
-    const doParse = parseHelper<Model>(services.Xsmpproject);
+    const doParse = parseHelper<Catalogue>(services.xsmpcat);
     parse = (input: string) => doParse(input, { validation: true });
 
     // activate the following if your linking test requires elements from a built-in library, for example
-    // await services.shared.workspace.WorkspaceManager.initializeWorkspace([]);
+     await services.shared.workspace.WorkspaceManager.initializeWorkspace([]);
 });
 
 describe('Validating', () => {
   
     test('check no errors', async () => {
         document = await parse(`
-            person Langium
+            catalogue Test
+            
+            namespace ns
+            {
+               struct a
+               {
+                    field Smp.Int64 a
+                    field Int64 b
+               }
+            }
+            namespace ns2
+            {
+            }
         `);
 
         expect(
@@ -37,7 +49,19 @@ describe('Validating', () => {
 
     test('check capital letter validation', async () => {
         document = await parse(`
-            person langium
+            catalogue test
+
+            namespace ns
+            {
+               struct a
+               {
+                    field Smp.Int64 a
+                    field Int64 b
+               }
+            }
+            namespace ns2
+            {
+            }
         `);
 
         expect(
@@ -45,10 +69,11 @@ describe('Validating', () => {
         ).toEqual(
             // 'expect.stringContaining()' makes our test robust against future additions of further validation rules
             expect.stringContaining(s`
-                [1:19..1:26]: Person name should start with a capital.
+                [1:22..1:26]: Catalogue name should start with a capital.
             `)
         );
     });
+
 });
 
 function checkDocumentValid(document: LangiumDocument): string | undefined {
@@ -57,7 +82,7 @@ function checkDocumentValid(document: LangiumDocument): string | undefined {
           ${document.parseResult.parserErrors.map(e => e.message).join('\n  ')}
     `
         || document.parseResult.value === undefined && `ParseResult is 'undefined'.`
-        || !isModel(document.parseResult.value) && `Root AST object is a ${document.parseResult.value.$type}, expected a '${Model}'.`
+        || !isCatalogue(document.parseResult.value) && `Root AST object is a ${document.parseResult.value.$type}, expected a '${Catalogue}'.`
         || undefined;
 }
 
