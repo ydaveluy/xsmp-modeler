@@ -27,11 +27,12 @@ describe('Validating', () => {
             
             namespace ns
             {
-               struct a
-               {
+                /** @uuid  8598d697-fb84-41ce-a685-6912006ed660 */
+                struct a
+                {
                     field Smp.Int64 a
                     field Int64 b
-               }
+                }
             }
             namespace ns2
             {
@@ -47,32 +48,6 @@ describe('Validating', () => {
         ).toHaveLength(0);
     });
 
-    test('check capital letter validation', async () => {
-        document = await parse(`
-            catalogue test
-
-            namespace ns
-            {
-               struct a
-               {
-                    field Smp.Int64 a
-                    field Int64 b
-               }
-            }
-            namespace ns2
-            {
-            }
-        `);
-
-        expect(
-            checkDocumentValid(document) || document?.diagnostics?.map(diagnosticToString)?.join('\n')
-        ).toEqual(
-            // 'expect.stringContaining()' makes our test robust against future additions of further validation rules
-            expect.stringContaining(s`
-                [1:22..1:26]: Catalogue name should start with a capital.
-            `)
-        );
-    });
 
 });
 

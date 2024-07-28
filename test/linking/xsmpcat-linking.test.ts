@@ -46,7 +46,7 @@ describe('Linking tests', () => {
             // and then evaluate the cross references we're interested in by checking
             //  the referenced AST element as well as for a potential error message;
             checkDocumentValid(document)
-                || document.parseResult.value.namespace.map(g => g.name).join('\n')
+                ?? document.parseResult.value.elements.map(g => g.name).join('\n')
         ).toBe(s`
             ns
             ns2

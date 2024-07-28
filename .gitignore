@@ -6,3 +6,5 @@ node_modules/
 out/
 src/language/generated/
 syntaxes/
+coverage/
+.scannerwork

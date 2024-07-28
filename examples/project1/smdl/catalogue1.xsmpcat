@@ -3,90 +3,206 @@
 
 
 
-catalogue catalogue1
+catalogue     catalogue1
 
 
 
 /** description ns1 */
-@Failure()
-namespace ns1
+@Failure(  4 * 5 + 7   )
+namespace 
+
+ns1
 {
-    namespace ns2
+    namespace
+    
+     ns2
     {
-        namespace ns3 { }
- }
-    /**
-     * @uuid  8598d697-fb84-41ce-a685-6912006ed660
-     */
+        namespace ns3 
+        
+        { }
+    }
+/**
+ * @uuid  8598d697-fb84-41ce-a685-6912006ed660
+*/
     struct Position
-{
-field Float64 x
-        field Float64 y
+    {
+        field   Float64   x
+
+
+        
+        field Float64 y 
+
+
+        
         field Float64 z
     }
     
-    /**
-     * @uuid  8598d697-fb84-41ce-a685-6912006ed660
-     */
-    struct Test 
-    {  
-        field Position position = {.x = 0., .y = 1., .z = 2.}
-    }/**
+/**
  * @uuid  8598d697-fb84-41ce-a685-6912006ed660
- */
-    public    class Base 
+*/
+    struct Test
+    {
+        field Position position  =    {.x   =    
+        0.
+        , 
+        .y = 1.
+        ,   .z = 2.  }
+    }
+/**
+* @uuid  8598d697-fb84-41ce-a685-6912006ed660
+*/
+    public    class Base
     {
         field Bool f
-        property Bool p -> f
-        constant Int64 base = -1
+        property   Bool    p    ->    f
+        constant Int64    base    =    -1
     }/**
  * @uuid  8598d697-fb84-41ce-a685-6912006ed660
  */
-    class Derived extends Base
+    public    abstract    class   Derived    extends Base
     {
-    //  field Bool f
-        property Bool p2 -> f 
+//  field Bool f
+        property Bool p2 -> f
     } 
-    /**
-    * @uuid  8598d697-fb84-41ce-a685-6912006ed660
-    */
+
+/**
+* @uuid  8598d697-fb84-41ce-a685-6912006ed660
+*/
     class Derived2 extends Derived
     {
-    //  field Bool f
+//  field Bool f
         @Abstract("aaa")
-        property Bool p2 -> f 
+        property Bool p2 -> f
         constant Int64 cst1 = base
     } 
-    /**
-     * @deprecated
-     * @uuid  8598d697-fb84-41ce-a685-6912006ed660
-     */
-    public model M1 
-    {
-        constant Int8 cst1 = Base.base + 42<<1
-    }
-    /**
-     * @uuid  8598d697-fb84-41ce-a685-6912006ed660
-     */
-    public integer Int8 extends Smp.Int8 in -128 ...  127 
-    /**
-     * @uuid  8598d697-fb84-41ce-a685-6912006ed660
-     */
-    public integer UInt8 extends Smp.UInt8 in 0 ...  255
 
-    /**
-     * @uuid  8598d697-fb84-41ce-a685-6912006ed660
-     */
-    public float Float32 extends Smp.Float64 in 0.0f ...  0.f
+    	public       attribute  Bool       ss  =    !     false
+	
+    @Test
+    @aaa
+    @adezegfzg()
+	public   	interface     interf     extends     Publication.IArrayType   ,      Publication.IClassType{
+		/*
+		 * test comment
+		 * 
+		 */}
+/**
+ * @deprecated
+ * @uuid  8598d697-fb84-41ce-a685-6912006ed660
+*/
+    public model M1
+    {
+        constant Int8 cst1 = Base.base + 42 << 1
+
+@Virtual
+	public   	def    Int64     hello  (   @Const       @ByPointer Bool     test     ,       Bool    test2    )
+
+    										container       modelTest[   1        ...     8]     test=modelTest
+		reference    IAggregate      r1
+		reference    IAggregate   ?   r2
+		reference    IAggregate   [    ]   r3
+		reference    IAggregate   [ *   ]   r4
+		reference    IAggregate   [ +   ]   r5
+		reference    IAggregate   [ 0   +   5    ...    *    ]   r6
+		reference    IAggregate   [   4 + 5   ]   r7
+		reference    IAggregate   [  0    + 8 /  7     ...   2*    7    ]   r8
+
+		entrypoint     et
+
+        		association    String8     assoc 
+
+
+				public readOnly writeOnly protected	property     Float32     propertyBool    get    throws    CannotDelete  ,     CannotRestore    set    throws      InvalidArrayIndex,Services.EntryPointAlreadySubscribed->thefloat
+
+    }
+/**
+ * @uuid  8598d697-fb84-41ce-a685-6912006ed660
+*/
+    public integer   Int8   extends   Smp.Int8   in   -128   ...     127 
+/**
+ * @uuid  8598d697-fb84-41ce-a685-6912006ed660
+*/
+    public
+     integer
+      UInt8 extends Smp.UInt8 in 0 
+    
+    ...  255
+
+/**
+ * @uuid  8598d697-fb84-41ce-a685-6912006ed660
+*/
+    public 
+    float 
+    Float32 
+    extends
+     Smp.Float64 
+    in 
+    0.0f 
+    ... 
+     0.f
 
  
-    /**
-     * @uuid  8598d697-fb84-41ce-a685-6912006ed660
-     */
-    enum MyEnum
-    {
-        l1= 1,
-        l2 = Base.base
+/**
+ * @uuid  8598d697-fb84-41ce-a685-6912006ed660
+*/
+    enum    MyEnum
 
-    }
+
+    {
+
+        l1   = 1    ,
+
+        l2   
+         = 
+         Base.base }
+
+         public   string        stringname  [     9     ]
+
+         public   native      tesst
+
+				
+
+		/**
+		 * @uuid 2315eb62-c868-43e0-85ea-0f2df6879a68
+		 */
+		public   using     usingtest =   Char8  *   
+
+		/**
+		 * @uuid 47c2221a-eeb0-4447-aeed-10307f04e4be
+		 */
+		public   		event   eventttt    extends     Float32
+
+
+ 				namespace    Toto
+
+
+{/**
+	 * @uuid 058cfc11-0315-4132-baea-029109ede356
+	 */
+public   	interface     interf     extends     Publication.IArrayType   ,      Publication.IClassType{
+		}
+		 
+		 public   	attribute  Int16      attr    =     6
+		 
+}
+
+	/**
+	 * @uuid 34d64d4a-d808-4b1c-af5c-31dea6aadd8a
+	 */interface        testinterface{
+	}
+
+	/** 
+	 * 
+	 * @uuid 4028143f-ea06-43fb-8325-7678f681aa8a
+	 */
+	         public                exception   myexception {
+	}
+
+    /**
+	 * @uuid 11bceb41-86d0-4b81-8207-752c43be3871
+	 */
+	class        aaa      extends         CannotDelete
+{
+
+}
 }
