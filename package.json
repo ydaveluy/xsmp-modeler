@@ -24,7 +24,7 @@
         "coverage": "vitest run --coverage"
     },
     "dependencies": {
-        "@codingame/monaco-vscode-editor-service-override": "~3.2.3",
+        "@codingame/monaco-vscode-editor-service-override": "~7.0.11",
         "@codingame/monaco-vscode-keybindings-service-override": "~7.0.11",
         "@js-joda/core": "^5.6.3",
         "@vscode/vsce": "^2.31.1",
