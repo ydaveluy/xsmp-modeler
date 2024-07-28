@@ -6,9 +6,6 @@
         "fileExtensions": [".project",".profile",".tool"],
         "textMate": {
             "out": "syntaxes/xsmpproject.tmLanguage.json"
-        },
-        "monarch": {
-            "out": "src/syntaxes/xsmpproject.monarch.ts"
         }
     },
     {
@@ -17,9 +14,6 @@
         "fileExtensions": [".xsmpcat"],
         "textMate": {
             "out": "syntaxes/xsmpcat.tmLanguage.json"
-        },
-        "monarch": {
-            "out": "src/syntaxes/xsmpcat.monarch.ts"
         }
     }],
     "out": "src/language/generated"
