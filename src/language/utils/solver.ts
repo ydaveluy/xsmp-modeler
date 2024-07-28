@@ -1,34 +1,33 @@
 
-import { BinaryOperation, EnumerationLiteral, Expression, FloatingLiteral, IntegerLiteral, isBinaryOperation, isBooleanLiteral, isEnumeration, isEnumerationLiteral, isFloatingLiteral, isIntegerLiteral, isNamedElementReference, isParenthesizedExpression, isType, isUnaryOperation, Type, UnaryOperation } from "../generated/ast.js";
 import { FloatingPrimitiveTypeKind, IntegralPrimitiveTypeKind, isFloatingType, isIntegralType, PrimitiveTypeKind, XsmpUtils } from "./xsmp-utils.js";
-
+import * as ast from '../generated/ast.js';
 
 interface Value {
-    getValue(): boolean | bigint | number | string | EnumerationLiteral
+    getValue(): boolean | bigint | number | string | ast.EnumerationLiteral
     primitiveTypeKind(): PrimitiveTypeKind
     boolValue(): BoolValue | undefined
     enumerationLiteral(): EnumerationLiteralValue | undefined
     integralValue(type: IntegralPrimitiveTypeKind): IntegralValue | undefined
     floatValue(type: FloatingPrimitiveTypeKind): FloatValue | undefined
     not(): BoolValue
-    as(type: Type | PrimitiveTypeKind): Value | undefined
+    as(type: ast.Type | PrimitiveTypeKind): Value | undefined
 
 }
 abstract class SimpleValue<T> implements Value {
-    getValue(): boolean | bigint | number | string | EnumerationLiteral {
+    getValue(): boolean | bigint | number | string | ast.EnumerationLiteral {
         throw new Error("Method not implemented.");
     }
 
     primitiveTypeKind(): PrimitiveTypeKind { return 'None' }
-    as(type: Type | PrimitiveTypeKind): Value | undefined {
-        const kind = isType(type) ? XsmpUtils.getPrimitiveTypeKind(type) : type
+    as(type: ast.Type | PrimitiveTypeKind): Value | undefined {
+        const kind = ast.isType(type) ? XsmpUtils.getPrimitiveTypeKind(type) : type
         if (isIntegralType(kind))
             return this.integralValue(kind)
         if (isFloatingType(kind))
             return this.floatValue(kind)
         if (kind == 'Enum') {
             const value = this.enumerationLiteral()
-            if (isEnumeration(type)) {
+            if (ast.isEnumeration(type)) {
                 if (value?.getValue().$container == type)
                     return value
                 return undefined
@@ -60,16 +59,16 @@ abstract class SimpleValue<T> implements Value {
             return new BoolValue(left.value && right.value)
         return undefined
     }
-    or(val: SimpleValue<T>): SimpleValue<T> { throw Error("or") }
-    and(val: SimpleValue<T>): SimpleValue<T> { throw Error("and") }
-    xor(val: SimpleValue<T>): SimpleValue<T> { throw Error("xor") }
-    add(val: SimpleValue<T>): SimpleValue<T> { throw Error("add") }
-    subtract(val: SimpleValue<T>): SimpleValue<T> { throw Error("subtract") }
-    divide(val: SimpleValue<T>): SimpleValue<T> { throw Error("divide") }
-    multiply(val: SimpleValue<T>): SimpleValue<T> { throw Error("multiply") }
-    remainder(val: SimpleValue<T>): SimpleValue<T> { throw Error("remainder") }
-    shiftLeft(n: SimpleValue<T>): SimpleValue<T> { throw Error("shiftLeft") }
-    shiftRight(n: SimpleValue<T>): SimpleValue<T> { throw Error("shiftRight") }
+    or(val: SimpleValue<T>): SimpleValue<T> | undefined { return undefined }
+    and(val: SimpleValue<T>): SimpleValue<T> | undefined { return undefined }
+    xor(val: SimpleValue<T>): SimpleValue<T> | undefined { return undefined }
+    add(val: SimpleValue<T>): SimpleValue<T> | undefined { return undefined }
+    subtract(val: SimpleValue<T>): SimpleValue<T> | undefined { return undefined }
+    divide(val: SimpleValue<T>): SimpleValue<T> | undefined { return undefined }
+    multiply(val: SimpleValue<T>): SimpleValue<T> | undefined { return undefined }
+    remainder(val: SimpleValue<T>): SimpleValue<T> | undefined { return undefined }
+    shiftLeft(n: SimpleValue<T>): SimpleValue<T> | undefined { return undefined }
+    shiftRight(n: SimpleValue<T>): SimpleValue<T> | undefined { return undefined }
 }
 
 class BoolValue extends SimpleValue<BoolValue> {
@@ -86,12 +85,12 @@ class BoolValue extends SimpleValue<BoolValue> {
 }
 
 class EnumerationLiteralValue extends SimpleValue<EnumerationLiteralValue> {
-    readonly value: EnumerationLiteral
-    constructor(value: EnumerationLiteral) {
+    readonly value: ast.EnumerationLiteral
+    constructor(value: ast.EnumerationLiteral) {
         super()
         this.value = value
     }
-    override getValue(): EnumerationLiteral { return this.value }
+    override getValue(): ast.EnumerationLiteral { return this.value }
     override enumerationLiteral(): this { return this }
     override primitiveTypeKind(): PrimitiveTypeKind { return 'Enum' }
 
@@ -101,7 +100,7 @@ class IntegralValue extends SimpleValue<IntegralValue> {
     readonly value: bigint
     readonly type: IntegralPrimitiveTypeKind
 
-    public static of(expr: IntegerLiteral): IntegralValue | undefined {
+    public static of(expr: ast.IntegerLiteral): IntegralValue | undefined {
         let text = expr.text.replaceAll("'", '')
 
         let type: IntegralPrimitiveTypeKind = 'Int32'
@@ -201,7 +200,7 @@ class FloatValue extends SimpleValue<FloatValue> {
         }
         this.type = type
     }
-    public static of(expr: FloatingLiteral): FloatValue {
+    public static of(expr: ast.FloatingLiteral): FloatValue {
         let text = expr.text.replaceAll("'", '')
         if (text.endsWith('f') || text.endsWith('F')) {
             return new FloatValue(parseFloat(text.slice(0, -1)), 'Float32')
@@ -239,28 +238,28 @@ class FloatValue extends SimpleValue<FloatValue> {
 export class Solver {
 
 
-    public static getValue(expression: Expression | undefined): Value | undefined {
+    public static getValue(expression: ast.Expression | undefined): Value | undefined {
         if (expression) {
-            if (isIntegerLiteral(expression)) {
+            if (ast.isIntegerLiteral(expression)) {
                 return IntegralValue.of(expression)
             }
-            if (isFloatingLiteral(expression)) {
+            if (ast.isFloatingLiteral(expression)) {
                 return FloatValue.of(expression)
             }
-            if (isBooleanLiteral(expression)) {
+            if (ast.isBooleanLiteral(expression)) {
                 return new BoolValue(expression.isTrue)
             }
-            if (isUnaryOperation(expression)) {
+            if (ast.isUnaryOperation(expression)) {
                 return this.unaryOperation(expression)
             }
-            if (isBinaryOperation(expression)) {
+            if (ast.isBinaryOperation(expression)) {
                 return this.binaryOperation(expression)
             }
-            if (isParenthesizedExpression(expression)) {
+            if (ast.isParenthesizedExpression(expression)) {
                 return this.getValue(expression.expr)
             }
-            if (isNamedElementReference(expression)) {
-                if (isEnumerationLiteral(expression.value?.ref))
+            if (ast.isNamedElementReference(expression)) {
+                if (ast.isEnumerationLiteral(expression.value?.ref))
                     return new EnumerationLiteralValue(expression.value?.ref)
                 return this.getValue(expression.value?.ref?.value)
             }
@@ -295,7 +294,7 @@ export class Solver {
         }
     }
 
-    private static binaryOperation(expression: BinaryOperation): Value | undefined {
+    private static binaryOperation(expression: ast.BinaryOperation): Value | undefined {
 
         let left = this.getValue(expression.leftOperand)
         let right = this.getValue(expression.rightOperand)
@@ -345,7 +344,7 @@ export class Solver {
         }
         return undefined
     }
-    private static unaryOperation(expression: UnaryOperation): Value | undefined {
+    private static unaryOperation(expression: ast.UnaryOperation): Value | undefined {
         let operand = this.getValue(expression.operand)
 
         if (operand instanceof BoolValue) {

@@ -13,8 +13,7 @@ beforeAll(async () => {
     services = createXsmpServices(EmptyFileSystem);
     parse = parseHelper<Catalogue>(services.xsmpcat);
 
-    // activate the following if your linking test requires elements from a built-in library, for example
-    // await services.shared.workspace.WorkspaceManager.initializeWorkspace([]);
+     await services.shared.workspace.WorkspaceManager.initializeWorkspace([]);
 });
 
 describe('Parsing tests', () => {

@@ -55,7 +55,7 @@ export class XsmpUtils {
         let name = node.name as string;
         let parent = node.$container;
 
-        while (/*parent && */(isNamespace(parent) || isType(parent))) {
+        while (isNamespace(parent) || isType(parent)) {
             name = `${parent.name}.${name}`;
             parent = parent.$container;
         }

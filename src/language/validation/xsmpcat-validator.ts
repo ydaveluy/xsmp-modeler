@@ -11,6 +11,7 @@ export function registerXsmpcatValidationChecks(services: XsmpcatServices) {
     const registry = services.validation.ValidationRegistry;
     const validator = services.validation.XsmpcatValidator;
     const checks: ValidationChecks<ast.XsmpAstType> = {
+
         NamedElement: validator.checkNamedElement,
         Attribute: validator.checkAttribute,
         Constant: validator.checkConstant,
@@ -22,7 +23,7 @@ export function registerXsmpcatValidationChecks(services: XsmpcatServices) {
 
 
     };
-    registry.register(checks, validator);
+    registry.register(checks, validator, 'fast');
 }
 
 

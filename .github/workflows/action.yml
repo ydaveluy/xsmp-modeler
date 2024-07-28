@@ -38,18 +38,18 @@ jobs:
     - name: SonarCloud Scan
       uses: SonarSource/sonarcloud-github-action@master
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # Generate a token on SonarQube, add it to the secrets of this repo with the name SONAR_TOKEN (Settings > Secrets > Actions > add new repository secret)
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} 
       with:
         # Additional arguments for the sonarcloud scanner
         args:
           -Dsonar.projectKey=ydaveluy_xsmp-modeler
           -Dsonar.organization=ydaveluy
           -Dsonar.sources=src/ 
+          -Dsonar.exclusions=src/language/generated/*
           -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
           -Dsonar.exclusions=dist/**
           -Dsonar.coverage.exclusions=**/*.test.*
-          -Dsonar.testExecutionReportPaths=sonar-report.xml
 
   lint:
     name: Lint
