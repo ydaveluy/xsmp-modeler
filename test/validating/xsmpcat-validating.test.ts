@@ -35,7 +35,7 @@ describe('Validating', () => {
         `);
 
 
-        expect(checkDocumentValid(document) || document.diagnostics?.map(diagnosticToString)?.join('\n')).toHaveLength(0)
+        expect(checkDocumentValid(document) ?? document.diagnostics?.map(diagnosticToString)?.join('\n')).toHaveLength(0)
 
 
     });
@@ -47,7 +47,7 @@ function checkDocumentValid(document: LangiumDocument): string | undefined {
         Parser errors: ${document.parseResult.parserErrors.map(e => e.message).join('\n  ')}
     `
         || document.parseResult.value === undefined && `ParseResult is 'undefined'.`
-        || !isCatalogue(document.parseResult.value) && `Root AST object is a ${document.parseResult.value.$type}, expected a '${Model}'.`
+        || !isCatalogue(document.parseResult.value) && `Root AST object is a ${document.parseResult.value.$type}, expected a '${Catalogue}'.`
         || undefined;
 }
 

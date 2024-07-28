@@ -414,7 +414,7 @@ export const builtins: Map<string, string> = new Map([
          * This attribute can be applied to an array type to ensure that it is registered into the TypeRegistry as simple array.
          * 
          * @uuid 8596d697-fb84-41ce-a685-6912006ed662
-         * @usage ValueType
+         * @usage ArrayType
          * @id Smp.Attributes.SimpleArray
          */
         public attribute Smp.Bool SimpleArray = true

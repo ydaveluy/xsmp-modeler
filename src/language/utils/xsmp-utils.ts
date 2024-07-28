@@ -6,10 +6,10 @@ import { LangiumServices } from "langium/lsp";
 
 
 
-export type IntegralPrimitiveTypeKind = 'Int8' | 'Int16' | 'UInt8' | 'UInt16' | 'Int32' | 'Int64' | 'UInt32' | 'UInt64';
+export type IntegralPrimitiveTypeKind = 'Int8' | 'Int16' | 'UInt8' | 'UInt16' | 'Int32' | 'Int64' | 'UInt32' | 'UInt64' | 'DateTime' | 'Duration';
 
 const integralTypes: Set<PrimitiveTypeKind> = new Set([
-    'Int8', 'Int16', 'UInt8', 'UInt16', 'Int32', 'Int64', 'UInt32', 'UInt64'
+    'Int8', 'Int16', 'UInt8', 'UInt16', 'Int32', 'Int64', 'UInt32', 'UInt64', 'DateTime', 'Duration'
 ]);
 
 
@@ -26,7 +26,7 @@ const floatingTypes: Set<PrimitiveTypeKind> = new Set([
 export function isFloatingType(type: PrimitiveTypeKind): type is FloatingPrimitiveTypeKind {
     return floatingTypes.has(type);
 }
-export type PrimitiveTypeKind = 'Bool' | 'Char8' | 'DateTime' | 'Duration' | FloatingPrimitiveTypeKind | IntegralPrimitiveTypeKind | 'String8' | 'None' | 'Enum';
+export type PrimitiveTypeKind = 'Bool' | 'Char8' | FloatingPrimitiveTypeKind | IntegralPrimitiveTypeKind | 'String8' | 'None' | 'Enum';
 
 
 
@@ -123,8 +123,8 @@ export class XsmpUtils {
         return tag?.inline ? undefined : tag
     }
 
-    public getTags(element: NamedElement, tagName: string): JSDocTag[]  {
-        return this.getJSDoc(element)?.getTags(tagName).filter(t => !t.inline)??[]
+    public getTags(element: NamedElement, tagName: string): JSDocTag[] {
+        return this.getJSDoc(element)?.getTags(tagName).filter(t => !t.inline) ?? []
     }
 
     public getUuid(type: Type): JSDocTag | undefined {

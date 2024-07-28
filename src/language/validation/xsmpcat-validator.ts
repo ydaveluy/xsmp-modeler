@@ -1,4 +1,4 @@
-import { type ValidationAcceptor, type ValidationChecks } from 'langium';
+import {  type ValidationAcceptor, type ValidationChecks } from 'langium';
 import * as ast from '../generated/ast.js';
 import type { XsmpcatServices } from '../xsmpcat-module.js';
 import { isFloatingType, isIntegralType, XsmpUtils } from '../utils/xsmp-utils.js';
@@ -71,7 +71,8 @@ export class XsmpcatValidator {
         for (const attribute of element.attributes) {
             if (attribute.type.ref) {
                 const tags = this.xsmpUtils.getTags(attribute.type.ref, 'usage')
-                if (!tags.some(t => t.content.toString() == element.$type)) {
+
+                if (!tags.some(t => ast.reflection.isSubtype(element.$type, t.content.toString()))) {
                     accept('warning', "This annotation is disallowed for this location.", { node: attribute, property: 'type' });
                 }
                 //TODO check duplicates
@@ -109,7 +110,7 @@ export class XsmpcatValidator {
             }
             else {
                 const kind = XsmpUtils.getPrimitiveTypeKind(constant.type.ref)
-                if (!Solver.getValue(constant.value)?.as(constant.type.ref))
+                if (!Solver.getValueAs(constant.value, constant.type.ref, accept))
                     accept('error', `Value shall be of type ${kind}.`, { node: constant, property: 'value' });
             }
         }
@@ -129,10 +130,10 @@ export class XsmpcatValidator {
             accept('error', 'An Enumeration shall contains at least one literal.', { node: enumeration, property: 'literal' });
         }
 
-        const values = new Set<bigint>();
+        const values = new Set<any>();
         for (const literal of enumeration.literal) {
 
-            const value = Solver.getValue(literal.value)?.integralValue('Int32')?.getValue()
+            const value = Solver.getValueAs(literal.value, 'Int32', accept)?.getValue()
             if (value === undefined) {
                 accept('error', "Literal value shall be an Int32", { node: literal, property: 'value' });
             }
@@ -148,8 +149,8 @@ export class XsmpcatValidator {
     checkInteger(integer: ast.Integer, accept: ValidationAcceptor): void {
         const kind = XsmpUtils.getPrimitiveTypeKind(integer)
         if (isIntegralType(kind)) {
-            const min = Solver.getValue(integer.minimum)?.integralValue(kind)?.getValue()
-            const max = Solver.getValue(integer.maximum)?.integralValue(kind)?.getValue()
+            const min = Solver.getValueAs(integer.minimum, kind, accept)?.getValue()
+            const max = Solver.getValueAs(integer.maximum, kind, accept)?.getValue()
             if (integer.minimum && min === undefined) {
                 accept('error', `Minimum value shall be an ${kind}.`, { node: integer, property: 'minimum' });
             }
@@ -169,8 +170,8 @@ export class XsmpcatValidator {
 
         const kind = XsmpUtils.getPrimitiveTypeKind(float)
         if (isFloatingType(kind)) {
-            const min = Solver.getValue(float.minimum)?.floatValue(kind)?.getValue()
-            const max = Solver.getValue(float.maximum)?.floatValue(kind)?.getValue()
+            const min = Solver.getValueAs(float.minimum, kind, accept)?.getValue()
+            const max = Solver.getValueAs(float.maximum, kind, accept)?.getValue()
             if (float.minimum && min === undefined) {
                 accept('error', `Minimum value shall be a ${kind}.`, { node: float, property: 'minimum' });
             }

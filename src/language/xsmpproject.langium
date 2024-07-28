@@ -1,9 +1,17 @@
 grammar Xsmpproject
-import 'Terminals'
 import 'xsmp-types'
 
 entry Document returns Document:
     Project | Profile | Tool;
+
+hidden terminal WS: /\s+/;
+terminal STRING: /"[^"]*"|'[^']*'/;
+
+
+hidden terminal ML_COMMENT: /\/\*[\s\S]*?\*\//;
+hidden terminal SL_COMMENT: /\/\/[^\n\r]*/;
+
+
 
 Project returns Project:
     /**

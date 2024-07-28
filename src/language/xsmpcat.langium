@@ -1,5 +1,5 @@
 grammar Xsmpcat
-import 'Terminals'
+
 import 'xsmp-types'
 
 entry Catalogue returns Catalogue:
@@ -14,19 +14,26 @@ entry Catalogue returns Catalogue:
     'catalogue' name=ValidID  
     elements+=Namespace*
 ;
-terminal FLOATING_LITERAL:FRACTIONALCONSTANT EXPONENTPART? FLOATINGSUFFIX?  | DIGITSEQUENCE EXPONENTPART FLOATINGSUFFIX?;
-terminal FRACTIONALCONSTANT:DIGITSEQUENCE? '.' DIGITSEQUENCE  | DIGITSEQUENCE '.';
-terminal DIGITSEQUENCE:/[0-9][0-9']*/;
-terminal EXPONENTPART:/[eE][+-]?[0-9][0-9']*/;
-terminal FLOATINGSUFFIX:/[fF]/;
-terminal INTEGER_LITERAL:DECIMAL_LITERAL INTEGER_TIME_SUFFIX?  | OCTAL_LITERAL INTEGER_TIME_SUFFIX?  | HEXADECIMAL_LITERAL INTEGER_SUFFIX?  | BINARY_LITERAL INTEGER_SUFFIX?;
-terminal DECIMAL_LITERAL:/[1-9][0-9']*/;
-terminal OCTAL_LITERAL:/0[0-7']*/;
-terminal HEXADECIMAL_LITERAL:/0[xX][0-9a-fA-F][0-9a-fA-F']*/;
-terminal BINARY_LITERAL:/0[bB][01]['01]*/;
-terminal INTEGER_SUFFIX:/(?:[uU][lL]?|[lL][uU]?)/;
-terminal INTEGER_TIME_SUFFIX:'ns' | 'us' | 'ms' | 's' | 'mn' | 'h' | 'd' | 'y' | INTEGER_SUFFIX;
 
+hidden terminal WS: /\s+/;
+terminal ID: /[_a-zA-Z][\w]*/;
+
+terminal STRING: /"[^"]*"/;
+terminal CHAR: /'[^'\r\n]*'/;
+
+
+
+hidden terminal ML_COMMENT: /\/\*[\s\S]*?\*\//;
+hidden terminal SL_COMMENT: /\/\/[^\n\r]*/;
+
+terminal FLOATING_LITERAL:FRACTIONALCONSTANT EXPONENTPART? FLOATINGSUFFIX?  | DIGITSEQUENCE EXPONENTPART FLOATINGSUFFIX?;
+terminal fragment FRACTIONALCONSTANT:DIGITSEQUENCE? '.' DIGITSEQUENCE  | DIGITSEQUENCE '.';
+terminal fragment DIGITSEQUENCE:/[0-9][0-9']*/;
+terminal fragment EXPONENTPART:/[eE][+-]?[0-9][0-9']*/;
+terminal fragment FLOATINGSUFFIX:/[fF]/;
+
+//terminal INTEGER_LITERAL:(DECIMAL_LITERAL  | OCTAL_LITERAL  | HEXADECIMAL_LITERAL  | BINARY_LITERAL) INTEGER_SUFFIX?;
+terminal INTEGER_LITERAL:/(?:[1-9][0-9']*|0[0-7']*|0[xX][0-9a-fA-F][0-9a-fA-F']*|0[bB][01]['01]*)(?:[uU][lL]?|[lL][uU]?)?/;
 
 ValidID returns string:
     ID | 'extends' | 'implements' | 'in' | 'out' | 'inout' | 'class' | 'struct' | 'exception' | 'model' | 'service' | 'interface' | 'string' | 'native' | 'primitive' | 'attribute' | 'integer' | 'catalogue' | 'entrypoint' | 'field' | 'container' | 'reference' | 'eventsink' | 'eventsource' | 'property' | 'association' | 'constant' | 'input' | 'output' | 'transient' | 'event' | 'def' | 'abstract' | 'get' | 'set' | 'readWrite' | 'readOnly' | 'writeOnly' | 'array' | 'enum' | 'namespace' | 'throws' 
@@ -685,7 +692,7 @@ NamedElementReference returns Expression:
 ;
 
 Literal returns Expression:
-    CollectionLiteral | FloatingLiteral | IntegerLiteral | StringLiteral | /*CharacterLiteral |*/ BooleanLiteral | ParenthesizedExpression | NamedElementReference | BuiltInConstant | BuiltInFunction | KeywordExpression 
+    CollectionLiteral | FloatingLiteral | IntegerLiteral | StringLiteral | CharacterLiteral | BooleanLiteral | ParenthesizedExpression | NamedElementReference | BuiltInConstant | BuiltInFunction | KeywordExpression 
 ;
 
 ParenthesizedExpression returns Expression:
@@ -713,11 +720,11 @@ FloatingLiteral returns FloatingLiteral:
 ;
 
 StringLiteral returns Expression:
-    {StringLiteral} (value+=STRING )+  
+    {StringLiteral} value=STRING 
 ;
 
 CharacterLiteral returns Expression:
-    {CharacterLiteral} value=STRING   
+    {CharacterLiteral} value=CHAR   
 ;
 
 BuiltInConstant returns Expression:
@@ -729,7 +736,7 @@ BuiltInFunction returns Expression:
 ;
 
 BooleanLiteral returns Expression:
-    {BooleanLiteral} ('false' | isTrue?='true'  ) 
+    {BooleanLiteral} ('false' | isTrue?='true')
 ;
 
 KeywordExpression returns Expression:

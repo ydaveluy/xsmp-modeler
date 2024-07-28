@@ -91,8 +91,7 @@ export class XsmpcatScopeComputation implements ScopeComputation {
             await interruptAndCheck(cancelToken)
             if (ast.isType(element)) {
                 // add the type to local scope
-                const description = this.descriptions.createDescription(element, element.name, document);
-                localDescriptions.push(description);
+                localDescriptions.push(this.descriptions.createDescription(element, element.name, document));
 
                 if (ast.isEnumeration(element)) {
 
@@ -126,7 +125,6 @@ export class XsmpcatScopeComputation implements ScopeComputation {
                 nestedDescriptions.forEach(description => {
                     localDescriptions.push(this.createAliasDescription(element, description));
                 })
-
             }
         }
 
@@ -138,6 +136,7 @@ export class XsmpcatScopeComputation implements ScopeComputation {
         element: ast.NamedElement,
         description: AstNodeDescription
     ): AstNodeDescription {
+        // override the name
         return { ...description, name: `${element.name}.${description.name}` }
     }
 
@@ -186,7 +185,7 @@ export class XsmpcatScopeProvider extends DefaultScopeProvider {
         return undefined
     }
 
-    protected collectScopesFromNode(context: ReferenceInfo, node: AstNode, scopes: Array<readonly AstNodeDescription[]>,
+    protected collectScopesFromNode(node: AstNode, scopes: Array<readonly AstNodeDescription[]>,
         allDescriptions: readonly AstNodeDescription[]) {
 
 
@@ -195,30 +194,47 @@ export class XsmpcatScopeProvider extends DefaultScopeProvider {
         }
         if (ast.isComponent(node)) {
             if (node.base)
-                this.collectScopesFromReference(context, node.base, scopes)
-            node.interface.forEach(i => this.collectScopesFromReference(context, i, scopes))
+                this.collectScopesFromReference(node.base, scopes)
+            node.interface.forEach(i => this.collectScopesFromReference(i, scopes))
         }
         else if (ast.isClass(node) && node.base) {
-            this.collectScopesFromReference(context, node.base, scopes)
+            this.collectScopesFromReference(node.base, scopes)
         }
         else if (ast.isInterface(node)) {
-            node.base.forEach(i => this.collectScopesFromReference(context, i, scopes))
+            node.base.forEach(i => this.collectScopesFromReference(i, scopes))
         }
     }
-    protected collectScopesFromReference(context: ReferenceInfo, node: Reference, scopes: Array<readonly AstNodeDescription[]>) {
-        if (context.reference != node && node.ref) {
+    protected collectScopesFromReference(node: Reference, scopes: Array<readonly AstNodeDescription[]>) {
+        // check if the node is currently processed to avoid cyclic dependency
+        if (!this.contexts.has(node) && node.ref) {
             const precomputed = AstUtils.getDocument(node.ref).precomputedScopes;
             if (precomputed) {
-                this.collectScopesFromNode(context, node.ref, scopes, precomputed.get(node.ref))
+                this.collectScopesFromNode(node.ref, scopes, precomputed.get(node.ref))
             }
         }
     }
 
+    protected contexts: Set<Reference> = new Set<Reference>
 
     override getScope(context: ReferenceInfo): Scope {
+        // store the context
+        this.contexts.add(context.reference)
+
+        try {
+            return this.doGetScope(context)
+        }
+        finally {
+            //release the context
+            this.contexts.delete(context.reference)
+        }
+    }
+
+    private doGetScope(context: ReferenceInfo): Scope {
+
 
         if (ast.isDesignatedInitializer(context.container) && context.property === 'field') {
             const type = this.getType(context.container.$container as AstNode)
+
             if (ast.isStructure(type)) {
                 //TODO handle element from base class in case of class
                 return this.createScopeForNodes(type.elements)
@@ -235,7 +251,7 @@ export class XsmpcatScopeProvider extends DefaultScopeProvider {
         if (precomputed) {
             let currentNode: AstNode | undefined = context.container;
             do {
-                this.collectScopesFromNode(context, currentNode, scopes, precomputed.get(currentNode))
+                this.collectScopesFromNode(currentNode, scopes, precomputed.get(currentNode))
                 currentNode = currentNode.$container;
             } while (currentNode);
         }
@@ -244,8 +260,7 @@ export class XsmpcatScopeProvider extends DefaultScopeProvider {
         const filter = (desc: AstNodeDescription) => this.reflection.isSubtype(desc.type, referenceType)
         for (let i = scopes.length - 1; i >= 0; i--) {
             //result = this.createScope(stream(scopes[i]).filter(filter), result)
-            result = new FilteredStreamScope(scopes[i], result, filter);
-
+            result = new FilteredScope(scopes[i], result, filter);
         }
         return result;
     }
@@ -257,12 +272,11 @@ export class XsmpcatScopeProvider extends DefaultScopeProvider {
      * Create a global scope filtered for the given referenceType and on visibles projects URIs
      */
     protected override getGlobalScope(referenceType: string, _context: ReferenceInfo): Scope {
-
         return this.globalScopeCache.get(referenceType, () => new MapScope(this.indexManager.allElements(referenceType, this.getVisibleUris(_context))));
     }
 }
 
-export class FilteredStreamScope implements Scope {
+export class FilteredScope implements Scope {
     readonly elements: readonly AstNodeDescription[];
     readonly outerScope: Scope;
     readonly filter: (desc: AstNodeDescription) => boolean
@@ -278,6 +292,7 @@ export class FilteredStreamScope implements Scope {
     }
 
     getElement(name: string): AstNodeDescription | undefined {
-        return this.elements.find(e => e.name === name && this.filter(e)) || this.outerScope.getElement(name);
+        // compare first that name are equals then that the filter is ok (time consuming)
+        return this.elements.find(e => e.name === name && this.filter(e)) ?? this.outerScope.getElement(name);
     }
 }
