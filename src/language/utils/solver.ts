@@ -100,7 +100,7 @@ class StringValue extends Value<StringValue> {
     }
     override getValue(): string { return this.value }
     override primitiveTypeKind(): PrimitiveTypeKind { return 'String8' }
-    override stringValue(): StringValue | undefined { return this }
+    override stringValue(): this | undefined { return this }
 
     override integralValue(type: IntegralPrimitiveTypeKind): IntegralValue | undefined {
         if (type === 'DateTime')
@@ -132,7 +132,7 @@ class CharValue extends Value<CharValue> {
     }
     override getValue(): string { return this.value }
     override primitiveTypeKind(): PrimitiveTypeKind { return 'String8' }
-    override charValue(): CharValue | undefined { return this }
+    override charValue(): this | undefined { return this }
 }
 
 class EnumerationLiteralValue extends Value<EnumerationLiteralValue> {
@@ -453,16 +453,8 @@ export class Solver {
         if (!operand)
             return undefined
 
-        let result: Value<T> | undefined
-        if (operand instanceof BoolValue) {
-            result = Solver.unaryOperationFunction(operand, expression.feature)
-        }
-        else if (operand instanceof IntegralValue) {
-            result = Solver.unaryOperationFunction(operand, expression.feature)
-        }
-        else if (operand instanceof FloatValue) {
-            result = Solver.unaryOperationFunction(operand, expression.feature)
-        }
+        const result  = Solver.unaryOperationFunction(operand, expression.feature)
+
         if (result === undefined) {
             accept('error', `Unary operator '${expression.feature}' is not supported for operand of type '${operand.primitiveTypeKind}'.`, { node: expression })
         }
