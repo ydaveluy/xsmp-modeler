@@ -17,84 +17,78 @@ export class XsmpcatScopeComputation implements ScopeComputation {
 
 
     async computeExports(document: LangiumDocument, cancelToken = Cancellation.CancellationToken.None): Promise<AstNodeDescription[]> {
-
-        console.time('computeExports ' + document.uri);
-
         const catalogue = document.parseResult.value as ast.Catalogue;
         const exportedDescriptions: AstNodeDescription[] = [];
 
         for (const namespace of catalogue.elements) {
-            await interruptAndCheck(cancelToken)
-            this.computeNamespaceExports(document, namespace, exportedDescriptions, namespace.name + '.', cancelToken)
+            await this.computeNamespaceExports(document, namespace, exportedDescriptions, namespace.name + '.', cancelToken)
             // import elements in Smp and Attributes namespaces in global namespace
             if (namespace.name === 'Smp' || namespace.name === 'Attributes') {
-                await interruptAndCheck(cancelToken)
-                this.computeNamespaceExports(document, namespace, exportedDescriptions, '', cancelToken)
+
+                await this.computeNamespaceExports(document, namespace, exportedDescriptions, '', cancelToken)
             }
         }
-
-        console.timeEnd('computeExports ' + document.uri);
         return exportedDescriptions
 
     }
 
-    computeNamespaceExports(document: LangiumDocument, namespace: ast.Namespace, exportedDescriptions: AstNodeDescription[], baseName: string, cancelToken: Cancellation.CancellationToken) {
-
-
+    async computeNamespaceExports(document: LangiumDocument, namespace: ast.Namespace, exportedDescriptions: AstNodeDescription[], baseName: string, cancelToken: Cancellation.CancellationToken) {
         for (const element of namespace.elements) {
+            await interruptAndCheck(cancelToken)
             const elementName = baseName + element.name
             if (ast.isType(element)) {
-                //export the type
-                exportedDescriptions.push(this.descriptions.createDescription(element, elementName, document));
-
-                if (ast.isEnumeration(element)) {
-                    const elementBaseName = elementName + '.'
-                    for (const literal of element.literal) // export the literals
-                        exportedDescriptions.push(this.descriptions.createDescription(literal, elementBaseName + literal.name, document));
-
-                } else if (ast.isStructure(element) || ast.isReferenceType(element)) {
-                    const elementBaseName = elementName + '.'
-                    for (const member of element.elements) {
-                        if (ast.isConstant(member)) // export only constants
-                            exportedDescriptions.push(this.descriptions.createDescription(member, elementBaseName + member.name, document));
-                    }
-                }
+                this.computeTypeExports(document, element, exportedDescriptions, elementName)
             }
             else {
                 this.computeNamespaceExports(document, element, exportedDescriptions, elementName + '.', cancelToken)
             }
         }
     }
+    computeTypeExports(document: LangiumDocument, type: ast.Type, exportedDescriptions: AstNodeDescription[], typeName: string) {
 
+        //export the type
+        exportedDescriptions.push(this.descriptions.createDescription(type, typeName, document));
+
+        if (ast.isEnumeration(type)) {
+            const elementBaseName = typeName + '.'
+            for (const literal of type.literal) // export the literals
+                exportedDescriptions.push(this.descriptions.createDescription(literal, elementBaseName + literal.name, document));
+
+        } else if (ast.isStructure(type) || ast.isReferenceType(type)) {
+            const elementBaseName = typeName + '.'
+            for (const member of type.elements) {
+                if (ast.isConstant(member)) // export only constants
+                    exportedDescriptions.push(this.descriptions.createDescription(member, elementBaseName + member.name, document));
+            }
+        }
+
+    }
     async computeLocalScopes(document: LangiumDocument, cancelToken = Cancellation.CancellationToken.None): Promise<PrecomputedScopes> {
-
-        console.time('computeLocalScopes ' + document.uri);
         const catalogue = document.parseResult.value as ast.Catalogue;
         const scopes = new MultiMap<AstNode, AstNodeDescription>();
 
         const localDescriptions: AstNodeDescription[] = [];
         for (const namespace of catalogue.elements) {
-            //  await interruptAndCheck(cancelToken)
-            const nestedDescriptions = this.computeNamespaceLocalScopes(namespace, scopes, document, cancelToken)
+            const nestedDescriptions = await this.computeNamespaceLocalScopes(namespace, scopes, document, cancelToken)
             nestedDescriptions.forEach(description => {
                 localDescriptions.push(this.createAliasDescription(namespace, description));
             })
         }
         scopes.addAll(catalogue, localDescriptions);
 
-        console.timeEnd('computeLocalScopes ' + document.uri);
         return scopes;
     }
 
-    protected computeNamespaceLocalScopes(
+    protected async computeNamespaceLocalScopes(
         namespace: ast.Namespace,
         scopes: PrecomputedScopes,
         document: LangiumDocument,
         cancelToken: Cancellation.CancellationToken
-    ): AstNodeDescription[] {
+    ): Promise<AstNodeDescription[]> {
         const localDescriptions: AstNodeDescription[] = [];
 
         for (const element of namespace.elements) {
+            await interruptAndCheck(cancelToken)
             if (ast.isType(element)) {
                 // add the type to local scope
                 const description = this.descriptions.createDescription(element, element.name, document);
@@ -128,7 +122,7 @@ export class XsmpcatScopeComputation implements ScopeComputation {
                     });
                 }
             } else {
-                const nestedDescriptions = this.computeNamespaceLocalScopes(element, scopes, document, cancelToken)
+                const nestedDescriptions = await this.computeNamespaceLocalScopes(element, scopes, document, cancelToken)
                 nestedDescriptions.forEach(description => {
                     localDescriptions.push(this.createAliasDescription(element, description));
                 })
@@ -284,7 +278,6 @@ export class FilteredStreamScope implements Scope {
     }
 
     getElement(name: string): AstNodeDescription | undefined {
-        const local = this.elements.find(e => e.name === name && this.filter(e));
-        return local ? local : this.outerScope.getElement(name);
+        return this.elements.find(e => e.name === name && this.filter(e)) || this.outerScope.getElement(name);
     }
 }

@@ -25,7 +25,7 @@ export class XsmpDocumentSymbolProvider extends DefaultDocumentSymbolProvider {
 
             return [{
                 kind: this.nodeKindProvider.getSymbolKind(astNode),
-                name: name || nameNode.text,
+                name: name ?? nameNode.text,
                 range: node.range,
                 selectionRange: nameNode.range,
                 children: this.getChildSymbols(document, astNode),

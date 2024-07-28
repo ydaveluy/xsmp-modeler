@@ -10,8 +10,8 @@ export class XsmpcatFormatter extends AbstractFormatter {
         if (ast.isExpression(node)) {
             this.formatExpression(node)
         }
-        else if (ast.isType(node)) {
-            this.formatType(node)
+        else if (ast.isVisibilityElement(node)) {
+            this.formatIsVisibilityElement(node)
         }
         else if (ast.isNamespace(node)) {
             const formatter = this.getNodeFormatter(node);
@@ -25,32 +25,6 @@ export class XsmpcatFormatter extends AbstractFormatter {
             const bracesClose = formatter.keyword(')');
             bracesOpen.surround(Formatting.noSpace())
             bracesClose.prepend(Formatting.noSpace())
-        }
-        else if (ast.isConstant(node) || ast.isField(node) || ast.isAssociation(node)) {
-            const formatter = this.getNodeFormatter(node);
-            this.formatMofifiers(formatter)
-            formatter.property('type').surround(Formatting.oneSpace())
-            formatter.keyword('=').surround(Formatting.oneSpace())
-        }
-        else if (ast.isProperty(node)) {
-            const formatter = this.getNodeFormatter(node);
-            this.formatMofifiers(formatter)
-            formatter.property('type').surround(Formatting.oneSpace())
-            formatter.keyword('get').surround(Formatting.oneSpace())
-            formatter.keyword('set').surround(Formatting.oneSpace())
-            formatter.keywords('throws').surround(Formatting.oneSpace())
-            this.formatCommaList(formatter)
-            formatter.keyword('->').surround(Formatting.oneSpace())
-        }
-        else if (ast.isOperation(node)) {
-            const formatter = this.getNodeFormatter(node);
-            this.formatMofifiers(formatter)
-            formatter.keywords('void').surround(Formatting.oneSpace())
-            formatter.property('returnParameter').surround(Formatting.oneSpace())
-            formatter.property('name').prepend(Formatting.oneSpace()).append(Formatting.noSpace())
-            this.formatCommaList(formatter)
-            formatter.keywords(')').prepend(Formatting.noSpace())
-            formatter.keywords('throws').surround(Formatting.oneSpace())
         }
         else if (ast.isParameter(node)) {
             const formatter = this.getNodeFormatter(node);
@@ -87,6 +61,39 @@ export class XsmpcatFormatter extends AbstractFormatter {
         }
         else if (ast.isEnumerationLiteral(node)) {
             this.getNodeFormatter(node).keyword('=').surround(Formatting.oneSpace())
+        }
+    }
+
+
+    protected formatIsVisibilityElement(node: ast.VisibilityElement): void {
+        if (ast.isType(node)) {
+            this.formatType(node)
+        }
+        if (ast.isConstant(node) || ast.isField(node) || ast.isAssociation(node)) {
+            const formatter = this.getNodeFormatter(node);
+            this.formatMofifiers(formatter)
+            formatter.property('type').surround(Formatting.oneSpace())
+            formatter.keyword('=').surround(Formatting.oneSpace())
+        }
+        else if (ast.isProperty(node)) {
+            const formatter = this.getNodeFormatter(node);
+            this.formatMofifiers(formatter)
+            formatter.property('type').surround(Formatting.oneSpace())
+            formatter.keyword('get').surround(Formatting.oneSpace())
+            formatter.keyword('set').surround(Formatting.oneSpace())
+            formatter.keywords('throws').surround(Formatting.oneSpace())
+            this.formatCommaList(formatter)
+            formatter.keyword('->').surround(Formatting.oneSpace())
+        }
+        else if (ast.isOperation(node)) {
+            const formatter = this.getNodeFormatter(node);
+            this.formatMofifiers(formatter)
+            formatter.keywords('void').surround(Formatting.oneSpace())
+            formatter.property('returnParameter').surround(Formatting.oneSpace())
+            formatter.property('name').prepend(Formatting.oneSpace()).append(Formatting.noSpace())
+            this.formatCommaList(formatter)
+            formatter.keywords(')').prepend(Formatting.noSpace())
+            formatter.keywords('throws').surround(Formatting.oneSpace())
         }
         else if (ast.isCatalogue(node)) {
             this.getNodeFormatter(node).property('name').prepend(Formatting.oneSpace()).append(Formatting.newLine({ allowMore: true }))
