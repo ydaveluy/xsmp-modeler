@@ -77,26 +77,21 @@ export function isUriInFolders(uri: URI, folders: Set<string>): boolean {
 }
 
 
-export function findVisibleUris(documents: LangiumDocuments, uri: URI): Set<string> {
+export function findVisibleUris(documents: LangiumDocuments, uri: URI): Set<string> | undefined {
 
-    const uris: Set<string> = new Set<string>;
     const project = findProjectContainingUri(documents, uri);
 
     if (project) {
+        const uris: Set<string> = new Set<string>;
         const folders = getSourceFolders(getAllDependencies(project));
         for (const doc of documents.all) {
             if (isCatalogue(doc.parseResult.value) && (isBuiltinLibrary(doc.uri) || isUriInFolders(doc.uri, folders))) {
                 uris.add(doc.uri.toString());
             }
         }
-    } else {
-        for (const doc of documents.all) {
-            if (isCatalogue(doc.parseResult.value) && isBuiltinLibrary(doc.uri)) {
-                uris.add(doc.uri.toString());
-            }
-        }
-    }
-    uris.delete(uri.toString())
-    //console.log(`findVisibleUris of ${uri.toString()}: ${stream(uris).map(u=>u.toString()).join(' ')}`)
-    return uris;
+        uris.delete(uri.toString())
+        return uris;
+    } 
+
+    return undefined
 }

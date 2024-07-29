@@ -19,6 +19,7 @@
         "forceConsistentCasingInFileNames": true,
         "rootDir": ".",
         "noEmit": true,
+        "removeComments": true
     },
     "include": [
         "src/**/*.ts",

@@ -1,8 +1,8 @@
 
-import type { AstNode, AstNodeDescription, AstNodeDescriptionProvider, AstReflection, IndexManager, LangiumCoreServices, LangiumDocument, LangiumDocuments, PrecomputedScopes, Reference, ReferenceInfo, Scope, ScopeComputation, ScopeProvider, Stream } from 'langium';
+import type { AstNode, AstNodeDescription, AstNodeDescriptionProvider, AstReflection, IndexManager, LangiumCoreServices, LangiumDocument, LangiumDocuments, PrecomputedScopes, Reference, ReferenceInfo, Scope, ScopeComputation, ScopeProvider, Stream, URI } from 'langium';
 import type { XsmpcatServices } from '../xsmpcat-module.js';
 import * as ast from '../generated/ast.js';
-import { AstUtils, Cancellation, WorkspaceCache, EMPTY_SCOPE, interruptAndCheck, MultiMap, stream, StreamScope } from 'langium';
+import { AstUtils, Cancellation, WorkspaceCache, EMPTY_SCOPE, interruptAndCheck, MultiMap, stream, MapScope } from 'langium';
 import { findVisibleUris } from '../utils/project-utils.js';
 
 
@@ -154,20 +154,28 @@ export class XsmpcatScopeComputation implements ScopeComputation {
 
 export class XsmpcatScopeProvider implements ScopeProvider {
     protected documents: LangiumDocuments;
-    protected readonly visibleUris: WorkspaceCache<LangiumDocument, Set<string>>;
+    protected readonly visibleUris: WorkspaceCache<URI, Set<string> | undefined>;
     protected readonly reflection: AstReflection;
     protected readonly indexManager: IndexManager;
 
+    protected readonly exprToType: WorkspaceCache<AstNode, ast.Type | undefined>;
+
+    protected readonly globalScopeCache: WorkspaceCache<string, Scope>;
 
     constructor(services: XsmpcatServices) {
-        // super(services);
         this.documents = services.shared.workspace.LangiumDocuments;
-        this.visibleUris = new WorkspaceCache<LangiumDocument, Set<string>>(services.shared)
+        this.visibleUris = new WorkspaceCache<URI, Set<string> | undefined>(services.shared)
         this.reflection = services.shared.AstReflection;
         this.indexManager = services.shared.workspace.IndexManager;
+
+        this.exprToType = new WorkspaceCache<AstNode, ast.Type | undefined>(services.shared)
+        this.globalScopeCache = new WorkspaceCache<string, Scope>(services.shared);
+    }
+    getType(expression: AstNode): ast.Type | undefined {
+        return this.exprToType.get(expression, () => this.doGetType(expression))
     }
 
-    getType(expression: AstNode): ast.Type | undefined {
+    doGetType(expression: AstNode): ast.Type | undefined {
         if (ast.isField(expression.$container)) {
             return expression.$container.type.ref
         }
@@ -285,15 +293,18 @@ export class XsmpcatScopeProvider implements ScopeProvider {
         }
         return parent;
     }
-    private getVisibleUris(_context: ReferenceInfo): Set<string> {
-        return this.visibleUris.get(AstUtils.getDocument(_context.container), () => findVisibleUris(this.documents, AstUtils.getDocument(_context.container).uri))
+    private getVisibleUris(uri: URI): Set<string> | undefined {
+        return this.visibleUris.get(uri, () => findVisibleUris(this.documents, uri))
     }
 
     /**
      * Create a global scope filtered for the given referenceType and on visibles projects URIs
      */
     protected getGlobalScope(referenceType: string, _context: ReferenceInfo): Scope {
-        return new StreamScope(this.indexManager.allElements(referenceType, this.getVisibleUris(_context)))
+        const doc = AstUtils.getDocument(_context.container);
+
+        return this.globalScopeCache.get(referenceType + '[' + doc.uri.path + ']', () => new MapScope(this.indexManager.allElements(referenceType, this.getVisibleUris(doc.uri))))
+
     }
 }
 
