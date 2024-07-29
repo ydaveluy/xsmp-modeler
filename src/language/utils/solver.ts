@@ -432,7 +432,7 @@ export class Solver {
             }
         }
         if (result === undefined) {
-            accept('error', `Binary operator '${expression.feature}' is not supported for operands of type '${left.primitiveTypeKind}' and '${right.primitiveTypeKind}'.`,
+            accept('error', `Binary operator '${expression.feature}' is not supported for operands of type '${left.primitiveTypeKind()}' and '${right.primitiveTypeKind()}'.`,
                 { node: expression })
         }
         return result
@@ -456,7 +456,7 @@ export class Solver {
         const result  = Solver.unaryOperationFunction(operand, expression.feature)
 
         if (result === undefined) {
-            accept('error', `Unary operator '${expression.feature}' is not supported for operand of type '${operand.primitiveTypeKind}'.`, { node: expression })
+            accept('error', `Unary operator '${expression.feature}' is not supported for operand of type '${operand.primitiveTypeKind()}'.`, { node: expression })
         }
         return result
     }

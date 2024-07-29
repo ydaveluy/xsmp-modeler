@@ -1,8 +1,8 @@
 
-import type { AstNode, AstNodeDescription, AstNodeDescriptionProvider, LangiumCoreServices, LangiumDocument, LangiumDocuments, PrecomputedScopes, Reference, ReferenceInfo, Scope, ScopeComputation, Stream } from 'langium';
+import type { AstNode, AstNodeDescription, AstNodeDescriptionProvider, AstReflection, IndexManager, LangiumCoreServices, LangiumDocument, LangiumDocuments, PrecomputedScopes, Reference, ReferenceInfo, Scope, ScopeComputation, ScopeProvider, Stream } from 'langium';
 import type { XsmpcatServices } from '../xsmpcat-module.js';
 import * as ast from '../generated/ast.js';
-import { AstUtils, Cancellation, DefaultScopeProvider, WorkspaceCache, EMPTY_SCOPE, interruptAndCheck, MapScope, MultiMap, stream } from 'langium';
+import { AstUtils, Cancellation, WorkspaceCache, EMPTY_SCOPE, interruptAndCheck, MultiMap, stream, StreamScope } from 'langium';
 import { findVisibleUris } from '../utils/project-utils.js';
 
 
@@ -21,11 +21,14 @@ export class XsmpcatScopeComputation implements ScopeComputation {
         const exportedDescriptions: AstNodeDescription[] = [];
 
         for (const namespace of catalogue.elements) {
-            await this.computeNamespaceExports(document, namespace, exportedDescriptions, namespace.name + '.', cancelToken)
-            // import elements in Smp and Attributes namespaces in global namespace
-            if (namespace.name === 'Smp' || namespace.name === 'Attributes') {
+            await interruptAndCheck(cancelToken);
+            if (namespace.name) {
+                await this.computeNamespaceExports(document, namespace, exportedDescriptions, namespace.name + '.', cancelToken)
+                // import elements in Smp and Attributes namespaces in global namespace
+                if (namespace.name === 'Smp' || namespace.name === 'Attributes') {
 
-                await this.computeNamespaceExports(document, namespace, exportedDescriptions, '', cancelToken)
+                    await this.computeNamespaceExports(document, namespace, exportedDescriptions, '', cancelToken)
+                }
             }
         }
         return exportedDescriptions
@@ -34,13 +37,15 @@ export class XsmpcatScopeComputation implements ScopeComputation {
 
     async computeNamespaceExports(document: LangiumDocument, namespace: ast.Namespace, exportedDescriptions: AstNodeDescription[], baseName: string, cancelToken: Cancellation.CancellationToken) {
         for (const element of namespace.elements) {
-            await interruptAndCheck(cancelToken)
-            const elementName = baseName + element.name
-            if (ast.isType(element)) {
-                this.computeTypeExports(document, element, exportedDescriptions, elementName)
-            }
-            else {
-                this.computeNamespaceExports(document, element, exportedDescriptions, elementName + '.', cancelToken)
+            if (element.name) {
+                await interruptAndCheck(cancelToken)
+                const elementName = baseName + element.name
+                if (ast.isType(element)) {
+                    this.computeTypeExports(document, element, exportedDescriptions, elementName)
+                }
+                else {
+                    await this.computeNamespaceExports(document, element, exportedDescriptions, elementName + '.', cancelToken)
+                }
             }
         }
     }
@@ -52,12 +57,13 @@ export class XsmpcatScopeComputation implements ScopeComputation {
         if (ast.isEnumeration(type)) {
             const elementBaseName = typeName + '.'
             for (const literal of type.literal) // export the literals
-                exportedDescriptions.push(this.descriptions.createDescription(literal, elementBaseName + literal.name, document));
+                if (literal.name)
+                    exportedDescriptions.push(this.descriptions.createDescription(literal, elementBaseName + literal.name, document));
 
         } else if (ast.isStructure(type) || ast.isReferenceType(type)) {
             const elementBaseName = typeName + '.'
             for (const member of type.elements) {
-                if (ast.isConstant(member)) // export only constants
+                if (ast.isConstant(member) && member.name) // export only constants
                     exportedDescriptions.push(this.descriptions.createDescription(member, elementBaseName + member.name, document));
             }
         }
@@ -69,10 +75,12 @@ export class XsmpcatScopeComputation implements ScopeComputation {
 
         const localDescriptions: AstNodeDescription[] = [];
         for (const namespace of catalogue.elements) {
-            const nestedDescriptions = await this.computeNamespaceLocalScopes(namespace, scopes, document, cancelToken)
-            nestedDescriptions.forEach(description => {
-                localDescriptions.push(this.createAliasDescription(namespace, description));
-            })
+            if (namespace.name) {
+                const nestedDescriptions = await this.computeNamespaceLocalScopes(namespace, scopes, document, cancelToken)
+                nestedDescriptions.forEach(description => {
+                    localDescriptions.push(this.createAliasDescription(namespace, description));
+                })
+            }
         }
         scopes.addAll(catalogue, localDescriptions);
 
@@ -88,6 +96,8 @@ export class XsmpcatScopeComputation implements ScopeComputation {
         const localDescriptions: AstNodeDescription[] = [];
 
         for (const element of namespace.elements) {
+            if (!element.name)
+                continue
             await interruptAndCheck(cancelToken)
             if (ast.isType(element)) {
                 // add the type to local scope
@@ -109,9 +119,9 @@ export class XsmpcatScopeComputation implements ScopeComputation {
 
                     // constants are exported to parent scopes whereas fields are local
                     element.elements.forEach(member => {
-                        if (ast.isConstant(member))
+                        if (ast.isConstant(member) && member.name)
                             nestedDescriptions.push(this.descriptions.createDescription(member, member.name, document));
-                        else if (ast.isField(member))
+                        else if (ast.isField(member) && member.name)
                             internalDescriptions.push(this.descriptions.createDescription(member, member.name, document));
                     });
 
@@ -142,15 +152,19 @@ export class XsmpcatScopeComputation implements ScopeComputation {
 
 }
 
-export class XsmpcatScopeProvider extends DefaultScopeProvider {
+export class XsmpcatScopeProvider implements ScopeProvider {
     protected documents: LangiumDocuments;
-
     protected readonly visibleUris: WorkspaceCache<LangiumDocument, Set<string>>;
+    protected readonly reflection: AstReflection;
+    protected readonly indexManager: IndexManager;
+
 
     constructor(services: XsmpcatServices) {
-        super(services);
+        // super(services);
         this.documents = services.shared.workspace.LangiumDocuments;
         this.visibleUris = new WorkspaceCache<LangiumDocument, Set<string>>(services.shared)
+        this.reflection = services.shared.AstReflection;
+        this.indexManager = services.shared.workspace.IndexManager;
     }
 
     getType(expression: AstNode): ast.Type | undefined {
@@ -216,7 +230,7 @@ export class XsmpcatScopeProvider extends DefaultScopeProvider {
 
     protected contexts: Set<Reference> = new Set<Reference>
 
-    override getScope(context: ReferenceInfo): Scope {
+    getScope(context: ReferenceInfo): Scope {
         // store the context
         this.contexts.add(context.reference)
 
@@ -231,38 +245,45 @@ export class XsmpcatScopeProvider extends DefaultScopeProvider {
 
     private doGetScope(context: ReferenceInfo): Scope {
 
-
-        if (ast.isDesignatedInitializer(context.container) && context.property === 'field') {
-            const type = this.getType(context.container.$container as AstNode)
-
-            if (ast.isStructure(type)) {
-                //TODO handle element from base class in case of class
-                return this.createScopeForNodes(type.elements)
-            }
-            else {
-                return EMPTY_SCOPE
-            }
-        }
-
         const scopes: Array<readonly AstNodeDescription[]> = [];
         const referenceType = this.reflection.getReferenceType(context);
+        let parent: Scope
+
+        let currentNode: AstNode | undefined
+
+        if (ast.isDesignatedInitializer(context.container) && context.property === 'field') {
+            if (context.container.$container) {
+                const type = this.getType(context.container.$container)
+
+                if (ast.isStructure(type)) {
+                    currentNode = type
+                    parent = EMPTY_SCOPE
+                }
+                else
+                    return EMPTY_SCOPE
+            }
+            else
+                return EMPTY_SCOPE
+        }
+        else {
+            currentNode = context.container;
+            parent = this.getGlobalScope(referenceType, context);
+        }
+
 
         const precomputed = AstUtils.getDocument(context.container).precomputedScopes;
         if (precomputed) {
-            let currentNode: AstNode | undefined = context.container;
             do {
                 this.collectScopesFromNode(currentNode, scopes, precomputed.get(currentNode))
                 currentNode = currentNode.$container;
             } while (currentNode);
         }
 
-        let result: Scope = this.getGlobalScope(referenceType, context);
         const filter = (desc: AstNodeDescription) => this.reflection.isSubtype(desc.type, referenceType)
         for (let i = scopes.length - 1; i >= 0; i--) {
-            //result = this.createScope(stream(scopes[i]).filter(filter), result)
-            result = new FilteredScope(scopes[i], result, filter);
+            parent = new FilteredScope(scopes[i], parent, filter);
         }
-        return result;
+        return parent;
     }
     private getVisibleUris(_context: ReferenceInfo): Set<string> {
         return this.visibleUris.get(AstUtils.getDocument(_context.container), () => findVisibleUris(this.documents, AstUtils.getDocument(_context.container).uri))
@@ -271,10 +292,11 @@ export class XsmpcatScopeProvider extends DefaultScopeProvider {
     /**
      * Create a global scope filtered for the given referenceType and on visibles projects URIs
      */
-    protected override getGlobalScope(referenceType: string, _context: ReferenceInfo): Scope {
-        return this.globalScopeCache.get(referenceType, () => new MapScope(this.indexManager.allElements(referenceType, this.getVisibleUris(_context))));
+    protected getGlobalScope(referenceType: string, _context: ReferenceInfo): Scope {
+        return new StreamScope(this.indexManager.allElements(referenceType, this.getVisibleUris(_context)))
     }
 }
+
 
 export class FilteredScope implements Scope {
     readonly elements: readonly AstNodeDescription[];
@@ -292,7 +314,7 @@ export class FilteredScope implements Scope {
     }
 
     getElement(name: string): AstNodeDescription | undefined {
-        // compare first that name are equals then that the filter is ok (time consuming)
+        // compare first that name are equals then that the filter (more time consuming) is ok 
         return this.elements.find(e => e.name === name && this.filter(e)) ?? this.outerScope.getElement(name);
     }
 }

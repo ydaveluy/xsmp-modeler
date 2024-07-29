@@ -69,7 +69,7 @@ export class XsmpcatValidator {
         }
         //TODO check attribute is valid for element
         for (const attribute of element.attributes) {
-            if (attribute.type.ref) {
+            if (attribute.type?.ref) {
                 const tags = this.xsmpUtils.getTags(attribute.type.ref, 'usage')
 
                 if (!tags.some(t => ast.reflection.isSubtype(element.$type, t.content.toString()))) {
@@ -85,7 +85,7 @@ export class XsmpcatValidator {
 
 
     checkAttribute(attribute: ast.Attribute, accept: ValidationAcceptor): void {
-        if (attribute.type.ref) {
+        if (attribute.type?.ref) {
 
             if (!attribute.type.ref.default && !attribute.value) {
                 accept('error', 'A value is required.', { node: attribute, property: 'value' });
@@ -104,7 +104,7 @@ export class XsmpcatValidator {
     checkConstant(constant: ast.Constant, accept: ValidationAcceptor): void {
 
 
-        if (constant.type.ref) {
+        if (constant.type?.ref) {
             if (!constant.value) {
                 accept('error', 'A Constant must have an initialization value.', { node: constant, property: 'value' });
             }
@@ -117,7 +117,7 @@ export class XsmpcatValidator {
     }
 
     checkField(field: ast.Field, accept: ValidationAcceptor): void {
-        if (field.type.ref) {
+        if (field.type?.ref) {
 
             if (field.default) {
                 //TODO check value

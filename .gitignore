@@ -9,3 +9,4 @@ syntaxes/
 coverage/
 .scannerwork
 sonar-report.xml
+*.vsix

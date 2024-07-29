@@ -21,7 +21,7 @@ afterEach(async () => {
 
 describe('Linking tests', () => {
 
-    test('linking of greetings', async () => {
+    test('linking of project', async () => {
         document = await parse(`
             project "project-name"
 

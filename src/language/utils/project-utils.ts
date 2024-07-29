@@ -1,18 +1,20 @@
 
 import type { LangiumDocuments, URI } from 'langium';
 import type { Project } from '../generated/ast.js';
-import { UriUtils } from 'langium';
-import { isProject } from '../generated/ast.js';
+import { DocumentState, UriUtils } from 'langium';
+import { isCatalogue, isProject } from '../generated/ast.js';
 import { isBuiltinLibrary } from '../builtins.js';
 
 
 
 export function findProjectContainingUri(documents: LangiumDocuments, uri: URI): Project | undefined {
+
     for (const doc of documents.all) {
 
         const project = doc.parseResult.value;
         if (isProject(project)) {
             const projectUri = UriUtils.dirname(doc.uri);
+
             if (uri.path.startsWith(projectUri.path)) {
                 for (const source of project.sourcePaths) {
                     if (uri.path.startsWith(UriUtils.joinPath(projectUri, source).path)) {
@@ -26,6 +28,7 @@ export function findProjectContainingUri(documents: LangiumDocuments, uri: URI):
 }
 
 export function getAllDependencies(project: Project): Set<Project> {
+
     const projects: Set<Project> = new Set();
     collectAllDependencies(project, projects)
     return projects
@@ -41,11 +44,13 @@ function collectAllDependencies(project: Project, dependencies: Set<Project>): v
         return;
     }
     dependencies.add(project);
-    for (const dependency of project.dependencies) {
-        if (dependency.ref) {
-            collectAllDependencies(dependency.ref, dependencies);
+
+    if (project.$document && project.$document?.state >= DocumentState.Linked)
+        for (const dependency of project.dependencies) {
+            if (dependency.ref) {
+                collectAllDependencies(dependency.ref, dependencies);
+            }
         }
-    }
 }
 
 export function getSourceFolders(projects: Set<Project>): Set<string> {
@@ -73,24 +78,25 @@ export function isUriInFolders(uri: URI, folders: Set<string>): boolean {
 
 
 export function findVisibleUris(documents: LangiumDocuments, uri: URI): Set<string> {
-    const uris: Set<string> = new Set();
+
+    const uris: Set<string> = new Set<string>;
     const project = findProjectContainingUri(documents, uri);
 
     if (project) {
         const folders = getSourceFolders(getAllDependencies(project));
-
         for (const doc of documents.all) {
-            if (isBuiltinLibrary(doc.uri) || isUriInFolders(doc.uri, folders)) {
+            if (isCatalogue(doc.parseResult.value) && (isBuiltinLibrary(doc.uri) || isUriInFolders(doc.uri, folders))) {
                 uris.add(doc.uri.toString());
             }
         }
     } else {
         for (const doc of documents.all) {
-            if (isBuiltinLibrary(doc.uri)) {
+            if (isCatalogue(doc.parseResult.value) && isBuiltinLibrary(doc.uri)) {
                 uris.add(doc.uri.toString());
             }
         }
     }
-
+    uris.delete(uri.toString())
+    //console.log(`findVisibleUris of ${uri.toString()}: ${stream(uris).map(u=>u.toString()).join(' ')}`)
     return uris;
 }

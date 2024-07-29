@@ -50,11 +50,11 @@ describe('Validating', () => {
             tool "org.eclipse.xsmp.tool.adoc"
 
             source "smdl"
-
+            source "../"
 
             dependency "project-name"
             dependency "project-name"
-        `);
+        `, { documentUri: 'test/ns/xsmp.project' });
 
         expect(
             checkDocumentValid(document) ?? document.diagnostics?.map(diagnosticToString)?.join('\n')

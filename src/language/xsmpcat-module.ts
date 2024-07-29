@@ -40,7 +40,6 @@ export const XsmpcatModule: Module<XsmpcatServices, PartialLangiumServices & Xsm
         Formatter: () => new XsmpcatFormatter(),
         HoverProvider: (services) => new XsmpHoverProvider(services),
         DocumentSymbolProvider:  (services) => new XsmpDocumentSymbolProvider(services),
-        
     },
     XsmpUtils:(services) => new XsmpUtils(services)
 };

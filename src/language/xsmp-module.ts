@@ -10,6 +10,8 @@ import { registerXsmpprojectValidationChecks } from './validation/xsmpproject-va
 import { XsmpWorkspaceManager } from './workspace/workspace-manager.js';
 import { XsmpIndexManager } from './workspace/index-manager.js';
 import { XsmpNodeKindProvider } from './lsp/node-kind-provider.js';
+import { XsmpDocumentBuilder } from './workspace/document-builder.js';
+import { XsmpLangiumDocuments } from './workspace/documents.js';
 
 /**
  * Create the full set of services required by Langium.
@@ -28,28 +30,32 @@ import { XsmpNodeKindProvider } from './lsp/node-kind-provider.js';
  */
 export function createXsmpServices(context: DefaultSharedModuleContext): {
     shared: LangiumSharedServices,
+    xsmpproject: XsmpprojectServices,
     xsmpcat: XsmpcatServices,
-    xsmpproject: XsmpprojectServices
 } {
     const shared = inject(
         createDefaultSharedModule(context),
         XsmpGeneratedSharedModule,
-        XsmpSharedModule
+        XsmpSharedModule,
     );
-    const xsmpcat = inject(
-        createDefaultModule({ shared }),
-        XsmpcatGeneratedModule,
-        XsmpcatModule
-    );
+    // XSMP Project
     const xsmpproject = inject(
         createDefaultModule({ shared }),
         XsmpprojectGeneratedModule,
         XsmpprojectModule
     );
-    shared.ServiceRegistry.register(xsmpcat);
     shared.ServiceRegistry.register(xsmpproject);
-    registerXsmpcatValidationChecks(xsmpcat);
     registerXsmpprojectValidationChecks(xsmpproject);
+
+    // XSMP Catalogue
+    const xsmpcat = inject(
+        createDefaultModule({ shared }),
+        XsmpcatGeneratedModule,
+        XsmpcatModule
+    );
+    shared.ServiceRegistry.register(xsmpcat);
+    registerXsmpcatValidationChecks(xsmpcat);
+
     if (!context.connection) {
         // We don't run inside a language server
         // Therefore, initialize the configuration provider instantly
@@ -61,8 +67,6 @@ export function createXsmpServices(context: DefaultSharedModuleContext): {
  * Declaration of custom shared services 
  */
 export type XsmpAddedSharedServices = {
-
-
 }
 
 /**
@@ -73,12 +77,12 @@ export type XsmpSharedServices = LangiumSharedServices & XsmpAddedSharedServices
 
 export const XsmpSharedModule: Module<XsmpSharedServices, DeepPartial<XsmpSharedServices>> = {
     workspace: {
+        DocumentBuilder: (services) => new XsmpDocumentBuilder(services),
         WorkspaceManager: (services) => new XsmpWorkspaceManager(services),
         IndexManager: (services) => new XsmpIndexManager(services),
+        LangiumDocuments: (services) => new XsmpLangiumDocuments(services)
     },
-    lsp:{
-        NodeKindProvider: ()=>new XsmpNodeKindProvider(),
+    lsp: {
+        NodeKindProvider: () => new XsmpNodeKindProvider(),
     }
-
-
 }

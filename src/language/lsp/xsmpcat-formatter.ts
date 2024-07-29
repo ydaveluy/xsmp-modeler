@@ -69,7 +69,7 @@ export class XsmpcatFormatter extends AbstractFormatter {
         if (ast.isType(node)) {
             this.formatType(node)
         }
-        if (ast.isConstant(node) || ast.isField(node) || ast.isAssociation(node)) {
+        else if (ast.isConstant(node) || ast.isField(node) || ast.isAssociation(node)) {
             const formatter = this.getNodeFormatter(node);
             this.formatMofifiers(formatter)
             formatter.property('type').surround(Formatting.oneSpace())

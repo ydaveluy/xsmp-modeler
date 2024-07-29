@@ -6,3 +6,15 @@ node_modules/
 src/
 test/
 static/
+coverage/
+examples/
+sonar-report.xml
+esbuild.mjs
+langium-config.json
+package.json
+tsconfig.json
+tsconfig.src.json
+vitest.config.ts
+.github/
+snippets/
+*.vsix

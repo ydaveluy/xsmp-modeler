@@ -3,7 +3,6 @@ import {
     LangiumDocument} from "langium";
 import { findProjectContainingUri, getAllDependencies } from "../utils/project-utils.js";
 
-
 /**
  * Customized IndexManager to correctly handle the rebuild of a document (xsmpcat) when its project configuration changed
  */
@@ -23,13 +22,12 @@ export class XsmpIndexManager extends DefaultIndexManager {
         if (project) {
             for (const dependency of getAllDependencies(project)) {
                 if (dependency.$document && changedUris.has(dependency.$document.uri.toString())) {
-                    return true
+                    return document.references.some(ref => ref.error !== undefined)
                 }
             }
         }
         // otherwise default behaviour
         return super.isAffected(document, changedUris);
     }
-
 
 }
