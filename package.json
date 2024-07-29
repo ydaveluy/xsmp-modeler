@@ -26,7 +26,7 @@
         "vscode-languageserver": "~9.0.1"
     },
     "devDependencies": {
-        "@types/node": "^18.0.0",
+        "@types/node": "^22.0.0",
         "@typescript-eslint/parser": "~7.3.1",
         "@typescript-eslint/eslint-plugin": "~7.17.0",
         "eslint": "~8.57.0",
