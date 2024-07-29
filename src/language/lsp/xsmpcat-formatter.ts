@@ -62,6 +62,9 @@ export class XsmpcatFormatter extends AbstractFormatter {
         else if (ast.isEnumerationLiteral(node)) {
             this.getNodeFormatter(node).keyword('=').surround(Formatting.oneSpace())
         }
+        else if (ast.isCatalogue(node)) {
+            this.getNodeFormatter(node).property('name').prepend(Formatting.oneSpace()).append(Formatting.newLine({ allowMore: true }))
+        }
     }
 
 
@@ -95,9 +98,7 @@ export class XsmpcatFormatter extends AbstractFormatter {
             formatter.keywords(')').prepend(Formatting.noSpace())
             formatter.keywords('throws').surround(Formatting.oneSpace())
         }
-        else if (ast.isCatalogue(node)) {
-            this.getNodeFormatter(node).property('name').prepend(Formatting.oneSpace()).append(Formatting.newLine({ allowMore: true }))
-        }
+
     }
 
     protected formatType(node: ast.Type): void {

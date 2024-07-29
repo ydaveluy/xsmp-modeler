@@ -46,9 +46,8 @@ jobs:
           -Dsonar.projectKey=ydaveluy_xsmp-modeler
           -Dsonar.organization=ydaveluy
           -Dsonar.sources=src/ 
-          -Dsonar.exclusions=src/language/generated/*
+          -Dsonar.exclusions=src/language/generated/*,src/language/builtins.ts,out/**
           -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-          -Dsonar.exclusions=dist/**
           -Dsonar.coverage.exclusions=**/*.test.*
 
   lint:

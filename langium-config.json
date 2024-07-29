@@ -3,18 +3,12 @@
     "languages": [{
         "id": "xsmpproject",
         "grammar": "src/language/xsmpproject.langium",
-        "fileExtensions": [".project",".profile",".tool"],
-        "textMate": {
-            "out": "syntaxes/xsmpproject.tmLanguage.json"
-        }
+        "fileExtensions": [".project",".profile",".tool"]
     },
     {
         "id": "xsmpcat",
         "grammar": "src/language/xsmpcat.langium",
-        "fileExtensions": [".xsmpcat"],
-        "textMate": {
-            "out": "syntaxes/xsmpcat.tmLanguage.json"
-        }
+        "fileExtensions": [".xsmpcat"]
     }],
     "out": "src/language/generated"
 }
