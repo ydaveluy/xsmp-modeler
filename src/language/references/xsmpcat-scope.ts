@@ -231,7 +231,16 @@ export class XsmpcatScopeProvider implements ScopeProvider {
         if (!this.contexts.has(node) && node.ref) {
             const precomputed = AstUtils.getDocument(node.ref).precomputedScopes;
             if (precomputed) {
-                this.collectScopesFromNode(node.ref, scopes, precomputed.get(node.ref))
+                this.contexts.add(node)
+                try {
+                    this.collectScopesFromNode(node.ref, scopes, precomputed.get(node.ref))
+                }
+                finally {
+                    // remove the context
+                    this.contexts.delete(node)
+                }
+
+               
             }
         }
     }
@@ -246,7 +255,7 @@ export class XsmpcatScopeProvider implements ScopeProvider {
             return this.doGetScope(context)
         }
         finally {
-            //release the context
+            // remove the context
             this.contexts.delete(context.reference)
         }
     }
@@ -274,13 +283,14 @@ export class XsmpcatScopeProvider implements ScopeProvider {
                 return EMPTY_SCOPE
         }
         else {
-            currentNode = context.container;
+            currentNode = context.container.$container;
             parent = this.getGlobalScope(referenceType, context);
         }
 
 
         const precomputed = AstUtils.getDocument(context.container).precomputedScopes;
-        if (precomputed) {
+        
+        if (precomputed && currentNode) {
             do {
                 this.collectScopesFromNode(currentNode, scopes, precomputed.get(currentNode))
                 currentNode = currentNode.$container;
@@ -302,9 +312,7 @@ export class XsmpcatScopeProvider implements ScopeProvider {
      */
     protected getGlobalScope(referenceType: string, _context: ReferenceInfo): Scope {
         const doc = AstUtils.getDocument(_context.container);
-
         return this.globalScopeCache.get(referenceType + '[' + doc.uri.path + ']', () => new MapScope(this.indexManager.allElements(referenceType, this.getVisibleUris(doc.uri))))
-
     }
 }
 
