@@ -89,16 +89,16 @@
 				},
 				{
 					"match": "(\\.)\\s*\\b([A-Za-z]\\w*)\\b",
-          "captures": {
-            "1": {
-              "name": "punctuation.separator.period.xsmp"
-            },
-            "2": {
-              "name": "variable.parameter.designated-initializer.xsmp"
-            }
-          }
+					"captures": {
+						"1": {
+							"name": "punctuation.separator.period.xsmp"
+						},
+						"2": {
+							"name": "variable.parameter.designated-initializer.xsmp"
+						}
+					}
 				}
-      ]
+			]
 		},
 		"comments": {
 			"patterns": [

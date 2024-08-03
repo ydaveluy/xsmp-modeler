@@ -1,4 +1,4 @@
-import {  type ValidationAcceptor, type ValidationChecks } from 'langium';
+import { type ValidationAcceptor, type ValidationChecks } from 'langium';
 import * as ast from '../generated/ast.js';
 import type { XsmpcatServices } from '../xsmpcat-module.js';
 import { isFloatingType, isIntegralType, XsmpUtils } from '../utils/xsmp-utils.js';
@@ -85,7 +85,7 @@ export class XsmpcatValidator {
 
 
     checkAttribute(attribute: ast.Attribute, accept: ValidationAcceptor): void {
-        if (attribute.type?.ref) {
+        if (ast.isAttributeType(attribute.type?.ref)) {
 
             if (!attribute.type.ref.default && !attribute.value) {
                 accept('error', 'A value is required.', { node: attribute, property: 'value' });

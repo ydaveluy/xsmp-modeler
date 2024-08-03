@@ -28,7 +28,7 @@ interface NamedElement {
 
 
 interface Attribute {
-	^type: @AttributeType
+	^type: @Type
 	value?: Expression
 }
 
@@ -57,7 +57,7 @@ interface LanguageType extends Type {
 }
 
 interface Class extends Structure {
-	base?: @Class
+	base?: @Type
 }
 
 
@@ -65,7 +65,7 @@ interface Exception extends Class {
 }
 
 interface Interface extends ReferenceType {
-	base: @Interface[]
+	base: @Type[]
 }
 
 interface ReferenceType extends LanguageType {
@@ -76,24 +76,24 @@ interface Model extends Component {
 }
 
 interface Component extends ReferenceType {
-	^interface: @Interface[]
-	base?: @Component
+	^interface: @Type[]
+	base?: @Type
 }
 
 interface Service extends Component {
 }
 
 interface ArrayType extends ValueType {
-	itemType: @ValueType
+	itemType: @Type
 	size: Expression
 }
 
 interface ValueReference extends LanguageType {
-	^type: @ValueType
+	^type: @Type
 }
 
 interface Integer extends SimpleType {
-	primitiveType?: @PrimitiveType
+	primitiveType?: @Type
 	minimum?: Expression
 	maximum?: Expression
 }
@@ -102,14 +102,14 @@ interface SimpleType extends ValueType {
 }
 
 interface Float extends SimpleType {
-	primitiveType?: @PrimitiveType
+	primitiveType?: @Type
 	minimum?: Expression
 	maximum?: Expression
 	range?: RangeKind
 }
 
 interface EventType extends Type {
-	eventArgs?: @SimpleType
+	eventArgs?: @Type
 }
 
 interface StringType extends SimpleType {
@@ -123,7 +123,7 @@ interface NativeType extends LanguageType {
 }
 
 interface AttributeType extends Type {
-	^type: @ValueType
+	^type: @Type
 	default?: Expression
 }
 
@@ -136,7 +136,7 @@ interface EnumerationLiteral extends NamedElement {
 }
 
 interface Field extends VisibilityElement, Resolvable {
-	^type: @ValueType
+	^type: @Type
 	default?: Expression
 }
 
@@ -144,37 +144,37 @@ interface Resolvable extends NamedElement {
 }
 
 interface Constant extends VisibilityElement {
-	^type: @SimpleType
+	^type: @Type
 	value: Expression
 }
 
 interface Property extends VisibilityElement, Resolvable {
-	^type: @ValueType
+	^type: @Type
 	attachedField?: @Field
-	getRaises: @Exception[]
-	setRaises: @Exception[]
+	getRaises: @Type[]
+	setRaises: @Type[]
 }
 
 interface Operation extends VisibilityElement, Resolvable {
 	returnParameter?: Parameter
 	parameter: Parameter[]
-	raisedException: @Exception[]
+	raisedException: @Type[]
 }
 
 interface Parameter extends NamedElement {
-	^type: @LanguageType
+	^type: @Type
 	default?: Expression
 	direction?: ParameterDirectionKind
 }
 
 interface Association extends VisibilityElement {
-	^type: @LanguageType
+	^type: @Type
 	default?: Expression
 }
 
 interface Container extends NamedElementWithMultiplicity, Resolvable {
-	^type: @ReferenceType
-	defaultComponent?: @Component
+	^type: @Type
+	defaultComponent?: @Type
 }
 
 interface NamedElementWithMultiplicity extends NamedElement {
@@ -189,7 +189,7 @@ interface Multiplicity {
 }
 
 interface Reference_ extends NamedElementWithMultiplicity, Resolvable {
-	^interface: @Interface
+	^interface: @Type
 }
 
 interface EntryPoint extends NamedElement, Resolvable {
@@ -198,11 +198,11 @@ interface EntryPoint extends NamedElement, Resolvable {
 }
 
 interface EventSink extends NamedElement, Resolvable {
-	^type: @EventType
+	^type: @Type
 }
 
 interface EventSource extends NamedElement, Resolvable {
-	^type: @EventType
+	^type: @Type
 }
 
 

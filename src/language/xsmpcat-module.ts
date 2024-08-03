@@ -7,6 +7,7 @@ import { XsmpcatFormatter } from './lsp/xsmpcat-formatter.js';
 import { XsmpHoverProvider } from './lsp/hover-provider.js';
 import { XsmpUtils } from './utils/xsmp-utils.js';
 import { XsmpDocumentSymbolProvider } from './lsp/document-symbol-provider.js';
+import { XsmpcatCompletionProvider } from './lsp/xsmpcat-completion-provider.js';
 
 /**
  * Declaration of Xsmp services.
@@ -32,6 +33,7 @@ export const XsmpcatModule: Module<XsmpcatServices, PartialLangiumServices & Xsm
     references: {
          ScopeProvider: (services) => new XsmpcatScopeProvider(services),
          ScopeComputation: (services) => new XsmpcatScopeComputation(services),
+
      },
     validation: {
         XsmpcatValidator: (services) => new XsmpcatValidator(services)
@@ -40,6 +42,7 @@ export const XsmpcatModule: Module<XsmpcatServices, PartialLangiumServices & Xsm
         Formatter: () => new XsmpcatFormatter(),
         HoverProvider: (services) => new XsmpHoverProvider(services),
         DocumentSymbolProvider:  (services) => new XsmpDocumentSymbolProvider(services),
+        CompletionProvider: (services) => new XsmpcatCompletionProvider(services),
     },
     XsmpUtils:(services) => new XsmpUtils(services)
 };
