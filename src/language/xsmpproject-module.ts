@@ -6,6 +6,7 @@ import { XsmpprojectFormatter } from './lsp/xsmpproject-formatter.js';
 import { XsmpHoverProvider } from './lsp/hover-provider.js';
 import { XsmpDocumentSymbolProvider } from './lsp/document-symbol-provider.js';
 import { XsmpUtils } from './utils/xsmp-utils.js';
+import { XsmpprojectCompletionProvider } from './lsp/xsmpproject-completion-provider.js';
 
 /**
  * Declaration of custom services.
@@ -14,7 +15,7 @@ export type XsmpprojectAddedServices = {
     validation: {
         XsmpprojectValidator: XsmpprojectValidator
     },
-    XsmpUtils:XsmpUtils
+    XsmpUtils: XsmpUtils
 }
 
 /**
@@ -34,8 +35,9 @@ export const XsmpprojectModule: Module<XsmpprojectServices, PartialLangiumServic
     lsp: {
         Formatter: () => new XsmpprojectFormatter(),
         HoverProvider: (services) => new XsmpHoverProvider(services),
-        DocumentSymbolProvider:  (services) => new XsmpDocumentSymbolProvider(services),
+        DocumentSymbolProvider: (services) => new XsmpDocumentSymbolProvider(services),
+        CompletionProvider: (services) => new XsmpprojectCompletionProvider(services),
     },
-    XsmpUtils:(services) => new XsmpUtils(services)
+    XsmpUtils: (services) => new XsmpUtils(services)
 
 };
