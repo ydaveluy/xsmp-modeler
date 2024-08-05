@@ -44,6 +44,6 @@ export const XsmpcatModule: Module<XsmpcatServices, PartialLangiumServices & Xsm
         DocumentSymbolProvider:  (services) => new XsmpDocumentSymbolProvider(services),
         CompletionProvider: (services) => new XsmpcatCompletionProvider(services),
     },
-    XsmpUtils:(services) => new XsmpUtils(services)
+    XsmpUtils:(services) => new XsmpUtils(services),
 };
 

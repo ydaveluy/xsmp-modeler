@@ -2,7 +2,7 @@
 import type { AstNode, AstNodeDescription, AstNodeDescriptionProvider, AstReflection, IndexManager, LangiumCoreServices, LangiumDocument, LangiumDocuments, PrecomputedScopes, Reference, ReferenceInfo, Scope, ScopeComputation, ScopeProvider, Stream, URI } from 'langium';
 import type { XsmpcatServices } from '../xsmpcat-module.js';
 import * as ast from '../generated/ast.js';
-import { AstUtils, Cancellation, WorkspaceCache, EMPTY_SCOPE, interruptAndCheck, MultiMap, stream, MapScope } from 'langium';
+import { AstUtils, Cancellation, WorkspaceCache, EMPTY_SCOPE, interruptAndCheck, MultiMap, stream, DocumentCache } from 'langium';
 import { findVisibleUris } from '../utils/project-utils.js';
 
 
@@ -152,24 +152,28 @@ export class XsmpcatScopeComputation implements ScopeComputation {
 
 }
 
+
+
+
 export class XsmpcatScopeProvider implements ScopeProvider {
     protected documents: LangiumDocuments;
     protected readonly visibleUris: WorkspaceCache<URI, Set<string> | undefined>;
     protected readonly reflection: AstReflection;
     protected readonly indexManager: IndexManager;
-
     protected readonly exprToType: WorkspaceCache<AstNode, ast.Type | undefined>;
+    protected readonly globalScopeCache: WorkspaceCache<URI, Scope>;
+    protected readonly contexts: Set<Reference> = new Set<Reference>
+    protected readonly precomputedCache: DocumentCache<AstNode, Map<string, AstNodeDescription>>;
 
-    protected readonly globalScopeCache: WorkspaceCache<string, Scope>;
 
     constructor(services: XsmpcatServices) {
         this.documents = services.shared.workspace.LangiumDocuments;
         this.visibleUris = new WorkspaceCache<URI, Set<string> | undefined>(services.shared)
         this.reflection = services.shared.AstReflection;
         this.indexManager = services.shared.workspace.IndexManager;
-
         this.exprToType = new WorkspaceCache<AstNode, ast.Type | undefined>(services.shared)
-        this.globalScopeCache = new WorkspaceCache<string, Scope>(services.shared);
+        this.globalScopeCache = new WorkspaceCache<URI, Scope>(services.shared);
+        this.precomputedCache = new DocumentCache<AstNode, Map<string, AstNodeDescription>>(services.shared);
     }
     getType(expression: AstNode): ast.Type | undefined {
         return this.exprToType.get(expression, () => this.doGetType(expression))
@@ -177,163 +181,182 @@ export class XsmpcatScopeProvider implements ScopeProvider {
 
     doGetType(expression: AstNode): ast.Type | undefined {
         if (ast.isField(expression.$container)) {
-            return expression.$container.type.ref
+            return expression.$container.type.ref;
         }
         else if (ast.isConstant(expression.$container)) {
-            return expression.$container.type.ref
+            return expression.$container.type.ref;
         }
         else if (ast.isAttributeType(expression.$container)) {
-            return expression.$container.type.ref
+            return expression.$container.type.ref;
         }
         else if (ast.isAttribute(expression.$container)) {
-            const attributeType = expression.$container.type.ref
+            const attributeType = expression.$container.type.ref;
             if (ast.isAttributeType(attributeType)) {
-                return attributeType.type.ref
+                return attributeType.type.ref;
             }
         }
         else if (ast.isCollectionLiteral(expression.$container)) {
             const type = this.getType(expression.$container)
             if (ast.isStructure(type)) {
                 //TODO handle element from base class in case of class
-                const field = type.elements.filter(e => ast.isField(e)).at(expression.$containerIndex as number)
+                const field = type.elements.filter(e => ast.isField(e)).at(expression.$containerIndex as number);
                 if (ast.isField(field))
-                    return field.type.ref
+                    return field.type.ref;
             }
             else if (ast.isArrayType(type)) {
-                return type.itemType.ref
+                return type.itemType.ref;
             }
         }
 
         return undefined
     }
 
-    protected collectScopesFromNode(node: AstNode, scopes: Array<readonly AstNodeDescription[]>,
-        allDescriptions: readonly AstNodeDescription[]) {
+    protected collectScopesFromNode(node: AstNode, scopes: Map<string, AstNodeDescription>[],
+        document: LangiumDocument) {
 
-
-        if (allDescriptions.length > 0) {
-            scopes.push(allDescriptions);
+        const precomputed = this.getPrecomputedScope(node, document);
+        if (precomputed.size > 0) {
+            scopes.push(precomputed);
         }
         if (ast.isComponent(node)) {
             if (node.base)
-                this.collectScopesFromReference(node.base, scopes)
-            node.interface.forEach(i => this.collectScopesFromReference(i, scopes))
+                this.collectScopesFromReference(node.base, scopes);
+            node.interface.forEach(i => this.collectScopesFromReference(i, scopes));
         }
         else if (ast.isClass(node) && node.base) {
-            this.collectScopesFromReference(node.base, scopes)
+            this.collectScopesFromReference(node.base, scopes);
         }
         else if (ast.isInterface(node)) {
-            node.base.forEach(i => this.collectScopesFromReference(i, scopes))
+            node.base.forEach(i => this.collectScopesFromReference(i, scopes));
         }
     }
-    protected collectScopesFromReference(node: Reference, scopes: Array<readonly AstNodeDescription[]>) {
+    protected collectScopesFromReference(node: Reference, scopes: Map<string, AstNodeDescription>[]) {
         // check if the node is currently processed to avoid cyclic dependency
         if (!this.contexts.has(node) && node.ref) {
-            const precomputed = AstUtils.getDocument(node.ref).precomputedScopes;
-            if (precomputed) {
-                this.contexts.add(node)
-                try {
-                    this.collectScopesFromNode(node.ref, scopes, precomputed.get(node.ref))
-                }
-                finally {
-                    // remove the context
-                    this.contexts.delete(node)
-                }
-
-               
+            this.contexts.add(node);
+            try {
+                this.collectScopesFromNode(node.ref, scopes, AstUtils.getDocument(node.ref));
+            }
+            finally {
+                // remove the context
+                this.contexts.delete(node);
             }
         }
     }
-
-    protected contexts: Set<Reference> = new Set<Reference>
 
     getScope(context: ReferenceInfo): Scope {
         // store the context
-        this.contexts.add(context.reference)
-
+        this.contexts.add(context.reference);
         try {
-            return this.doGetScope(context)
+            return this.computeScope(context);
         }
         finally {
             // remove the context
-            this.contexts.delete(context.reference)
+            this.contexts.delete(context.reference);
         }
     }
 
-    private doGetScope(context: ReferenceInfo): Scope {
+    private computeScope(context: ReferenceInfo): Scope {
+        let parent: Scope;
 
-        const scopes: Array<readonly AstNodeDescription[]> = [];
-        const referenceType = this.reflection.getReferenceType(context);
-        let parent: Scope
-
-        let currentNode: AstNode | undefined
+        const scopes: Map<string, AstNodeDescription>[] = [];
 
         if (ast.isDesignatedInitializer(context.container) && context.property === 'field') {
             if (context.container.$container) {
-                const type = this.getType(context.container.$container)
+                const type = this.getType(context.container.$container);
 
                 if (ast.isStructure(type)) {
-                    currentNode = type
-                    parent = EMPTY_SCOPE
+                    this.collectScopesFromNode(type, scopes, AstUtils.getDocument(type));
+                    parent = EMPTY_SCOPE;
                 }
-                else
-                    return EMPTY_SCOPE
+                else {
+                    return EMPTY_SCOPE;
+                }
             }
-            else
-                return EMPTY_SCOPE
+            else {
+                return EMPTY_SCOPE;
+            }
         }
         else {
-            currentNode = context.container.$container;
-            parent = this.getGlobalScope(referenceType, context);
-        }
-
-
-        const precomputed = AstUtils.getDocument(context.container).precomputedScopes;
-        
-        if (precomputed && currentNode) {
-            do {
-                this.collectScopesFromNode(currentNode, scopes, precomputed.get(currentNode))
+            let currentNode = context.container.$container;
+            const document = AstUtils.getDocument(context.container);
+            parent = this.getGlobalScope(document);
+            while (currentNode) {
+                this.collectScopesFromNode(currentNode, scopes, document);
                 currentNode = currentNode.$container;
-            } while (currentNode);
+            }
         }
 
-        const filter = (desc: AstNodeDescription) => this.reflection.isSubtype(desc.type, referenceType)
         for (let i = scopes.length - 1; i >= 0; i--) {
-            parent = new FilteredScope(scopes[i], parent, filter);
+            parent = new MapScope(scopes[i], parent);
         }
+
         return parent;
     }
+
+
     private getVisibleUris(uri: URI): Set<string> | undefined {
-        return this.visibleUris.get(uri, () => findVisibleUris(this.documents, uri))
+        return this.visibleUris.get(uri, () => findVisibleUris(this.documents, uri));
     }
 
     /**
      * Create a global scope filtered for the given referenceType and on visibles projects URIs
      */
-    protected getGlobalScope(referenceType: string, _context: ReferenceInfo): Scope {
-        const doc = AstUtils.getDocument(_context.container);
-        return this.globalScopeCache.get(referenceType + '[' + doc.uri.path + ']', () => new MapScope(this.indexManager.allElements(referenceType, this.getVisibleUris(doc.uri))))
+    protected getGlobalScope(document: LangiumDocument): Scope {
+        return this.globalScopeCache.get(document.uri, () => new GlobalScope(this.indexManager.allElements(undefined, this.getVisibleUris(document.uri))));
+    }
+
+    protected getPrecomputedScope(node: AstNode, document: LangiumDocument): Map<string, AstNodeDescription> {
+
+        let precomputed = this.precomputedCache.get(document.uri, node);
+        if (precomputed) {
+            return precomputed;
+        }
+        precomputed = new Map();
+        if (document.precomputedScopes) {
+            for (const element of document.precomputedScopes.get(node)) {
+                precomputed.set(element.name, element);
+            }
+        }
+        this.precomputedCache.set(document.uri, node, precomputed);
+        return precomputed;
+    }
+}
+
+export class GlobalScope implements Scope {
+    readonly elements: Map<string, AstNodeDescription>;
+    constructor(elements: Stream<AstNodeDescription>) {
+        this.elements = new Map();
+        for (const element of elements) {
+            this.elements.set(element.name, element);
+        }
+    }
+
+    getElement(name: string): AstNodeDescription | undefined {
+        return this.elements.get(name);
+    }
+
+    getAllElements(): Stream<AstNodeDescription> {
+        return stream(this.elements.values());
     }
 }
 
 
-export class FilteredScope implements Scope {
-    readonly elements: readonly AstNodeDescription[];
+export class MapScope implements Scope {
+    readonly elements: Map<string, AstNodeDescription>;
     readonly outerScope: Scope;
-    readonly filter: (desc: AstNodeDescription) => boolean
 
-    constructor(elements: readonly AstNodeDescription[], outerScope: Scope, filter: (desc: AstNodeDescription) => boolean) {
+    constructor(elements: Map<string, AstNodeDescription>, outerScope: Scope) {
         this.elements = elements;
         this.outerScope = outerScope;
-        this.filter = filter
-    }
-
-    getAllElements(): Stream<AstNodeDescription> {
-        return stream(this.elements).filter(this.filter).concat(this.outerScope.getAllElements());
     }
 
     getElement(name: string): AstNodeDescription | undefined {
-        // compare first that name are equals then that the filter (more time consuming) is ok 
-        return this.elements.find(e => e.name === name && this.filter(e)) ?? this.outerScope.getElement(name);
+        return this.elements.get(name) ?? this.outerScope.getElement(name);
     }
+
+    getAllElements(): Stream<AstNodeDescription> {
+        return stream(this.elements.values()).concat(this.outerScope.getAllElements());
+    }
+
 }
