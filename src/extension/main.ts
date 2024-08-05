@@ -10,7 +10,7 @@ let client: LanguageClient;
 // This function is called when the extension is activated.
 export function activate(context: vscode.ExtensionContext): void {
     client = startLanguageClient(context);
-    DslLibraryFileSystemProvider.register(context);
+    BuiltinLibraryFileSystemProvider.register(context);
 }
 
 // This function is called when the extension is deactivated.
@@ -59,11 +59,11 @@ function startLanguageClient(context: vscode.ExtensionContext): LanguageClient {
 }
 
 
-export class DslLibraryFileSystemProvider implements vscode.FileSystemProvider {
+export class BuiltinLibraryFileSystemProvider implements vscode.FileSystemProvider {
 
     static register(context: vscode.ExtensionContext) {
         context.subscriptions.push(
-            vscode.workspace.registerFileSystemProvider('builtin', new DslLibraryFileSystemProvider(), {
+            vscode.workspace.registerFileSystemProvider('builtin', new BuiltinLibraryFileSystemProvider(), {
                 isReadonly: true,
                 isCaseSensitive: false
             }));

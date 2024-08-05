@@ -5,7 +5,7 @@ import { CompletionAcceptor, CompletionContext, DefaultCompletionProvider } from
 import { CompletionItemKind, InsertTextFormat, MarkupContent } from 'vscode-languageserver';
 import { Instant } from "@js-joda/core";
 import * as os from 'os';
-
+import * as ast from '../generated/ast.js';
 
 export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
 
@@ -16,46 +16,46 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
         const refId = `${refInfo.container.$type}_${refInfo.property}`
         switch (refId) {
             case 'Attribute_type':
-                return (desc) => 'AttributeType' === desc.type
+                return (desc) => ast.AttributeType === desc.type
             case 'Class_base':
-                return (desc) => 'Class' === desc.type// && (desc.node as ast.Class ).base?.ref !== refInfo.container
+                return (desc) => ast.Class === desc.type// && (desc.node as ast.Class ).base?.ref !== refInfo.container
             case 'Interface_base':
             case 'Model_interface':
             case 'Service_interface':
             case 'Reference__interface':
-                return (desc) => 'Interface' === desc.type
+                return (desc) => ast.Interface === desc.type
             case 'Model_base':
-                return (desc) => 'Model' === desc.type
+                return (desc) => ast.Model === desc.type
             case 'Service_base':
-                return (desc) => 'Service' === desc.type
+                return (desc) => ast.Service === desc.type
             case 'ArrayType_itemType':
             case 'ValueReference_type':
             case 'AttributeType_type':
             case 'Field_type':
             case 'Property_type':
-                return (desc) => ['ArrayType', 'Class', 'Enumeration', 'Exception', 'Float', 'Integer', 'PrimitiveType', 'StringType', 'Structure'].includes(desc.type) // ValueType
+                return (desc) => ast.reflection.isSubtype(desc.type, ast.ValueType)
             case 'Integer_primitiveType':
-                return (desc) => 'PrimitiveType' === desc.type && ['Int8', 'Int16', 'Int32', 'Int64', 'UInt8', 'UInt16', 'UInt32', 'UInt64'].includes(desc.name)
+                return (desc) => ast.reflection.isSubtype(desc.type, ast.PrimitiveType) && ['Int8', 'Int16', 'Int32', 'Int64', 'UInt8', 'UInt16', 'UInt32', 'UInt64'].includes(desc.name)
             case 'Float_primitiveType':
-                return (desc) => 'PrimitiveType' === desc.type && ['Float32', 'Float64'].includes(desc.name)
+                return (desc) => ast.reflection.isSubtype(desc.type, ast.PrimitiveType) && ['Float32', 'Float64'].includes(desc.name)
             case 'EventType_eventArg':
             case 'Constant_type':
-                return (desc) => ['Enumeration', 'Float', 'Integer', 'PrimitiveType', 'StringType'].includes(desc.type) // SimpleType
+                return (desc) => ast.reflection.isSubtype(desc.type, ast.SimpleType) 
             case 'Parameter_type':
             case 'Association_type':
-                return (desc) => ['ArrayType', 'Class', 'Enumeration', 'Exception', 'Float', 'Integer', 'Interface', 'Model', 'NativeType', 'PrimitiveType', 'Service', 'StringType', 'Structure', 'ValueReference'].includes(desc.type) // LanguageType
+                return (desc) => ast.reflection.isSubtype(desc.type, ast.LanguageType) 
             case 'Container_type':
-                return (desc) => ['Interface', 'Model', 'Service'].includes(desc.type) // ReferenceType
+                return (desc) => ast.reflection.isSubtype(desc.type, ast.ReferenceType) 
             case 'Container_defaultComponent':
-                return (desc) => ['Model', 'Service'].includes(desc.type) // Component
+                return (desc) => ast.reflection.isSubtype(desc.type, ast.Component) 
             case 'EventSink_type':
             case 'EventSource_type':
-                return (desc) => 'EventType' === desc.type
+                return (desc) => ast.EventType === desc.type
             case 'Operation_raisedException':
             case 'Property_getRaises':
             case 'Property_setRaises':
             case 'Exception_base':
-                return (desc) => 'Exception' === desc.type
+                return (desc) => ast.Exception === desc.type
         }
         return undefined
     }

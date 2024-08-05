@@ -84,5 +84,5 @@ export const XsmpSharedModule: Module<XsmpSharedServices, DeepPartial<XsmpShared
     },
     lsp: {
         NodeKindProvider: () => new XsmpNodeKindProvider(),
-    }
+    },
 }
