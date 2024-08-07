@@ -99,8 +99,7 @@ ClassModifiers returns string:
     /** The type is abstract. Abstract types cannot be instantiated, but they can be subtyped. */
     'abstract' 
 ;
-PropertyModifiers returns string:
-    VisibilityModifiers | 
+AccessKind returns string:
     /** Specifies a property, which has both a getter and a setter. */
     'readWrite' |
     /** Specifies a property, which only has a getter. */
@@ -418,7 +417,7 @@ Field returns Field:
 ;
 Property returns Property:
     attributes+=Attribute*  
-    modifiers+=PropertyModifiers* 
+    modifiers+=(AccessKind|VisibilityModifiers)* 
     /**
      * ```java
      * [public|protected|private] [readOnly|writeOnly|readWrite] property <type> <name>
@@ -456,13 +455,14 @@ Operation returns Operation:
     ('throws' raisedException+=[Exception:QualifiedName ] (',' raisedException+=[Exception:QualifiedName ] )* )?  
 ;
 
-ReturnParameter returns Parameter:
+ReturnParameter returns ReturnParameter:
     attributes+=Attribute*  
-    ^type=[LanguageType:QualifiedName ]
+    ^type=[LanguageType:QualifiedName]
 ;
-ReturnParameterWithName returns Parameter:
+
+ReturnParameterWithName returns ReturnParameter:
     attributes+=Attribute*  
-    ^type=[LanguageType:QualifiedName ] name=ValidID
+    ^type=[LanguageType:QualifiedName] name=ValidID
 ;
 
 Parameter returns Parameter:

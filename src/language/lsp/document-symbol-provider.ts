@@ -10,11 +10,10 @@ import { XsmpprojectServices } from "../xsmpproject-module.js";
 
 
 export class XsmpDocumentSymbolProvider implements DocumentSymbolProvider {
-    protected readonly xsmpUtils: XsmpUtils;
+
     protected readonly nodeKindProvider: NodeKindProvider;
 
     constructor(services: XsmpcatServices | XsmpprojectServices) {
-        this.xsmpUtils = services.XsmpUtils
         this.nodeKindProvider = services.shared.lsp.NodeKindProvider;
     }
     getSymbols(document: LangiumDocument, params: DocumentSymbolParams, cancelToken?: Cancellation.CancellationToken): MaybePromise<DocumentSymbol[]> {
@@ -44,7 +43,7 @@ export class XsmpDocumentSymbolProvider implements DocumentSymbolProvider {
 
 
     protected getSymbolTags(node: NamedElement): SymbolTag[] | undefined {
-        if (this.xsmpUtils.IsDeprecated(node)) {
+        if (XsmpUtils.IsDeprecated(node)) {
             return [SymbolTag.Deprecated]
         }
         return undefined

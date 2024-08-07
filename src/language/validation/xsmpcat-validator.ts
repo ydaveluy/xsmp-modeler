@@ -48,29 +48,24 @@ const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-
  */
 export class XsmpcatValidator {
 
-    protected readonly xsmpUtils: XsmpUtils;
 
-    constructor(services: XsmpcatServices) {
-
-        this.xsmpUtils = services.XsmpUtils
-    }
 
     checkNamedElement(element: ast.NamedElement, accept: ValidationAcceptor): void {
 
-        if (element.name) {
-            if (!namedElementRegex.test(element.name)) {
-                accept('error', 'An Element Name shall start with a letter.',
-                    { node: element, property: 'name' });
-            }
-            if (reservedNames.has(element.name)) {
-                accept('error', 'An Element Name shall not be an ISO/ANSI C++ keyword.',
-                    { node: element, property: 'name' });
-            }
+
+        if (!namedElementRegex.test(element.name)) {
+            accept('error', 'An Element Name shall start with a letter.',
+                { node: element, property: 'name' });
         }
+        if (reservedNames.has(element.name)) {
+            accept('error', 'An Element Name shall not be an ISO/ANSI C++ keyword.',
+                { node: element, property: 'name' });
+        }
+
         //TODO check attribute is valid for element
         for (const attribute of element.attributes) {
             if (attribute.type?.ref) {
-                const tags = this.xsmpUtils.getTags(attribute.type.ref, 'usage')
+                const tags = XsmpUtils.getTags(attribute.type.ref, 'usage')
 
                 if (!tags.some(t => ast.reflection.isSubtype(element.$type, t.content.toString()))) {
                     accept('warning', "This annotation is disallowed for this location.", { node: attribute, property: 'type' });
@@ -194,7 +189,7 @@ export class XsmpcatValidator {
 
     checkType(type: ast.Type, accept: ValidationAcceptor): void {
 
-        const uuid = this.xsmpUtils.getUuid(type)
+        const uuid = XsmpUtils.getUuid(type)
         if (uuid === undefined) {
             accept('error', 'Missing Type UUID.', { node: type, property: 'name' })
         }

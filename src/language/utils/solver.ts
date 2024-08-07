@@ -12,25 +12,7 @@ abstract class Value<T> /*implements Value*/ {
     }
 
     primitiveTypeKind(): PrimitiveTypeKind { return 'None' }
-    as<U>(type: ast.Type | PrimitiveTypeKind): Value<U> | undefined { return undefined }
-    /*as(type: ast.Type | PrimitiveTypeKind): Value | undefined {
-        const kind = ast.isType(type) ? XsmpUtils.getPrimitiveTypeKind(type) : type
-        if (isIntegralType(kind))
-            return this.integralValue(kind)
-        if (isFloatingType(kind))
-            return this.floatValue(kind)
-        if (kind == 'Enum') {
-            const value = this.enumerationLiteral()
-            if (ast.isEnumeration(type)) {
-                if (value?.getValue().$container == type)
-                    return value
-                return undefined
-            }
-            return value
-        }
-
-        return undefined
-    }*/
+  
     //convertion functions
     boolValue(): BoolValue | undefined { return undefined }
     enumerationLiteral(): EnumerationLiteralValue | undefined { return undefined }
@@ -80,7 +62,7 @@ abstract class Value<T> /*implements Value*/ {
 
 }
 
-class BoolValue extends Value<BoolValue> {
+export class BoolValue extends Value<BoolValue> {
     readonly value: boolean
     constructor(value: boolean) {
         super()
@@ -92,7 +74,7 @@ class BoolValue extends Value<BoolValue> {
     override integralValue(type: IntegralPrimitiveTypeKind): IntegralValue { return new IntegralValue(BigInt(this.value), type) }
     override floatValue(type: FloatingPrimitiveTypeKind): FloatValue { return new FloatValue(Number(this.value), type) }
 }
-class StringValue extends Value<StringValue> {
+export class StringValue extends Value<StringValue> {
     readonly value: string
     constructor(value: string) {
         super()
@@ -124,7 +106,7 @@ class StringValue extends Value<StringValue> {
 
 
 }
-class CharValue extends Value<CharValue> {
+export class CharValue extends Value<CharValue> {
     readonly value: string
     constructor(value: string) {
         super()
@@ -135,7 +117,7 @@ class CharValue extends Value<CharValue> {
     override charValue(): this | undefined { return this }
 }
 
-class EnumerationLiteralValue extends Value<EnumerationLiteralValue> {
+export class EnumerationLiteralValue extends Value<EnumerationLiteralValue> {
     readonly value: ast.EnumerationLiteral
     constructor(value: ast.EnumerationLiteral) {
         super()
@@ -147,11 +129,11 @@ class EnumerationLiteralValue extends Value<EnumerationLiteralValue> {
 
 }
 
-class IntegralValue extends Value<IntegralValue> {
+export class IntegralValue extends Value<IntegralValue> {
     readonly value: bigint
     readonly type: IntegralPrimitiveTypeKind
 
-    public static of(expr: ast.IntegerLiteral, accept: ValidationAcceptor): IntegralValue | undefined {
+    public static of(expr: ast.IntegerLiteral, accept?: ValidationAcceptor): IntegralValue | undefined {
         let text = expr.text.replaceAll("'", '')
 
         let type: IntegralPrimitiveTypeKind = 'Int32'
@@ -174,8 +156,6 @@ class IntegralValue extends Value<IntegralValue> {
             return undefined
         }
         return result
-
-
     }
 
     constructor(value: bigint, type: IntegralPrimitiveTypeKind) {
@@ -209,6 +189,7 @@ class IntegralValue extends Value<IntegralValue> {
         return result
     }
     override floatValue(type: FloatingPrimitiveTypeKind): FloatValue { return new FloatValue(Number(this.value), type) }
+    override charValue(): CharValue | undefined { return new CharValue(String.fromCharCode(Number(this.value))) }
 
 
     override unaryComplement(): IntegralValue { return new IntegralValue(~this.value, this.type) }
@@ -246,7 +227,7 @@ class IntegralValue extends Value<IntegralValue> {
     override shiftRight(n: IntegralValue): IntegralValue { return new IntegralValue(this.value >> n.value, this.type) }
 }
 
-class FloatValue extends Value<FloatValue> {
+export class FloatValue extends Value<FloatValue> {
     readonly value: number
     readonly type: FloatingPrimitiveTypeKind
     constructor(value: number, type: FloatingPrimitiveTypeKind) {
@@ -257,7 +238,7 @@ class FloatValue extends Value<FloatValue> {
         }
         this.type = type
     }
-    public static of(expr: ast.FloatingLiteral, accept: ValidationAcceptor): FloatValue {
+    public static of(expr: ast.FloatingLiteral, accept?: ValidationAcceptor): FloatValue {
         let text = expr.text.replaceAll("'", '')
         if (text.endsWith('f') || text.endsWith('F')) {
             return new FloatValue(parseFloat(text.slice(0, -1)), 'Float32')
@@ -295,7 +276,7 @@ class FloatValue extends Value<FloatValue> {
 export class Solver {
 
 
-    public static getValue<T>(expression: ast.Expression | undefined, accept: ValidationAcceptor): Value<T> | undefined {
+    public static getValue<T>(expression: ast.Expression | undefined, accept?: ValidationAcceptor): Value<T> | undefined {
         if (expression) {
             if (ast.isIntegerLiteral(expression)) {
                 return IntegralValue.of(expression, accept)
@@ -331,7 +312,7 @@ export class Solver {
         return undefined
     }
 
-    public static getValueAs<T>(expression: ast.Expression | undefined, type: ast.Type | PrimitiveTypeKind, accept: ValidationAcceptor): Value<T> | undefined {
+    public static getValueAs<T>(expression: ast.Expression | undefined, type: ast.Type | PrimitiveTypeKind, accept?: ValidationAcceptor): Value<T> | undefined {
 
         const value = Solver.getValue(expression, accept)
         if (value == undefined) return undefined
@@ -359,8 +340,6 @@ export class Solver {
         else if (kind === 'Char8') {
             result = value.charValue()
         }
-        //TODO handle Duration an DateTime
-
 
         return result
     }
@@ -390,7 +369,7 @@ export class Solver {
         }
     }
 
-    private static binaryOperation<T>(expression: ast.BinaryOperation, accept: ValidationAcceptor): Value<T> | undefined {
+    private static binaryOperation<T>(expression: ast.BinaryOperation, accept?: ValidationAcceptor): Value<T> | undefined {
 
         let left = this.getValue(expression.leftOperand, accept)
         let right = this.getValue(expression.rightOperand, accept)
@@ -431,7 +410,7 @@ export class Solver {
                 result = Solver.binaryOperationFunction(left, right, expression.feature)
             }
         }
-        if (result === undefined) {
+        if (accept && result === undefined) {
             accept('error', `Binary operator '${expression.feature}' is not supported for operands of type '${left.primitiveTypeKind()}' and '${right.primitiveTypeKind()}'.`,
                 { node: expression })
         }
@@ -448,14 +427,14 @@ export class Solver {
         }
         return undefined
     }
-    private static unaryOperation<T>(expression: ast.UnaryOperation, accept: ValidationAcceptor): Value<T> | undefined {
+    private static unaryOperation<T>(expression: ast.UnaryOperation, accept?: ValidationAcceptor): Value<T> | undefined {
         let operand = this.getValue(expression.operand, accept)
         if (!operand)
             return undefined
 
-        const result  = Solver.unaryOperationFunction(operand, expression.feature)
+        const result = Solver.unaryOperationFunction(operand, expression.feature)
 
-        if (result === undefined) {
+        if (accept && result === undefined) {
             accept('error', `Unary operator '${expression.feature}' is not supported for operand of type '${operand.primitiveTypeKind()}'.`, { node: expression })
         }
         return result

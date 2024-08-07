@@ -1,4 +1,21 @@
 
+> ⚠️ **Warning:** This project is a work in progress conversion of [XSMP-Modeler-Core](https://github.com/ThalesGroup/xsmp-modeler-core) from [Xtext](https://eclipse.dev/Xtext/documentation/index.html) to [Langium](https://langium.org/docs/introduction/). Not all features are supported yet:
+- [x] xsmp.project - Grammar
+- [x] xsmp.project - Scoping
+- [x] xsmp.project - Validation
+- [x] xsmp.project - Documentation on hover
+- [x] xsmpcat - Grammar
+- [x] xsmpcat - Scoping
+- [x] xsmpcat - Documentation on hover
+- [ ] xsmpcat - Validation (in progress)
+- [ ] xsmpcat - Quickfixs
+- [ ] SMP Tool - generator (in progress)
+- [ ] SMP Tool - import
+- [ ] AsciiDoc Tool - generator
+- [ ] xsmp-sdk Profile - generator
+- [ ] esa-cdk Profile - generator
+
+
 
 # XSMP Modeler
 

@@ -12,6 +12,8 @@ import { XsmpIndexManager } from './workspace/index-manager.js';
 import { XsmpNodeKindProvider } from './lsp/node-kind-provider.js';
 import { XsmpDocumentBuilder } from './workspace/document-builder.js';
 import { XsmpLangiumDocuments } from './workspace/documents.js';
+import { XsmpDocumentGenerator } from './workspace/document-generator.js';
+import { XsmpDocumentUpdateHandler } from './lsp/document-update-handler.js';
 
 /**
  * Create the full set of services required by Langium.
@@ -67,6 +69,7 @@ export function createXsmpServices(context: DefaultSharedModuleContext): {
  * Declaration of custom shared services 
  */
 export type XsmpAddedSharedServices = {
+    DocumentGenerator: XsmpDocumentGenerator,
 }
 
 /**
@@ -80,9 +83,11 @@ export const XsmpSharedModule: Module<XsmpSharedServices, DeepPartial<XsmpShared
         DocumentBuilder: (services) => new XsmpDocumentBuilder(services),
         WorkspaceManager: (services) => new XsmpWorkspaceManager(services),
         IndexManager: (services) => new XsmpIndexManager(services),
-        LangiumDocuments: (services) => new XsmpLangiumDocuments(services)
+        LangiumDocuments: (services) => new XsmpLangiumDocuments(services),
     },
     lsp: {
         NodeKindProvider: () => new XsmpNodeKindProvider(),
+        DocumentUpdateHandler: (services)=>new XsmpDocumentUpdateHandler(services),
     },
+    DocumentGenerator:(services) => new XsmpDocumentGenerator(services),
 }

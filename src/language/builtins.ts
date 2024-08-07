@@ -41,10 +41,18 @@ export const builtins: Map<string, string> = new Map([
     [URI.parse('builtin:///org.eclipse.xsmp.tool.smp.tool').toString(), `
     /**
      * SMP tool
+     * 
+     * @deprecated Use the "smp" tool instead.
      */
     tool "org.eclipse.xsmp.tool.smp"
     `],
-
+    [URI.parse('builtin:///smp.tool').toString(), `
+        /**
+         * SMP tool
+         */
+        tool "smp"
+        `],
+    
     [URI.parse('builtin:///org.eclipse.xsmp.tool.python.tool').toString(), `
     /**
      * Python tool

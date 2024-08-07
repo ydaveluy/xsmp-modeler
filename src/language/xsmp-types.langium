@@ -12,7 +12,7 @@ type ParameterDirectionKind_out = 'out';
 type ParameterDirectionKind_inout = 'inout';
 type ParameterDirectionKind_return = 'return';
 
-type WithBody=  Structure | ReferenceType | Namespace;
+type WithBody = Structure | ReferenceType | Namespace;
 
 interface Catalogue extends Document {
 	elements:Namespace[]
@@ -22,7 +22,7 @@ interface Document extends NamedElement {
 }
 
 interface NamedElement {
-	name?: string
+	name: string
 	attributes: Attribute[]
 }
 
@@ -156,9 +156,15 @@ interface Property extends VisibilityElement, Resolvable {
 }
 
 interface Operation extends VisibilityElement, Resolvable {
-	returnParameter?: Parameter
+	returnParameter?: ReturnParameter
 	parameter: Parameter[]
 	raisedException: @Type[]
+}
+
+interface ReturnParameter {
+	name?: string
+	attributes: Attribute[]
+	^type: @Type
 }
 
 interface Parameter extends NamedElement {

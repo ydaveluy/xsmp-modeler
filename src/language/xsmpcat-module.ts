@@ -5,9 +5,9 @@ import type { LangiumServices, PartialLangiumServices } from 'langium/lsp';
 import { XsmpcatScopeComputation, XsmpcatScopeProvider } from './references/xsmpcat-scope.js';
 import { XsmpcatFormatter } from './lsp/xsmpcat-formatter.js';
 import { XsmpHoverProvider } from './lsp/hover-provider.js';
-import { XsmpUtils } from './utils/xsmp-utils.js';
 import { XsmpDocumentSymbolProvider } from './lsp/document-symbol-provider.js';
 import { XsmpcatCompletionProvider } from './lsp/xsmpcat-completion-provider.js';
+import { XsmpValueConverter } from './parser/value-converter.js';
 
 /**
  * Declaration of Xsmp services.
@@ -16,7 +16,6 @@ export type XsmpcatAddedServices = {
     validation: {
         XsmpcatValidator: XsmpcatValidator
     },
-    XsmpUtils:XsmpUtils
 }
 
 /**
@@ -36,7 +35,7 @@ export const XsmpcatModule: Module<XsmpcatServices, PartialLangiumServices & Xsm
 
      },
     validation: {
-        XsmpcatValidator: (services) => new XsmpcatValidator(services)
+        XsmpcatValidator: () => new XsmpcatValidator()
     },
     lsp: {
         Formatter: () => new XsmpcatFormatter(),
@@ -44,6 +43,9 @@ export const XsmpcatModule: Module<XsmpcatServices, PartialLangiumServices & Xsm
         DocumentSymbolProvider:  (services) => new XsmpDocumentSymbolProvider(services),
         CompletionProvider: (services) => new XsmpcatCompletionProvider(services),
     },
-    XsmpUtils:(services) => new XsmpUtils(services),
+    parser:
+    {
+        ValueConverter:()=>new XsmpValueConverter(),
+    },
 };
 

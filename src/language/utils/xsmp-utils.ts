@@ -1,7 +1,8 @@
-import { AstNode, CstNode, CstUtils, GrammarConfig, isAstNodeWithComment, isJSDoc, JSDocComment, JSDocTag, parseJSDoc } from "langium";
-import { Attribute, isEnumeration, isFloat, isInteger, isNamespace, isPrimitiveType, isStringType, isType, NamedElement, Type } from "../generated/ast.js";
+import { AstNode, CstNode, CstUtils, isAstNodeWithComment, isJSDoc, JSDocComment, JSDocTag, parseJSDoc } from "langium";
+import * as ast from "../generated/ast.js";
 
 import { LangiumServices } from "langium/lsp";
+import { Solver } from "./solver.js";
 
 
 
@@ -40,30 +41,73 @@ export type Attributes = 'Attributes.Static'
     | 'Attributes.SimpleArray' | 'Attributes.OperatorKind';
 
 export class XsmpUtils {
-    protected readonly grammarConfig: () => GrammarConfig;
 
 
     constructor(services: LangiumServices) {
-        this.grammarConfig = () => services.parser.GrammarConfig;
+
     }
 
     /**
-      * @param element the element
-      * @returns qualified name separated by `.`
-      */
-    public static getQualifiedName(node: NamedElement): string {
-        let name = node.name as string;
+     * @param element the element
+     * @returns qualified name separated by `.`
+     */
+    public static getQualifiedName(node: ast.NamedElement | ast.ReturnParameter): string {
+        let name = node.name ?? 'return';
         let parent = node.$container;
 
-        while (isNamespace(parent) || isType(parent)) {
+        while (ast.isNamespace(parent) || ast.isType(parent)) {
             name = `${parent.name}.${name}`;
             parent = parent.$container;
         }
         return name;
     }
 
-    public static getPrimitiveTypeKind(type: Type): PrimitiveTypeKind {
-        if (isPrimitiveType(type)) {
+
+    public static escape(input: string | undefined): string {
+        if (!input) return ''
+        return input.replace("\t", "\\t").replace("\b", "\\b").replace("\n", "\\n").replace("\r", "\\r")
+            .replace("\f", "\\f").replace("\'", "\\'").replace("\"", "\\\"");
+    }
+
+
+    /**
+     * @param element the element
+     * @returns the visibility
+     */
+    public static getVisibility(node: ast.VisibilityElement): ast.VisibilityModifiers | undefined {
+        if (node.modifiers.includes('private'))
+            return 'private'
+        if (node.modifiers.includes('protected'))
+            return 'protected'
+        if (node.modifiers.includes('public'))
+            return 'public'
+        return undefined;
+    }
+    public static getAccessKind(node: ast.Property): ast.AccessKind | undefined {
+        if (node.modifiers.includes('readOnly'))
+            return 'readOnly'
+        if (node.modifiers.includes('readWrite'))
+            return 'readWrite'
+        if (node.modifiers.includes('writeOnly'))
+            return 'writeOnly'
+        return undefined;
+    }
+
+    public static isAbstract(node: ast.VisibilityElement): boolean {
+        return node.modifiers.includes('abstract')
+    }
+    public static isInput(node: ast.VisibilityElement): boolean {
+        return node.modifiers.includes('input')
+    }
+    public static isOutput(node: ast.VisibilityElement): boolean {
+        return node.modifiers.includes('output')
+    }
+    public static isState(node: ast.VisibilityElement): boolean {
+        return !node.modifiers.includes('transient')
+    }
+
+    public static getPrimitiveTypeKind(type: ast.Type): PrimitiveTypeKind {
+        if (ast.isPrimitiveType(type)) {
             switch (XsmpUtils.getQualifiedName(type)) {
                 case 'Smp.Bool': return 'Bool'
                 case 'Smp.Char8': return 'Char8'
@@ -82,33 +126,33 @@ export class XsmpUtils {
                 case 'Smp.String8': return 'String8'
             }
         }
-        else if (isFloat(type)) {
+        else if (ast.isFloat(type)) {
             if (type.primitiveType?.ref)
                 return this.getPrimitiveTypeKind(type.primitiveType.ref)
             return 'Float64'
         }
-        else if (isInteger(type)) {
+        else if (ast.isInteger(type)) {
             if (type.primitiveType?.ref)
                 return this.getPrimitiveTypeKind(type.primitiveType.ref)
             return 'Int32'
         }
-        else if (isStringType(type)) {
+        else if (ast.isStringType(type)) {
             return 'String8'
         }
-        else if (isEnumeration(type)) {
+        else if (ast.isEnumeration(type)) {
             return 'Enum'
         }
         return 'None'
     }
 
-    protected getCommentNode(node: AstNode): CstNode | undefined {
+    protected static getCommentNode(node: AstNode): CstNode | undefined {
         if (isAstNodeWithComment(node)) {
             return node.$cstNode;
         }
-        return CstUtils.findCommentNode(node.$cstNode, this.grammarConfig().multilineCommentRules);
+        return CstUtils.findCommentNode(node.$cstNode, ['ML_COMMENT']);
     }
 
-    public getJSDoc(element: NamedElement): JSDocComment | undefined {
+    public static getJSDoc(element: AstNode): JSDocComment | undefined {
         const comment = this.getCommentNode(element)
         if (comment && isJSDoc(comment)) {
             return parseJSDoc(comment)
@@ -116,36 +160,84 @@ export class XsmpUtils {
         return undefined
     }
 
-
-
-    public getTag(element: NamedElement, tagName: string): JSDocTag | undefined {
+    public static getTag(element: AstNode, tagName: string): JSDocTag | undefined {
         const tag = this.getJSDoc(element)?.getTag(tagName)
         return tag?.inline ? undefined : tag
     }
 
-    public getTags(element: NamedElement, tagName: string): JSDocTag[] {
+    public static getTags(element: AstNode, tagName: string): JSDocTag[] {
         return this.getJSDoc(element)?.getTags(tagName).filter(t => !t.inline) ?? []
     }
 
-    public getUuid(type: Type): JSDocTag | undefined {
+    public static getUuid(type: ast.Type): JSDocTag | undefined {
         return this.getTag(type, 'uuid')
     }
 
-    public IsDeprecated(element: NamedElement): boolean {
-        return this.getTag(element, 'deprecated') != undefined
+    public static IsDeprecated(element: ast.NamedElement): boolean {
+        return this.getTag(element, 'deprecated') !== undefined
     }
 
-    protected static attribute(element: NamedElement, id: Attributes): Attribute | undefined {
+    protected static attribute(element: ast.NamedElement, id: Attributes): ast.Attribute | undefined {
         return element.attributes.find(a => a.type.ref && XsmpUtils.getQualifiedName(a.type.ref) == id)
     }
 
-    protected static attributeBoolValue(element: NamedElement, id: Attributes): boolean | undefined {
+    protected static attributeBoolValue(element: ast.NamedElement, id: Attributes): boolean | undefined {
         return true
     }
 
+    public static getDescription(element: ast.NamedElement): string | undefined {
+        const jsDoc = this.getJSDoc(element);
+        if (!jsDoc)
+            return undefined
 
-    public isStatic(element: NamedElement): boolean {
+        const result: string[] = []
+
+        for (const e of jsDoc.elements) {
+            const text = e.toString()
+            if (text.startsWith('@'))
+                break
+            result.push(text)
+        }
+
+        return result.length > 0 ? result.join('\n') : undefined
+    }
+
+    public static isStatic(element: ast.NamedElement): boolean {
 
         return false
+    }
+    public static allowMultiple(element: ast.AttributeType): boolean {
+        return XsmpUtils.getTag(element, 'allowMultiple') !== undefined
+    }
+    public static usage(element: ast.AttributeType): string[] {
+        return XsmpUtils.getTags(element, 'usage').map(t => t.content.toString())
+    }
+
+
+    public static getLower(element: ast.NamedElementWithMultiplicity): bigint | undefined {
+        if (element.optional)
+            return BigInt(0);
+
+        if (element.multiplicity === undefined)
+            return BigInt(1);
+
+        if (element.multiplicity.lower === undefined && element.multiplicity.upper === undefined)
+            return BigInt(element.multiplicity.aux ? 1 : 0);
+
+        return Solver.getValue(element.multiplicity.lower)?.integralValue('Int64')?.getValue();
+    }
+
+    public static getUpper(element: ast.NamedElementWithMultiplicity): bigint | undefined {
+
+        if (element.optional || element.multiplicity === undefined)
+            return BigInt(1);
+
+        if (element.multiplicity.lower === undefined && element.multiplicity.upper === undefined)
+            return BigInt(-1);
+
+        if (element.multiplicity.upper === undefined)
+            return element.multiplicity.aux ? BigInt(-1) : Solver.getValue(element.multiplicity.lower)?.integralValue('Int64')?.getValue() ?? BigInt(0);;
+
+        return Solver.getValue(element.multiplicity.upper)?.integralValue('Int64')?.getValue();
     }
 }
