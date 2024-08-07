@@ -1,4 +1,4 @@
-import { AstNode, CstNode, CstUtils, isAstNodeWithComment, isJSDoc, JSDocComment, JSDocTag, parseJSDoc } from "langium";
+import { AstNode, CstNode, CstUtils, isAstNodeWithComment, isJSDoc, JSDocComment, JSDocTag, parseJSDoc, stream, Stream } from "langium";
 import * as ast from "../generated/ast.js";
 
 import { LangiumServices } from "langium/lsp";
@@ -83,6 +83,15 @@ export class XsmpUtils {
             return 'public'
         return undefined;
     }
+    public static getRealVisibility(node: ast.VisibilityElement): ast.VisibilityModifiers {
+        const visibility = this.getVisibility(node)
+        if (visibility)
+            return visibility
+        if (node.$container?.$type === ast.Structure || node.$container?.$type === ast.Interface)
+            return 'public'
+        return 'private'
+    }
+
     public static getAccessKind(node: ast.Property): ast.AccessKind | undefined {
         if (node.modifiers.includes('readOnly'))
             return 'readOnly'
@@ -191,16 +200,22 @@ export class XsmpUtils {
             return undefined
 
         const result: string[] = []
-
         for (const e of jsDoc.elements) {
             const text = e.toString()
             if (text.startsWith('@'))
                 break
             result.push(text)
         }
-
-        return result.length > 0 ? result.join('\n') : undefined
+        return result.length > 0 ? result.join('\n').trim() : undefined
     }
+    public static getParameterDescription(element: ast.Parameter): string | undefined {
+        const regex = new RegExp(`^${element.name}\\s`);
+        return this.getJSDoc(element.$container)?.getTags('param').find(t => regex.test(t.content.toString()))?.content.toString().slice(element.name.length).trim()
+    }
+    public static getReturnParameterDescription(element: ast.ReturnParameter): string | undefined {
+        return this.getJSDoc(element.$container)?.getTag('return')?.content.toString().trim()
+    }
+
 
     public static isStatic(element: ast.NamedElement): boolean {
 
@@ -239,5 +254,14 @@ export class XsmpUtils {
             return element.multiplicity.aux ? BigInt(-1) : Solver.getValue(element.multiplicity.lower)?.integralValue('Int64')?.getValue() ?? BigInt(0);;
 
         return Solver.getValue(element.multiplicity.upper)?.integralValue('Int64')?.getValue();
+    }
+
+
+    public static getAllFields(element: ast.Structure): Stream<ast.Field> {
+        // return non static and public fields from element's base if any and current element
+        const result = stream(element.elements).filter(ast.isField).filter(f => !XsmpUtils.isStatic(f) && this.getRealVisibility(f) === 'public')
+        if (ast.isClass(element) && ast.isStructure(element.base))
+            return this.getAllFields(element.base).concat(result)
+        return result
     }
 }

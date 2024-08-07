@@ -1,6 +1,7 @@
 
 import { NamedElement, Document } from "./elements.js";
-import { Association, Constant, Field, LanguageType, Operation, Property, Type, Xlink } from "./types.js";
+import { Association, Constant, Field, LanguageType, Operation, Property, Type } from "./types.js";
+import { Xlink } from "./xlink.js";
 
 
 export interface Catalogue extends Document {

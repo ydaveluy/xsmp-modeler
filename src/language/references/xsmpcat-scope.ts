@@ -4,6 +4,7 @@ import type { XsmpcatServices } from '../xsmpcat-module.js';
 import * as ast from '../generated/ast.js';
 import { AstUtils, Cancellation, WorkspaceCache, EMPTY_SCOPE, interruptAndCheck, MultiMap, stream, DocumentCache } from 'langium';
 import { findVisibleUris } from '../utils/project-utils.js';
+import { XsmpUtils } from '../utils/xsmp-utils.js';
 
 
 
@@ -24,7 +25,7 @@ export class XsmpcatScopeComputation implements ScopeComputation {
             await interruptAndCheck(cancelToken);
             if (namespace.name) {
                 await this.computeNamespaceExports(document, namespace, exportedDescriptions, namespace.name + '.', cancelToken)
-                // import elements in Smp and Attributes namespaces in global namespace
+                // import elements from Smp and Attributes namespaces in global namespace
                 if (namespace.name === 'Smp' || namespace.name === 'Attributes') {
 
                     await this.computeNamespaceExports(document, namespace, exportedDescriptions, '', cancelToken)
@@ -198,9 +199,8 @@ export class XsmpcatScopeProvider implements ScopeProvider {
         else if (ast.isCollectionLiteral(expression.$container)) {
             const type = this.getType(expression.$container)
             if (ast.isStructure(type)) {
-                //TODO handle element from base class in case of class
-                const field = type.elements.filter(e => ast.isField(e)).at(expression.$containerIndex as number);
-                if (ast.isField(field))
+                const field = XsmpUtils.getAllFields(type).toArray().at(expression.$containerIndex as number);
+                if (field)
                     return field.type.ref;
             }
             else if (ast.isArrayType(type)) {

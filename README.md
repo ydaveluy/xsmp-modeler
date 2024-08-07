@@ -9,11 +9,19 @@
 - [x] xsmpcat - Documentation on hover
 - [ ] xsmpcat - Validation (in progress)
 - [ ] xsmpcat - Quickfixs
-- [ ] SMP Tool - generator (in progress)
+- [x] SMP Tool - generator
 - [ ] SMP Tool - import
 - [ ] AsciiDoc Tool - generator
 - [ ] xsmp-sdk Profile - generator
 - [ ] esa-cdk Profile - generator
+
+
+### xsmp-modeler-core (**Xtext**) vs  xsmp-modeler (**Langium**) performance comparison
+|          | **Xtext** | **Langium** |
+|----------|-----------|-------------|
+| **LOC**  | 24k       |   **3k**    |
+| **size** | 13MB      |  **565KB**  | 
+| loading  | 17.4s     |  **6.7s**   |
 
 
 

@@ -1,4 +1,5 @@
 import { Metadata, NamedElement } from "./elements.js";
+import { Xlink } from "./xlink.js";
 
 
 
@@ -59,10 +60,7 @@ export interface EnumerationLiteral extends NamedElement {
 export interface Enumeration extends SimpleType {
     Literal: EnumerationLiteral[];
 }
-export interface Xlink {
-    '@xlink:href': string;
-    '@xlink:title'?: string;
-}
+
 
 
 export interface Integer extends SimpleType {
