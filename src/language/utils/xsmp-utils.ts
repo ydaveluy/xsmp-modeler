@@ -65,8 +65,8 @@ export class XsmpUtils {
 
     public static escape(input: string | undefined): string {
         if (!input) return ''
-        return input.replace("\t", "\\t").replace("\b", "\\b").replace("\n", "\\n").replace("\r", "\\r")
-            .replace("\f", "\\f").replace("\'", "\\'").replace("\"", "\\\"");
+        return input.replaceAll('\t', '\\t').replaceAll('\b', '\\b').replaceAll('\n', '\\n').replaceAll('\r', '\\r')
+            .replaceAll('\f', '\\f').replaceAll("'", "\\'").replaceAll('"', '\\"');
     }
 
 

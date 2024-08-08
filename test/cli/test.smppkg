@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Package:Package xmlns:Elements="http://www.ecss.nl/smp/2019/Core/Elements" xmlns:Types="http://www.ecss.nl/smp/2019/Core/Types" xmlns:Catalogue="http://www.ecss.nl/smp/2019/Smdl/Catalogue" xmlns:Package="http://www.ecss.nl/smp/2019/Smdl/Package" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xlink="http://www.w3.org/1999/xlink" Id="_Test" Name="Test" Title="a title" Date="2022-10-31T09:33:21Z" Creator="creator1, creator2" Version="1.0.0">
   <Description>Catalogue Test</Description>
+  <Implementation xlink:href="test.smpcat#ns.Int10" xlink:title="Int10"/>
   <Implementation xlink:href="test.smpcat#ns.SingleAttribute" xlink:title="SingleAttribute"/>
   <Implementation xlink:href="test.smpcat#ns.MultipleAttribute" xlink:title="MultipleAttribute"/>
   <Implementation xlink:href="test.smpcat#ns.ArrayOf3Bool" xlink:title="ArrayOf3Bool"/>
@@ -44,6 +45,7 @@
   <Implementation xlink:href="test.smpcat#ns.AnIntegerWithRange" xlink:title="AnIntegerWithRange"/>
   <Implementation xlink:href="test.smpcat#ns.AString" xlink:title="AString"/>
   <Implementation xlink:href="test.smpcat#ns.NativeType" xlink:title="NativeType"/>
+  <Implementation xlink:href="test.smpcat#ns.NativeType2" xlink:title="NativeType2"/>
   <Implementation xlink:href="test.smpcat#ns.ValueReference" xlink:title="ValueReference"/>
   <Implementation xlink:href="test.smpcat#ns.AnAbstractModel" xlink:title="AnAbstractModel"/>
   <Implementation xlink:href="test.smpcat#ns.AModel" xlink:title="AModel"/>

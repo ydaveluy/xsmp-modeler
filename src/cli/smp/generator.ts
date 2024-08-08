@@ -16,7 +16,7 @@ import { Duration, Instant } from '@js-joda/core';
 export class SmpcatGenerator {
 
     protected getId(element: ast.NamedElement | ast.ReturnParameter): string {
-        return XsmpUtils.getTag(element, 'id')?.content.toString() ?? XsmpUtils.getQualifiedName(element);;
+        return XsmpUtils.getTag(element, 'id')?.content.toString() ?? XsmpUtils.getQualifiedName(element);
     }
 
     protected convertNamedElement(element: ast.NamedElement): Elements.NamedElement {
@@ -30,8 +30,8 @@ export class SmpcatGenerator {
     protected convertAttribute(element: ast.Attribute): Types.Attribute {
         return {
             "@xsi:type": 'Types:Attribute',
-            "@Id": this.getId(element.$container) + '.' + element.type.ref?.name,
-            "@Name": element.type.ref?.name as string,
+            "@Id": this.getId(element.$container) + '.' + element.type.ref?.name + '.' + element.$containerIndex,
+            "@Name": element.type.ref?.name ?? '',
             Type: this.convertXlink(element.type, element),
             Value: element.value ? this.convertValue((element.type.ref as ast.AttributeType).type.ref, element.value) :
                 this.convertValue((element.type.ref as ast.AttributeType).type.ref, (element.type.ref as ast.AttributeType).default as ast.Expression),
@@ -189,14 +189,14 @@ export class SmpcatGenerator {
         }
     }
     protected convertFloat(float: ast.Float): Types.Float {
-
+        const range = float.range ? false : undefined
         return {
             ...this.convertType(float, 'Types:Float'),
             PrimitiveType: float.primitiveType ? this.convertXlink(float.primitiveType, float) : undefined,
             '@Minimum': Solver.getValue(float.minimum)?.floatValue(XsmpUtils.getPrimitiveTypeKind(float) as FloatingPrimitiveTypeKind)?.getValue(),
             '@Maximum': Solver.getValue(float.maximum)?.floatValue(XsmpUtils.getPrimitiveTypeKind(float) as FloatingPrimitiveTypeKind)?.getValue(),
-            '@MinInclusive': float.range === '...' || float.range === '..<' ? true : float.range ? false : undefined,
-            '@MaxInclusive': float.range === '...' || float.range === '<..' ? true : float.range ? false : undefined,
+            '@MinInclusive': float.range === '...' || float.range === '..<' ? true : range,
+            '@MaxInclusive': float.range === '...' || float.range === '<..' ? true : range,
             '@Unit': XsmpUtils.getTag(float, 'unit')?.content.toString(),
         }
     }
@@ -374,21 +374,23 @@ export class SmpcatGenerator {
             return { '@xlink:title': link.ref.name, '@xlink:href': href }
 
         }
-        return { '@xlink:title': link.$refText, '@xlink:href': link.$refText }
+        return { '@xlink:title': link.$refText, '@xlink:href': '#' + link.$refText }
 
     }
     protected convertOperation(operation: ast.Operation): Types.Operation {
+        const id = XsmpUtils.getTag(operation, 'id')?.content.toString() ?? XsmpUtils.getQualifiedName(operation) + (operation.parameter.length > 0 ? '-' : '') + operation.parameter.map(p => p.type.ref?.name).join('-');
         return {
             ...this.convertVisibilityElement(operation),
+            "@Id": id,
             Parameter: operation.returnParameter ?
-                operation.parameter.map(this.convertParameter, this).concat(this.convertReturnParameter(operation.returnParameter)) :
-                operation.parameter.map(this.convertParameter, this),
+                operation.parameter.map(p => this.convertParameter(p, id), this).concat(this.convertReturnParameter(operation.returnParameter, id)) :
+                operation.parameter.map(p => this.convertParameter(p, id), this),
             RaisedException: operation.raisedException.map(e => this.convertXlink(e, operation)),
         }
     }
-    protected convertReturnParameter(parameter: ast.ReturnParameter): Types.Parameter {
+    protected convertReturnParameter(parameter: ast.ReturnParameter, id: string): Types.Parameter {
         return {
-            "@Id": this.getId(parameter.$container) + '.' + (parameter.name ?? 'return'),
+            "@Id": id + '.' + (parameter.name ?? 'return'),
             "@Name": parameter.name ?? 'return',
             Description: XsmpUtils.getReturnParameterDescription(parameter),
             Metadata: parameter.attributes.map(this.convertAttribute, this),
@@ -396,9 +398,9 @@ export class SmpcatGenerator {
             '@Direction': 'return',
         }
     }
-    protected convertParameter(parameter: ast.Parameter): Types.Parameter {
+    protected convertParameter(parameter: ast.Parameter, id: string): Types.Parameter {
         return {
-            "@Id": this.getId(parameter.$container) + '.' + parameter.name,
+            "@Id": id + '.' + parameter.name,
             "@Name": parameter.name,
             Description: XsmpUtils.getParameterDescription(parameter),
             Metadata: parameter.attributes.map(this.convertAttribute, this),
@@ -502,7 +504,7 @@ export class SmpcatGenerator {
             '@Version': XsmpUtils.getTag(catalogue, 'version')?.content.toString(),
             Description: XsmpUtils.getDescription(catalogue),
             Metadata: catalogue.attributes.map(this.convertAttribute, this),
-            Dependency: dependencies.map(e => this.convertXlink({ref:e, $refText:e.name}, catalogue)),
+            Dependency: dependencies.map(e => this.convertXlink({ ref: e, $refText: e.name }, catalogue)),
             Implementation: AstUtils.streamAllContents(catalogue).filter(ast.isType).filter(e => !ast.isInterface(e)).map(e =>
             ({
                 "@xlink:href": prefix + this.getId(e),

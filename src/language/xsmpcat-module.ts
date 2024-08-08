@@ -30,22 +30,22 @@ export type XsmpcatServices = LangiumServices & XsmpcatAddedServices
  */
 export const XsmpcatModule: Module<XsmpcatServices, PartialLangiumServices & XsmpcatAddedServices> = {
     references: {
-         ScopeProvider: (services) => new XsmpcatScopeProvider(services),
-         ScopeComputation: (services) => new XsmpcatScopeComputation(services),
+        ScopeProvider: (services) => new XsmpcatScopeProvider(services),
+        ScopeComputation: (services) => new XsmpcatScopeComputation(services),
 
-     },
+    },
     validation: {
         XsmpcatValidator: () => new XsmpcatValidator()
     },
     lsp: {
         Formatter: () => new XsmpcatFormatter(),
         HoverProvider: (services) => new XsmpHoverProvider(services),
-        DocumentSymbolProvider:  (services) => new XsmpDocumentSymbolProvider(services),
+        DocumentSymbolProvider: (services) => new XsmpDocumentSymbolProvider(services),
         CompletionProvider: (services) => new XsmpcatCompletionProvider(services),
     },
     parser:
     {
-        ValueConverter:()=>new XsmpValueConverter(),
+        ValueConverter: () => new XsmpValueConverter(),
     },
 };
 

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Catalogue:Catalogue xmlns:Elements="http://www.ecss.nl/smp/2019/Core/Elements" xmlns:Types="http://www.ecss.nl/smp/2019/Core/Types" xmlns:Catalogue="http://www.ecss.nl/smp/2019/Smdl/Catalogue" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xlink="http://www.w3.org/1999/xlink" Id="_Test" Name="Test" Title="a title" Date="2022-10-31T09:33:21Z" Creator="creator1, creator2" Version="1.0.0">
   <Description>Catalogue Test</Description>
-  <Namespace Id="ns" Name="ns">
+  <Namespace Id="custom_id" Name="ns">
     <Namespace Id="ns.nestedNs" Name="nestedNs"/>
+    <Type xsi:type="Types:PrimitiveType" Id="ns.Int10" Name="Int10" Uuid=""/>
     <Type xsi:type="Types:AttributeType" Id="ns.SingleAttribute" Name="SingleAttribute" Visibility="public" Uuid="c489402d-7ecc-466a-a2e7-e1cb3d1da3c5" AllowMultiple="false">
       <Description>A description</Description>
       <Type xlink:title="Bool" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Bool"/>
-      <Default xsi:type="Types:BoolValue" Value="true"/>
       <Usage>NamedElement</Usage>
     </Type>
     <Type xsi:type="Types:AttributeType" Id="ns.MultipleAttribute" Name="MultipleAttribute" Visibility="public" Uuid="52057807-e889-40fb-89f9-f568018bddf1" AllowMultiple="true">
@@ -15,15 +15,15 @@
       <Usage>NamedElement</Usage>
     </Type>
     <Type xsi:type="Types:Array" Id="ns.ArrayOf3Bool" Name="ArrayOf3Bool" Uuid="621cf9ac-7b8d-4111-a1ef-69084815a903" Size="3">
-      <Metadata xsi:type="Types:Attribute" Id="ns.ArrayOf3Bool.SingleAttribute" Name="SingleAttribute">
+      <Metadata xsi:type="Types:Attribute" Id="ns.ArrayOf3Bool.SingleAttribute.0" Name="SingleAttribute">
         <Type xlink:title="SingleAttribute" xlink:href="#ns.SingleAttribute"/>
         <Value xsi:type="Types:BoolValue" Value="true"/>
       </Metadata>
-      <Metadata xsi:type="Types:Attribute" Id="ns.ArrayOf3Bool.MultipleAttribute" Name="MultipleAttribute">
+      <Metadata xsi:type="Types:Attribute" Id="ns.ArrayOf3Bool.MultipleAttribute.1" Name="MultipleAttribute">
         <Type xlink:title="MultipleAttribute" xlink:href="#ns.MultipleAttribute"/>
         <Value xsi:type="Types:BoolValue" Value="true"/>
       </Metadata>
-      <Metadata xsi:type="Types:Attribute" Id="ns.ArrayOf3Bool.MultipleAttribute" Name="MultipleAttribute">
+      <Metadata xsi:type="Types:Attribute" Id="ns.ArrayOf3Bool.MultipleAttribute.2" Name="MultipleAttribute">
         <Type xlink:title="MultipleAttribute" xlink:href="#ns.MultipleAttribute"/>
         <Value xsi:type="Types:BoolValue" Value="true"/>
       </Metadata>
@@ -86,7 +86,8 @@
         <Type xlink:title="Bool" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Bool"/>
         <Default xsi:type="Types:BoolValue" Value="false"/>
       </Field>
-      <Property Id="ns.AnAbstractClass.property" Name="property">
+      <Base xlink:title="InvalidCrossRef" xlink:href="#InvalidCrossRef"/>
+      <Property Id="ns.AnAbstractClass.property" Name="property" Category="test">
         <Type xlink:title="Bool" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Bool"/>
         <AttachedField xlink:title="field" xlink:href="#ns.AnAbstractClass.field"/>
       </Property>
@@ -96,8 +97,8 @@
           <Type xlink:title="Bool" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Bool"/>
         </Parameter>
       </Operation>
-      <Operation Id="ns.AnAbstractClass.Setter" Name="Setter">
-        <Parameter Id="ns.AnAbstractClass.Setter.value" Name="value">
+      <Operation Id="ns.AnAbstractClass.Setter-Bool" Name="Setter">
+        <Parameter Id="ns.AnAbstractClass.Setter-Bool.value" Name="value">
           <Type xlink:title="Bool" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Bool"/>
         </Parameter>
       </Operation>
@@ -160,6 +161,9 @@
     <Type xsi:type="Types:NativeType" Id="ns.NativeType" Name="NativeType" Visibility="public" Uuid="d9806d07-4cf1-4a40-982b-10b6a7e55909">
       <Platform Name="cpp" Type="NativeType" Namespace="Test" Location="Test/NativeType.h"/>
     </Type>
+    <Type xsi:type="Types:NativeType" Id="ns.NativeType2" Name="NativeType2" Visibility="public" Uuid="">
+      <Platform Name="cpp" Type=""/>
+    </Type>
     <Type xsi:type="Types:ValueReference" Id="ns.ValueReference" Name="ValueReference" Uuid="35c6cdeb-4980-46b4-8d37-e990ab4f0fc2">
       <Type xlink:title="Bool" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Bool"/>
     </Type>
@@ -172,19 +176,19 @@
         <Type xlink:title="Bool" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Bool"/>
       </Property>
       <Operation Id="ns.AnInterface.voidOperation" Name="voidOperation"/>
-      <Operation Id="ns.AnInterface.op" Name="op">
-        <Parameter Id="ns.AnInterface.op.in" Name="in" Direction="in">
+      <Operation Id="ns.AnInterface.op-Float32-Float64-Duration" Name="op">
+        <Parameter Id="ns.AnInterface.op-Float32-Float64-Duration.in" Name="in" Direction="in">
           <Type xlink:title="Float32" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Float32"/>
         </Parameter>
-        <Parameter Id="ns.AnInterface.op.out" Name="out" Direction="out">
+        <Parameter Id="ns.AnInterface.op-Float32-Float64-Duration.out" Name="out" Direction="out">
           <Type xlink:title="Float64" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Float64"/>
         </Parameter>
-        <Parameter Id="ns.AnInterface.op.inout" Name="inout" Direction="inout">
+        <Parameter Id="ns.AnInterface.op-Float32-Float64-Duration.inout" Name="inout" Direction="inout">
           <Description>a desc1</Description>
           <Type xlink:title="Duration" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Duration"/>
           <Default xsi:type="Types:DurationValue" Value="PT0.000000042S"/>
         </Parameter>
-        <Parameter Id="ns.AnInterface.op.return" Name="return" Direction="return">
+        <Parameter Id="ns.AnInterface.op-Float32-Float64-Duration.return" Name="return" Direction="return">
           <Description>a boolean value</Description>
           <Type xlink:title="Bool" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Bool"/>
         </Parameter>
@@ -194,7 +198,7 @@
     </Type>
     <Type xsi:type="Catalogue:Model" Id="ns.AnAbstractModel" Name="AnAbstractModel" Visibility="protected" Uuid="02b2a015-71c8-48bc-beb1-95a494c5e438">
       <Field Id="ns.AnAbstractModel.hidden_field" Name="hidden_field">
-        <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.hidden_field.View" Name="View">
+        <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.hidden_field.View.0" Name="View">
           <Type xlink:title="View" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Attributes.View"/>
           <Value xsi:type="Types:EnumerationValue" Value="0"/>
         </Metadata>
@@ -202,7 +206,7 @@
         <Default xsi:type="Types:BoolValue" Value="false"/>
       </Field>
       <Field Id="ns.AnAbstractModel.debug_field" Name="debug_field">
-        <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.debug_field.View" Name="View">
+        <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.debug_field.View.0" Name="View">
           <Type xlink:title="View" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Attributes.View"/>
           <Value xsi:type="Types:EnumerationValue" Value="1"/>
         </Metadata>
@@ -210,7 +214,7 @@
         <Default xsi:type="Types:BoolValue" Value="false"/>
       </Field>
       <Field Id="ns.AnAbstractModel.expert_field" Name="expert_field">
-        <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.expert_field.View" Name="View">
+        <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.expert_field.View.0" Name="View">
           <Type xlink:title="View" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Attributes.View"/>
           <Value xsi:type="Types:EnumerationValue" Value="2"/>
         </Metadata>
@@ -218,7 +222,7 @@
         <Default xsi:type="Types:BoolValue" Value="false"/>
       </Field>
       <Field Id="ns.AnAbstractModel.all_field" Name="all_field">
-        <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.all_field.View" Name="View">
+        <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.all_field.View.0" Name="View">
           <Type xlink:title="View" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Attributes.View"/>
           <Value xsi:type="Types:EnumerationValue" Value="3"/>
         </Metadata>
@@ -226,7 +230,7 @@
         <Default xsi:type="Types:BoolValue" Value="false"/>
       </Field>
       <Field Id="ns.AnAbstractModel.forcible_field" Name="forcible_field">
-        <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.forcible_field.Forcible" Name="Forcible">
+        <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.forcible_field.Forcible.0" Name="Forcible">
           <Type xlink:title="Forcible" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Attributes.Forcible"/>
           <Value xsi:type="Types:BoolValue" Value="true"/>
         </Metadata>
@@ -234,7 +238,7 @@
         <Default xsi:type="Types:BoolValue" Value="false"/>
       </Field>
       <Field Id="ns.AnAbstractModel.mutable_field" Name="mutable_field">
-        <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.mutable_field.Mutable" Name="Mutable">
+        <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.mutable_field.Mutable.0" Name="Mutable">
           <Type xlink:title="Mutable" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Attributes.Mutable"/>
           <Value xsi:type="Types:BoolValue" Value="true"/>
         </Metadata>
@@ -242,7 +246,7 @@
         <Default xsi:type="Types:BoolValue" Value="false"/>
       </Field>
       <Field Id="ns.AnAbstractModel.failure_field" Name="failure_field">
-        <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.failure_field.Failure" Name="Failure">
+        <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.failure_field.Failure.0" Name="Failure">
           <Type xlink:title="Failure" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Attributes.Failure"/>
           <Value xsi:type="Types:BoolValue" Value="true"/>
         </Metadata>

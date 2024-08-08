@@ -10,18 +10,23 @@
 catalogue Test
 
 
+/**
+ * @id custom_id
+ */
 namespace ns
 {
 	namespace nestedNs
 	{
 	}
 
+	primitive Int10
+
 	/**
      * A description
 	 * @uuid c489402d-7ecc-466a-a2e7-e1cb3d1da3c5
 	 * @usage NamedElement
 	 */
-	public attribute Bool SingleAttribute = true
+	public attribute Bool SingleAttribute 
 
 	/**
 	 * @usage NamedElement
@@ -32,7 +37,7 @@ namespace ns
 
 
 	/** @uuid 621cf9ac-7b8d-4111-a1ef-69084815a903 */
-	@SingleAttribute
+	@SingleAttribute(true)
 	@MultipleAttribute
 	@MultipleAttribute
 	array ArrayOf3Bool = Bool[3]
@@ -103,7 +108,7 @@ namespace ns
 
 
 	/** @uuid 9b21955e-bbf9-41e6-9bc4-5ed613bf7821 */
-	abstract class AnAbstractClass
+	abstract class AnAbstractClass extends InvalidCrossRef
 	{
 		association Float32 association
 		constant Bool constant = true
@@ -111,6 +116,7 @@ namespace ns
 		def Bool getter ()
 		def void Setter (Bool value)
 		field Bool field = false
+		/** @category test */
 		property Bool property -> field
 	}
 
@@ -209,6 +215,9 @@ namespace ns
 	 * @uuid d9806d07-4cf1-4a40-982b-10b6a7e55909
 	 */
 	public native NativeType
+
+
+	public native NativeType2
 
 	/** @uuid 35c6cdeb-4980-46b4-8d37-e990ab4f0fc2 */
 	using ValueReference = Bool*
