@@ -85,8 +85,7 @@ VisibilityModifiers returns string:
     /** The element is globally visible. */
     'public' 
 ;
-FieldModifiers returns string:
-    VisibilityModifiers | 
+FieldFlags returns string:
     /** Input flag of the field. */
     'input' |
     /** Output flag of the field. */
@@ -94,6 +93,11 @@ FieldModifiers returns string:
     /** Transient flag of the field (opposite of state). */
     'transient' 
 ;
+
+FieldModifiers returns string:
+    VisibilityModifiers | FieldFlags
+;
+
 ClassModifiers returns string:
     VisibilityModifiers |
     /** The type is abstract. Abstract types cannot be instantiated, but they can be subtyped. */
@@ -106,6 +110,11 @@ AccessKind returns string:
      'readOnly' | 
      /** Specifies a property, which only has a setter. */
      'writeOnly' 
+;
+
+PropertyModifiers returns string: 
+    AccessKind | 
+    VisibilityModifiers
 ;
 
 Structure returns Structure:
@@ -415,9 +424,10 @@ Field returns Field:
      */
     'field' ^type=[ValueType:QualifiedName ] name=ValidID  ('=' default=Expression  )?  
 ;
+
 Property returns Property:
     attributes+=Attribute*  
-    modifiers+=(AccessKind|VisibilityModifiers)* 
+    modifiers+=PropertyModifiers* 
     /**
      * ```java
      * [public|protected|private] [readOnly|writeOnly|readWrite] property <type> <name>
@@ -489,7 +499,7 @@ Association returns Association:
 	 * An **Association** is a feature that is typed by a language type (Type link). An association always expresses a reference to an instance of the referenced language type. 
 	 * This reference is either another model (if the Type link refers to a **Model** or **Interface**), or it is a field contained in another model (if the Type link refers to a ValueType).
      */
-    'association' ^type=[LanguageType:QualifiedName ] name=ValidID  ('=' default=Expression  )?  
+    'association' ^type=[LanguageType:QualifiedName ] name=ValidID  //('=' default=Expression  )?  
 ;
 
 
@@ -727,12 +737,94 @@ CharacterLiteral returns Expression:
     {CharacterLiteral} value=CHAR   
 ;
 
+BuiltInConstants returns BuiltInConstants:
+    /** The double value that is closer than any other to pi, the ratio of the circumference of a circle to its diameter.*/
+    'PI' |
+    /** The double value that is closer than any other to e, the base of the natural logarithms. */
+    'E' 
+;
 BuiltInConstant returns Expression:
-    {BuiltInConstant} '$' name=ValidID   
+    {BuiltInConstant} '$' name=BuiltInConstants   
 ;
 
+BuiltInFunctions returns BuiltInFunctions:
+    /** Returns the trigonometric cosine of an angle. */
+    'cos' |
+    /** Returns the trigonometric sine of an angle. */
+    'sin' |
+    /** Returns the trigonometric tangent of an angle. */
+    'tan' |
+    /** Returns the arc cosine of a value; the returned angle is in the range 0.0 through pi. */
+    'acos' |
+    /** Returns the arc sine of a value; the returned angle is in the range -pi/2 through pi/2. */
+    'asin' |
+    /** Returns the arc tangent of a value; the returned angle is in the range -pi/2 through pi/2. */
+    'atan' |
+    /** Returns the hyperbolic cosine of a double value. The hyperbolic cosine of x is defined to be (ex + e-x)/2 where e is Euler's number. */
+    'cosh' |
+    /** Returns the hyperbolic sine of a double value. The hyperbolic sine of x is defined to be (ex - e-x)/2 where e is Euler's number. */
+    'sinh' |
+    /** Returns the hyperbolic tangent of a double value. The hyperbolic tangent of x is defined to be (ex - e-x)/ (ex + e-x), in other words, sinh(x)/cosh(x). Note that the absolute value of the exact tanh is always less than 1. */
+    'tanh' |
+    /** Returns Euler's number e raised to the power of a double value. */
+    'exp' |
+    /** Returns the natural logarithm (base e) of a double value. */
+    'log' |
+    /** Returns the base 10 logarithm of a double value. */
+    'log10' |
+    /** Returns ex -1. Note that for values of x near 0, the exact sum of expm1(x) + 1 is much closer to the true result of ex than exp(x). */
+    'expm1' |
+    /** Returns the natural logarithm of the sum of the argument and 1. Note that for small values x, the result of log1p(x) is much closer to the true result of ln(1 + x) than the floating-point evaluation of log(1.0+x). */
+    'log1p' |
+    /** Returns the correctly rounded positive square root of a double value. */
+    'sqrt' |
+    /** Returns the smallest (closest to negative infinity) double value that is greater than or equal to the argument and is equal to a mathematical integer. */
+    'ceil' |
+    /** Returns the largest (closest to positive infinity) double value that is less than or equal to the argument and is equal to a mathematical integer. */
+    'floor' |
+    /** Returns the absolute value of a double value. If the argument is not negative, the argument is returned. If the argument is negative, the negation of the argument is returned. */
+    'abs' |
+    /** Returns the trigonometric cosine of an angle. */
+    'cosf' |
+    /** Returns the trigonometric sine of an angle. */
+    'sinf' |
+    /** Returns the trigonometric tangent of an angle. */
+    'tanf' |
+    /** Returns the arc cosine of a value; the returned angle is in the range 0.0 through pi. */
+    'acosf' |
+    /** Returns the arc sine of a value; the returned angle is in the range -pi/2 through pi/2. */
+    'asinf' |
+    /** Returns the arc tangent of a value; the returned angle is in the range -pi/2 through pi/2. */
+    'atanf' |
+    /** Returns the hyperbolic cosine of a float value. The hyperbolic cosine of x is defined to be (ex + e-x)/2 where e is Euler's number. */
+    'coshf' |
+    /** Returns the hyperbolic sine of a float value. The hyperbolic sine of x is defined to be (ex - e-x)/2 where e is Euler's number. */
+    'sinhf' |
+    /** Returns the hyperbolic tangent of a float value. The hyperbolic tangent of x is defined to be (ex - e-x)/ (ex + e-x), in other words, sinh(x)/cosh(x). Note that the absolute value of the exact tanh is always less than 1. */
+    'tanhf' |
+    /** Returns Euler's number e raised to the power of a float value. */
+    'expf' |
+    /** Returns the natural logarithm (base e) of a float value. */
+    'logf' |
+    /** Returns the base 10 logarithm of a float value. */
+    'log10f' |
+    /** Returns ex -1. Note that for values of x near 0, the exact sum of expm1(x) + 1 is much closer to the true result of ex than exp(x). */
+    'expm1f' |
+    /** Returns the natural logarithm of the sum of the argument and 1. Note that for small values x, the result of log1p(x) is much closer to the true result of ln(1 + x) than the floating-point evaluation of log(1.0+x). */
+    'log1pf' |
+    /** Returns the correctly rounded positive square root of a float value. */
+    'sqrtf' |
+    /** Returns the smallest (closest to negative infinity) float value that is greater than or equal to the argument and is equal to a mathematical integer. */
+    'ceilf' |
+    /** Returns the largest (closest to positive infinity) float value that is less than or equal to the argument and is equal to a mathematical integer. */
+    'floorf' |
+    /** Returns the absolute value of a float value. If the argument is not negative, the argument is returned. If the argument is negative, the negation of the argument is returned. */
+    'absf'
+;
+
+
 BuiltInFunction returns Expression:
-    {BuiltInFunction} '$' name=ValidID  '(' (parameter+=Expression  (',' parameter+=Expression  )* )? ')'  
+    {BuiltInFunction} '$' name=BuiltInFunctions  '(' argument=Expression? ')'  
 ;
 
 BooleanLiteral returns Expression:

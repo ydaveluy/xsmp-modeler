@@ -4,11 +4,13 @@
 - [x] xsmp.project - Scoping
 - [x] xsmp.project - Validation
 - [x] xsmp.project - Documentation on hover
+- [x] xsmp.project - Content Assist
 - [x] xsmpcat - Grammar
 - [x] xsmpcat - Scoping
 - [x] xsmpcat - Documentation on hover
-- [ ] xsmpcat - Validation (in progress)
+- [x] xsmpcat - Validation
 - [ ] xsmpcat - Quickfixs
+- [ ] xsmpcat - Content Assist
 - [x] SMP Tool - generator
 - [ ] SMP Tool - import
 - [ ] AsciiDoc Tool - generator
@@ -16,11 +18,11 @@
 - [ ] esa-cdk Profile - generator
 
 
-### xsmp-modeler-core (**Xtext**) vs  xsmp-modeler (**Langium**) performance comparison
+### xsmp-modeler-core (**Xtext**) vs  xsmp-modeler (**Langium**) comparison
 |          | **Xtext** | **Langium** |
 |----------|-----------|-------------|
 | **LOC**  | 24k       |   **3k**    |
-| **size** | 13MB      |  **565KB**  | 
+| **size** | 13MB      |  **584KB**  | 
 | loading  | 17.4s     |  **6.7s**   |
 
 

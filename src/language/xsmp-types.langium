@@ -175,7 +175,7 @@ interface Parameter extends NamedElement {
 
 interface Association extends VisibilityElement {
 	^type: @Type
-	default?: Expression
+	//default?: Expression
 }
 
 interface Container extends NamedElementWithMultiplicity, Resolvable {
@@ -273,15 +273,19 @@ interface CharacterLiteral extends Expression {
 	value: string
 }
 
-interface BuiltInConstant extends BuiltInExpression {
+type BuiltInConstants = 'PI'|'E';
+interface BuiltInConstant extends Expression {
+	name: BuiltInConstants
 }
 
-interface BuiltInExpression extends Expression {
-	name: string
-}
+type BuiltInFunctions =
+	'cos' |'sin' |'tan' |'acos' | 'asin' | 'atan' | 'cosh' | 'sinh' | 'tanh' |'exp' | 'log' | 'log10' |'expm1' | 'log1p' | 'sqrt' | 'ceil' | 'floor' | 'abs' |
+    'cosf' |'sinf' |'tanf' | 'acosf' |  'asinf' | 'atanf' |'coshf' | 'sinhf' | 'tanhf' | 'expf' | 'logf' | 'log10f' |'expm1f' | 'log1pf' | 'sqrtf' | 'ceilf' | 'floorf' |'absf';
 
-interface BuiltInFunction extends BuiltInExpression {
-	parameter: Expression[]
+
+interface BuiltInFunction extends Expression {
+	name: BuiltInFunctions
+	argument: Expression
 }
 
 interface BooleanLiteral extends Expression {

@@ -1,7 +1,5 @@
-import { AstNode, CstNode, CstUtils, isAstNodeWithComment, isJSDoc, JSDocComment, JSDocTag, parseJSDoc, stream, Stream } from "langium";
+import { AstNode, AstUtils, CstNode, CstUtils, isAstNodeWithComment, isJSDoc, JSDocComment, JSDocTag, parseJSDoc, Reference, stream, Stream } from "langium";
 import * as ast from "../generated/ast.js";
-
-import { LangiumServices } from "langium/lsp";
 import { Solver } from "./solver.js";
 
 
@@ -41,11 +39,6 @@ export type Attributes = 'Attributes.Static'
     | 'Attributes.SimpleArray' | 'Attributes.OperatorKind';
 
 export class XsmpUtils {
-
-
-    constructor(services: LangiumServices) {
-
-    }
 
     /**
      * @param element the element
@@ -102,7 +95,7 @@ export class XsmpUtils {
         return undefined;
     }
 
-    public static isAbstract(node: ast.VisibilityElement): boolean {
+    public static isAbstractType(node: ast.Class | ast.Component): boolean {
         return node.modifiers.includes('abstract')
     }
     public static isInput(node: ast.VisibilityElement): boolean {
@@ -169,29 +162,84 @@ export class XsmpUtils {
         return undefined
     }
 
-    public static getTag(element: AstNode, tagName: string): JSDocTag | undefined {
+    private static getTag(element: AstNode, tagName: string): JSDocTag | undefined {
         const tag = this.getJSDoc(element)?.getTag(tagName)
         return tag?.inline ? undefined : tag
     }
 
-    public static getTags(element: AstNode, tagName: string): JSDocTag[] {
-        return this.getJSDoc(element)?.getTags(tagName).filter(t => !t.inline) ?? []
+    private static getTags(element: AstNode, tagName: string): JSDocTag[] | undefined {
+        return this.getJSDoc(element)?.getTags(tagName).filter(t => !t.inline)
+    }
+
+    public static getUsages(element: ast.AttributeType): JSDocTag[] | undefined {
+        return XsmpUtils.getTags(element, 'usage')
+    }
+
+
+    public static getId(element: ast.NamedElement | ast.ReturnParameter): string | undefined {
+        return XsmpUtils.getTag(element, 'id')?.content.toString()
+    }
+    public static getNativeType(element: ast.NativeType): string | undefined {
+        return XsmpUtils.getTag(element, 'type')?.content.toString()
+    }
+    public static getNativeNamespace(element: ast.NativeType): string | undefined {
+        return XsmpUtils.getTag(element, 'namespace')?.content.toString()
+    }
+    public static getNativeLocation(element: ast.NativeType): string | undefined {
+        return XsmpUtils.getTag(element, 'location')?.content.toString()
+    }
+    public static isMulticast(element: ast.EventSource): boolean {
+        return XsmpUtils.getTag(element, 'singlecast') === undefined
+    }
+
+
+    public static getPropertyCategory(element: ast.Property): string | undefined {
+        return XsmpUtils.getTag(element, 'category')?.content.toString()
+    }
+    public static getUnit(element: ast.Integer | ast.Float): string | undefined {
+        return XsmpUtils.getTag(element, 'unit')?.content.toString()
+    }
+
+    public static getTitle(element: ast.Document): string | undefined {
+        return XsmpUtils.getTag(element, 'title')?.content.toString()
+    }
+    public static getDate(element: ast.Document): JSDocTag | undefined {
+        return XsmpUtils.getTag(element, 'date')
+    }
+
+    public static getCreator(element: ast.Document): string | undefined {
+        return XsmpUtils.getTags(element, 'creator')?.map(e => e.content.toString()).join(', ')
+    }
+    public static getVersion(element: ast.Document): string | undefined {
+        return XsmpUtils.getTag(element, 'version')?.content.toString()
     }
 
     public static getUuid(type: ast.Type): JSDocTag | undefined {
         return this.getTag(type, 'uuid')
     }
 
+    public static getDeprecated(element: ast.NamedElement): JSDocTag | undefined {
+        return this.getTag(element, 'deprecated')
+    }
+
     public static IsDeprecated(element: ast.NamedElement): boolean {
-        return this.getTag(element, 'deprecated') !== undefined
+        return this.getDeprecated(element) !== undefined
     }
 
-    protected static attribute(element: ast.NamedElement, id: Attributes): ast.Attribute | undefined {
-        return element.attributes.find(a => a.type.ref && XsmpUtils.getQualifiedName(a.type.ref) == id)
+    public static attribute(element: ast.NamedElement | ast.ReturnParameter, id: Attributes): ast.Attribute | undefined {
+        return element.attributes.find(a => a.type.ref && XsmpUtils.getQualifiedName(a.type.ref) === id)
+    }
+    public static isAttributeTrue(attribute: ast.Attribute | undefined): boolean | undefined {
+        if (!attribute) return undefined
+        if (attribute.value)
+            return Solver.getValue(attribute.value)?.boolValue()?.getValue()
+        if (ast.isAttributeType(attribute.type.ref))
+            return Solver.getValue(attribute.type.ref.default)?.boolValue()?.getValue()
+        return undefined
     }
 
-    protected static attributeBoolValue(element: ast.NamedElement, id: Attributes): boolean | undefined {
-        return true
+    protected static attributeBoolValue(element: ast.NamedElement | ast.ReturnParameter, id: Attributes): boolean | undefined {
+        return XsmpUtils.isAttributeTrue(this.attribute(element, id))
     }
 
     public static getDescription(element: ast.NamedElement): string | undefined {
@@ -217,15 +265,23 @@ export class XsmpUtils {
     }
 
 
-    public static isStatic(element: ast.NamedElement): boolean {
-
-        return false
+    public static isStatic(element: ast.NamedElement | ast.ReturnParameter): boolean {
+        return this.attributeBoolValue(element, 'Attributes.Static') ?? false
     }
+    public static isAbstract(element: ast.Operation | ast.Property): boolean {
+        return this.attributeBoolValue(element, 'Attributes.Abstract') ?? false
+    }
+
+    public static isSimpleArray(element: ast.ArrayType): boolean {
+        return this.attributeBoolValue(element, 'Attributes.SimpleArray') ?? false
+    }
+
     public static allowMultiple(element: ast.AttributeType): boolean {
         return XsmpUtils.getTag(element, 'allowMultiple') !== undefined
     }
-    public static usage(element: ast.AttributeType): string[] {
-        return XsmpUtils.getTags(element, 'usage').map(t => t.content.toString())
+
+    public static isAncestor(ancestor: AstNode | undefined, element: AstNode | undefined): boolean {
+        return AstUtils.hasContainerOfType(element, c => c === ancestor)
     }
 
 
@@ -251,7 +307,7 @@ export class XsmpUtils {
             return BigInt(-1);
 
         if (element.multiplicity.upper === undefined)
-            return element.multiplicity.aux ? BigInt(-1) : Solver.getValue(element.multiplicity.lower)?.integralValue('Int64')?.getValue() ?? BigInt(0);;
+            return element.multiplicity.aux ? BigInt(-1) : Solver.getValue(element.multiplicity.lower)?.integralValue('Int64')?.getValue() ?? BigInt(0);
 
         return Solver.getValue(element.multiplicity.upper)?.integralValue('Int64')?.getValue();
     }
@@ -259,9 +315,32 @@ export class XsmpUtils {
 
     public static getAllFields(element: ast.Structure): Stream<ast.Field> {
         // return non static and public fields from element's base if any and current element
-        const result = stream(element.elements).filter(ast.isField).filter(f => !XsmpUtils.isStatic(f) && this.getRealVisibility(f) === 'public')
+        const result = stream(element.elements).filter(ast.isField).filter(f => !XsmpUtils.isStatic(f) && XsmpUtils.getRealVisibility(f) === 'public')
         if (ast.isClass(element) && ast.isStructure(element.base))
-            return this.getAllFields(element.base).concat(result)
+            return XsmpUtils.getAllFields(element.base).concat(result)
         return result
     }
+
+    public static isCyclicInterfaceBase(parent: ast.Interface, base: Reference<ast.Type>): boolean {
+        return base.ref === parent || ast.isInterface(base.ref) && base.ref.base.some(b => XsmpUtils.isCyclicInterfaceBase(parent, b))
+    }
+
+    public static isCyclicComponentBase(parent: ast.Component, base: Reference<ast.Type>): boolean {
+        return base.ref === parent || ast.isComponent(base.ref) && base.ref.base !== undefined && XsmpUtils.isCyclicComponentBase(parent, base.ref.base)
+    }
+
+
+    public static isCyclicClassBase(parent: ast.Class, base: Reference<ast.Type>): boolean {
+        return base.ref === parent || ast.isClass(base.ref) && base.ref.base !== undefined && XsmpUtils.isCyclicClassBase(parent, base.ref.base)
+    }
+
+    public static isRecursiveType(parent: ast.Type, other: ast.Type | undefined): boolean {
+        if (parent === other) return true
+        if (ast.isArrayType(other))
+            return this.isRecursiveType(parent, other.itemType.ref)
+        if (ast.isStructure(other))
+            return other.elements.filter(ast.isField).some(f => XsmpUtils.isRecursiveType(parent, f.type.ref))
+        return false
+    }
+
 }

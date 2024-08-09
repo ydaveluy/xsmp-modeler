@@ -1,7 +1,7 @@
 {
     "name": "xsmp-modeler",
     "description": "Please enter a brief description here",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "publisher": "ydaveluy",
     "author": "ydaveluy",
     "repository": "https://github.com/ydaveluy/xsmp-modeler",
@@ -70,7 +70,11 @@
                 "filenames": [
                     "xsmp.project"
                 ],
-                "configuration": "./xsmpproject-language-configuration.json"
+                "configuration": "./xsmpproject-language-configuration.json",
+				"icon": {
+					"light": "./icons/xsmpproject.png",
+					"dark": "./icons/xsmpproject.png"
+				}
             },
             {
                 "id": "xsmpcat",
@@ -80,7 +84,11 @@
                 "extensions": [
                     ".xsmpcat"
                 ],
-                "configuration": "./xsmpcat-language-configuration.json"
+                "configuration": "./xsmpcat-language-configuration.json",
+				"icon": {
+					"light": "./icons/xsmp.png",
+					"dark": "./icons/xsmp.png"
+				}
             }
         ],
         "grammars": [
@@ -94,7 +102,26 @@
                 "scopeName": "source.xsmpcat",
                 "path": "syntaxes/xsmpcat.tmLanguage.json"
             }
-        ]
+        ],
+        "configurationDefaults": {
+            "editor.tokenColorCustomizations": {
+                "textMateRules": [
+                    {
+                        "scope": "comment.block.documentation.xsmp",
+                        "settings": {
+                            "foreground": "#3F5FBF"
+                        }
+                    },
+                    {
+                        "scope": "comment.block.documentation.tag.xsmp",
+                        "settings": {
+                            "foreground": "#7F9FBF",
+                            "fontStyle": "bold"
+                        }
+                    }
+                ]
+            }
+        }
     },
     "activationEvents": [
         "onLanguage:xsmpproject",

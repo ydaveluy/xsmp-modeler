@@ -1,4 +1,4 @@
-import { ReferenceInfo, AstNodeDescription, Stream, MaybePromise, GrammarAST } from "langium";
+import { ReferenceInfo, AstNodeDescription, Stream, MaybePromise, GrammarAST, Reference } from "langium";
 import { CompletionAcceptor, CompletionContext, DefaultCompletionProvider } from "langium/lsp";
 
 
@@ -6,6 +6,7 @@ import { CompletionItemKind, InsertTextFormat, MarkupContent } from 'vscode-lang
 import { Instant } from "@js-joda/core";
 import * as os from 'os';
 import * as ast from '../generated/ast.js';
+import { XsmpUtils } from "../utils/xsmp-utils.js";
 
 export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
 
@@ -13,48 +14,52 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
 
     public static getFilter(refInfo: ReferenceInfo,): ((desc: AstNodeDescription) => boolean) | undefined {
 
-        const refId = `${refInfo.container.$type}_${refInfo.property}`
+        const refId = `${refInfo.container.$type}:${refInfo.property}`
         switch (refId) {
-            case 'Attribute_type':
+            case 'Attribute:type':
                 return (desc) => ast.AttributeType === desc.type
-            case 'Class_base':
-                return (desc) => ast.Class === desc.type// && (desc.node as ast.Class ).base?.ref !== refInfo.container
-            case 'Interface_base':
-            case 'Model_interface':
-            case 'Service_interface':
-            case 'Reference__interface':
+            case 'Class:base':
+                return (desc) => ast.Class === desc.type && !XsmpUtils.isCyclicClassBase(refInfo.container as ast.Class, { ref: desc.node } as Reference<ast.Type>)
+            case 'Interface:base':
+                return (desc) => ast.Interface === desc.type && !XsmpUtils.isCyclicInterfaceBase(refInfo.container as ast.Interface, { ref: desc.node } as Reference<ast.Type>) &&
+                    !(refInfo.container as ast.Interface).base.map(i => i.ref).includes(desc.node as ast.Interface)
+            case 'Model:interface':
+            case 'Service:interface':
+                return (desc) => ast.Interface === desc.type && !(refInfo.container as ast.Component).interface.map(i => i.ref).includes(desc.node as ast.Interface)
+            case 'Reference_:interface':
                 return (desc) => ast.Interface === desc.type
-            case 'Model_base':
-                return (desc) => ast.Model === desc.type
-            case 'Service_base':
-                return (desc) => ast.Service === desc.type
-            case 'ArrayType_itemType':
-            case 'ValueReference_type':
-            case 'AttributeType_type':
-            case 'Field_type':
-            case 'Property_type':
+            case 'Model:base':
+                return (desc) => ast.Model === desc.type && !XsmpUtils.isCyclicComponentBase(refInfo.container as ast.Component, { ref: desc.node } as Reference<ast.Type>)
+            case 'Service:base':
+                return (desc) => ast.Service === desc.type && !XsmpUtils.isCyclicComponentBase(refInfo.container as ast.Component, { ref: desc.node } as Reference<ast.Type>)
+            case 'ArrayType:itemType':
+            case 'ValueReference:type':
+            case 'AttributeType:type':
+            case 'Field:type':
+            case 'Property:type':
                 return (desc) => ast.reflection.isSubtype(desc.type, ast.ValueType)
-            case 'Integer_primitiveType':
+            case 'Integer:primitiveType':
                 return (desc) => ast.reflection.isSubtype(desc.type, ast.PrimitiveType) && ['Int8', 'Int16', 'Int32', 'Int64', 'UInt8', 'UInt16', 'UInt32', 'UInt64'].includes(desc.name)
-            case 'Float_primitiveType':
+            case 'Float:primitiveType':
                 return (desc) => ast.reflection.isSubtype(desc.type, ast.PrimitiveType) && ['Float32', 'Float64'].includes(desc.name)
-            case 'EventType_eventArg':
-            case 'Constant_type':
-                return (desc) => ast.reflection.isSubtype(desc.type, ast.SimpleType) 
-            case 'Parameter_type':
-            case 'Association_type':
-                return (desc) => ast.reflection.isSubtype(desc.type, ast.LanguageType) 
-            case 'Container_type':
-                return (desc) => ast.reflection.isSubtype(desc.type, ast.ReferenceType) 
-            case 'Container_defaultComponent':
-                return (desc) => ast.reflection.isSubtype(desc.type, ast.Component) 
-            case 'EventSink_type':
-            case 'EventSource_type':
+            case 'EventType:eventArgs':
+            case 'Constant:type':
+                return (desc) => ast.reflection.isSubtype(desc.type, ast.SimpleType)
+            case 'Parameter:type':
+            case 'ReturnParameter:type':
+            case 'Association:type':
+                return (desc) => ast.reflection.isSubtype(desc.type, ast.LanguageType)
+            case 'Container:type':
+                return (desc) => ast.reflection.isSubtype(desc.type, ast.ReferenceType)
+            case 'Container:defaultComponent':
+                return (desc) => ast.reflection.isSubtype(desc.type, ast.Component)
+            case 'EventSink:type':
+            case 'EventSource:type':
                 return (desc) => ast.EventType === desc.type
-            case 'Operation_raisedException':
-            case 'Property_getRaises':
-            case 'Property_setRaises':
-            case 'Exception_base':
+            case 'Operation:raisedException':
+            case 'Property:getRaises':
+            case 'Property:setRaises':
+            case 'Exception:base':
                 return (desc) => ast.Exception === desc.type
         }
         return undefined

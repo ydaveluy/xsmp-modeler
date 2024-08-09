@@ -25,11 +25,6 @@ export class XsmpcatScopeComputation implements ScopeComputation {
             await interruptAndCheck(cancelToken);
             if (namespace.name) {
                 await this.computeNamespaceExports(document, namespace, exportedDescriptions, namespace.name + '.', cancelToken)
-                // import elements from Smp and Attributes namespaces in global namespace
-                if (namespace.name === 'Smp' || namespace.name === 'Attributes') {
-
-                    await this.computeNamespaceExports(document, namespace, exportedDescriptions, '', cancelToken)
-                }
             }
         }
         return exportedDescriptions
@@ -329,6 +324,12 @@ export class GlobalScope implements Scope {
         this.elements = new Map();
         for (const element of elements) {
             this.elements.set(element.name, element);
+
+            // import elements from Smp and Attributes namespaces in global namespace
+            if(element.name.startsWith('Smp.'))
+                this.elements.set(element.name.substring(4), element);
+            else if(element.name.startsWith('Attributes.'))
+                this.elements.set(element.name.substring(11), element);
         }
     }
 

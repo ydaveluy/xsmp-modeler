@@ -1,11 +1,6 @@
-import type { Model } from '../language/generated/ast.js';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { XsmpprojectLanguageMetaData } from '../language/generated/module.js';
-import { createXsmpServices } from '../language/xsmp-module.js';
-import { extractAstNode } from './cli-util.js';
-import { generateJavaScript } from './generator.js';
-import { NodeFileSystem } from 'langium/node';
 import * as url from 'node:url';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
@@ -15,10 +10,10 @@ const packagePath = path.resolve(__dirname, '..', '..', 'package.json');
 const packageContent = await fs.readFile(packagePath, 'utf-8');
 
 export const generateAction = async (fileName: string, opts: GenerateOptions): Promise<void> => {
-    const services = createXsmpServices(NodeFileSystem).xsmpproject;
-    const model = await extractAstNode<Model>(fileName, services);
-    const generatedFilePath = generateJavaScript(model, fileName, opts.destination);
-    console.log(chalk.green(`JavaScript code generated successfully: ${generatedFilePath}`));
+   // const services = createXsmpServices(NodeFileSystem).xsmpproject;
+   // const project = await extractAstNode<Project>(fileName, services);
+   // const generatedFilePath = generateJavaScript(project, fileName, opts.destination);
+    console.log(chalk.green(`Project code generated successfully`));
 };
 
 export type GenerateOptions = {

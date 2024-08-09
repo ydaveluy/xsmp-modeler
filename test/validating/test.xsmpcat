@@ -1,0 +1,94 @@
+/**
+ * Catalogue Test
+ * 
+ * @date invalid_date
+ * @title a title
+ * @creator creator1
+ * @creator creator2
+ * @version 1.0.0
+ */
+catalogue class
+// a comment
+/** element that does not start with a letter */
+namespace _ns
+{
+    /**
+     * A description
+     * @uuid c489402d-7ecc-466a-a2e7-e1cb3d1da3c6
+     * @usage NamedElement
+     */
+    public private attribute Bool SingleAttribute 
+
+	/**
+	 * @usage Class
+	 * @allowMultiple
+	 * @uuid 52057807-e889-40fb-89f9-f568018bddf2
+	 */
+    public attribute Bool MultipleAttribute = true
+
+	/** an unsupported primitive type */
+    @SingleAttribute(true)
+	@SingleAttribute()
+	@MultipleAttribute
+	primitive Int10
+	
+	/** @uuid 56d32e6b-43f4-47da-a4e6-808f37d39b9e */
+    public protected struct MyStruct
+    {
+        public constant Float32 constant
+    }
+
+	
+	/** @uuid cfddbb73-6d5f-41e8-8ced-04b3f40c3ed1 */
+    enum MyEnum
+    {
+    }
+
+    /** @uuid ed2fc2c7-27a9-4685-91d6-6290a49819a6 */
+    enum MyEnum2
+    {
+        L1 = 0,
+        L1 = 0
+    }
+    
+    /** @uuid 36c0f055-3481-4396-896a-acb8b2fe7714 */
+    integer MyInt extends Duration
+
+    
+    /** @uuid 36c0f055-3481-4396-896a-acb8b2fe7714 */
+    integer MyInt2 in 4 ... 2
+
+    
+    /** @uuid eadb2307 */
+    float MyFloat extends Int32
+ 
+    
+    /** @uuid 9c0e43e9-1a83-4b19-ae02-1980ec3e6e32 */
+    float MyFloat2 in 4.0 ... 0
+
+
+    /** @uuid 780cd2ab-8678-406f-b62c-c08a7769591f */
+    float MyFloat2 in 4.0 <.< 0
+
+    
+    /** @uuid 4906db76-6c03-4182-a3d2-ed702d6d7b30 */
+    interface MyInterface extends IComposite, IComposite, MyInterface
+    {
+        private constant Int32 CST = 0
+        protected def void op()
+        readOnly public readWrite property Int32 property
+    }
+
+    
+    /** @uuid 5931bff2-fada-468c-b187-5a2020c19996 */
+    model MyModel extends MyModel implements MyInterface, MyInterface
+    {
+        private constant Int32 CST = 0
+        @Abstract   
+        protected def void op()
+        association Int32 association
+       // readOnly public readWrite property Int32 property
+    }
+}
+
+

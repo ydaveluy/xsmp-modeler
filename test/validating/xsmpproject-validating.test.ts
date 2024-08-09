@@ -27,8 +27,8 @@ describe('Validating', () => {
             profile "xsmp-sdk"
 
 
-            tool "org.eclipse.xsmp.tool.smp"
-            tool "org.eclipse.xsmp.tool.adoc"
+            tool "smp"
+            tool "adoc"
 
         `);
 
@@ -42,12 +42,12 @@ describe('Validating', () => {
         document = await parse(`
             project "project-name"
 
-            profile "xsmp-sdk"
-            profile "xsmp-sdk"
+            profile "org.eclipse.xsmp.profile.xsmp-sdk"
+            profile "org.eclipse.xsmp.profile.xsmp-sdk"
 
             tool "org.eclipse.xsmp.tool.smp"
-            tool "org.eclipse.xsmp.tool.adoc"
-            tool "org.eclipse.xsmp.tool.adoc"
+            tool "adoc"
+            tool "adoc"
 
             source "smdl"
             source "../"
@@ -59,12 +59,15 @@ describe('Validating', () => {
         expect(
             checkDocumentValid(document) ?? document.diagnostics?.map(diagnosticToString)?.join('\n')
         ).toBe(s`
-            [4:20..4:30]: A profile is already defined.
+            [3:20..3:55]: Deprecated Use the "xsmp-sdk" profile instead.
+            [4:20..4:55]: Deprecated Use the "xsmp-sdk" profile instead.
+            [4:20..4:55]: A profile is already defined.
             [10:19..10:25]: Source path 'smdl' does not exist.
             [13:23..13:37]: Cyclic dependency detected 'project-name'.
             [14:23..14:37]: Cyclic dependency detected 'project-name'.
             [14:23..14:37]: Duplicated dependency 'project-name'.
-            [8:17..8:45]: Duplicated tool 'org.eclipse.xsmp.tool.adoc'.
+            [6:17..6:44]: Deprecated Use the "smp" tool instead.
+            [8:17..8:23]: Duplicated tool 'adoc'.
         `);
     });
 });

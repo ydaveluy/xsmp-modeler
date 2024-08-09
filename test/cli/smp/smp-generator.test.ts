@@ -2,12 +2,10 @@ import { beforeAll, describe, expect, test } from "vitest";
 import { EmptyFileSystem, type LangiumDocument } from "langium";
 import { expandToString as s } from "langium/generate";
 import { parseHelper } from "langium/test";
-import { createXsmpServices } from "../../src/language/xsmp-module.js";
-import { Catalogue, isCatalogue } from "../../src/language/generated/ast.js";
-import { SmpcatGenerator } from "../../src/cli/smp/generator.js";
+import { createXsmpServices } from "../../../src/language/xsmp-module.js";
+import { Catalogue, isCatalogue } from "../../../src/language/generated/ast.js";
+import { SmpcatGenerator } from "../../../src/cli/smp/generator.js";
 import * as path from 'path';
-
-
 import * as fs from 'fs';
 
 let services: ReturnType<typeof createXsmpServices>;

@@ -35,7 +35,7 @@ export const XsmpcatModule: Module<XsmpcatServices, PartialLangiumServices & Xsm
 
     },
     validation: {
-        XsmpcatValidator: () => new XsmpcatValidator()
+        XsmpcatValidator: (services) => new XsmpcatValidator(services)
     },
     lsp: {
         Formatter: () => new XsmpcatFormatter(),

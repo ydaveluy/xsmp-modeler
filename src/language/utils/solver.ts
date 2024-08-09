@@ -12,7 +12,7 @@ abstract class Value<T> /*implements Value*/ {
     }
 
     primitiveTypeKind(): PrimitiveTypeKind { return 'None' }
-  
+
     //convertion functions
     boolValue(): BoolValue | undefined { return undefined }
     enumerationLiteral(): EnumerationLiteralValue | undefined { return undefined }
@@ -113,7 +113,7 @@ export class CharValue extends Value<CharValue> {
         this.value = value
     }
     override getValue(): string { return this.value }
-    override primitiveTypeKind(): PrimitiveTypeKind { return 'String8' }
+    override primitiveTypeKind(): PrimitiveTypeKind { return 'Char8' }
     override charValue(): this | undefined { return this }
 }
 
@@ -308,44 +308,255 @@ export class Solver {
                     return new EnumerationLiteralValue(expression.value?.ref)
                 return this.getValue(expression.value?.ref?.value, accept)
             }
+            if (ast.isBuiltInConstant(expression)) {
+                switch (expression.name) {
+                    case 'PI': return new FloatValue(Math.PI, 'Float64')
+                    case 'E': return new FloatValue(Math.E, 'Float64')
+                    default: return undefined
+                }
+            }
+
+            if (ast.isBuiltInFunction(expression)) {
+                if (!expression.argument && accept)
+                    accept('error', 'Missing argument.', { node: expression, property: 'argument' })
+                switch (expression.name) {
+                    case 'cos': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.cos(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'sin': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.sin(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'tan': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.tan(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'acos': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.acos(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'asin': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.asin(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'atan': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.atan(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'cosh': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.cosh(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'sinh': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.sinh(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'tanh': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.tanh(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'exp': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.exp(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'log': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.log(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'log10': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.log10(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'expm1': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.expm1(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'log1p': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.log1p(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'sqrt': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.sqrt(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'ceil': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.ceil(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'floor': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.floor(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'abs': {
+                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
+                        return value ? new FloatValue(Math.abs(value.getValue()), 'Float64') : undefined
+                    }
+                    case 'cosf': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.cos(value.getValue()), 'Float32') : undefined
+                    }
+                    case 'sinf': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.sin(value.getValue()), 'Float32') : undefined
+                    }
+                    case 'tanf': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.tan(value.getValue()), 'Float32') : undefined
+                    }
+                    case 'acosf': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.acos(value.getValue()), 'Float32') : undefined
+                    }
+                    case 'asinf': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.asin(value.getValue()), 'Float32') : undefined
+                    }
+                    case 'atanf': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.atan(value.getValue()), 'Float32') : undefined
+                    }
+                    case 'coshf': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.cosh(value.getValue()), 'Float32') : undefined
+                    }
+                    case 'sinhf': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.sinh(value.getValue()), 'Float32') : undefined
+                    }
+                    case 'tanhf': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.tanh(value.getValue()), 'Float32') : undefined
+                    }
+                    case 'expf': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.exp(value.getValue()), 'Float32') : undefined
+                    }
+                    case 'logf': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.log(value.getValue()), 'Float32') : undefined
+                    }
+                    case 'log10f': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.log10(value.getValue()), 'Float32') : undefined
+                    }
+                    case 'expm1f': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.expm1(value.getValue()), 'Float32') : undefined
+                    }
+                    case 'log1pf': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.log1p(value.getValue()), 'Float32') : undefined
+                    }
+                    case 'sqrtf': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.sqrt(value.getValue()), 'Float32') : undefined
+                    }
+                    case 'ceilf': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.ceil(value.getValue()), 'Float32') : undefined
+                    }
+                    case 'floorf': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.floor(value.getValue()), 'Float32') : undefined
+                    }
+                    case 'absf': {
+                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
+                        return value ? new FloatValue(Math.abs(value.getValue()), 'Float32') : undefined
+                    }
+                    default: return undefined
+                }
+            }
         }
+        return undefined
+    }
+    private static getTypeName(type: ast.Type | PrimitiveTypeKind): string {
+        if (ast.isType(type))
+            return XsmpUtils.getQualifiedName(type)
+        return type
+    }
+
+    private static doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.Type | PrimitiveTypeKind, accept?: ValidationAcceptor): Value<T> | undefined {
+        const kind = ast.isType(type) ? XsmpUtils.getPrimitiveTypeKind(type) : type
+        if (isIntegralType(kind)) {
+            const integralValue = value.integralValue(kind)
+            if (integralValue && accept && ast.isInteger(type)) {
+                const min = Solver.getValue(type.minimum)?.integralValue(kind)?.getValue()
+                if (min !== undefined && integralValue.getValue() < min)
+                    accept('error', `Integral value shall be greater than or equal to ${min}.`, { node: expression })
+
+                const max = Solver.getValue(type.maximum)?.integralValue(kind)?.getValue()
+                if (max !== undefined && integralValue.getValue() > max)
+                    accept('error', `Integral value shall be less than or equal to ${min}.`, { node: expression })
+            }
+            return integralValue
+        }
+        else if (isFloatingType(kind)) {
+            const floatValue = value.floatValue(kind)
+            if (floatValue && accept && ast.isFloat(type)) {
+                const min = Solver.getValue(type.minimum)?.floatValue(kind)?.getValue()
+                if (min !== undefined) {
+                    if (floatValue.getValue() < min || floatValue.getValue() == min && (type.range === "<.." || type.range === "<.<"))
+                        if (type.range === "<.." || type.range === "<.<")
+                            accept('error', `Float value shall be greater than ${min}.`, { node: expression })
+                        else
+                            accept('error', `Float value shall be greater than or equal to ${min}.`, { node: expression })
+                }
+
+                const max = Solver.getValue(type.maximum)?.floatValue(kind)?.getValue()
+                if (max !== undefined) {
+                    if (floatValue.getValue() > max || floatValue.getValue() == max && (type.range === "<.." || type.range === "<.<"))
+                        if (type.range === "..<" || type.range === "<.<")
+                            accept('error', `Float value shall be less than ${max}.`, { node: expression })
+                        else
+                            accept('error', `Float value shall be less than or equal to ${max}.`, { node: expression })
+                }
+            }
+
+            return floatValue
+        }
+        else if (ast.isEnumeration(type)) {
+            if (value instanceof EnumerationLiteralValue) {
+                if (accept && value.getValue().$container !== type) {
+                    accept('error', `Enumeration literal ${value.getValue().name} is not of type ${type.name}.`, { node: expression })
+                }
+                return value
+            }
+            else if (value instanceof IntegralValue) {
+                const literal = type.literal.find(l => Solver.getValueAs(l.value, 'Int32')?.getValue() == value.getValue())
+                if (literal) {
+                    if (accept)
+                        accept('warning', `The enumeration literal ${XsmpUtils.getQualifiedName(literal)} should be used.`, { node: expression, data: XsmpUtils.getQualifiedName(literal) })
+                    return new EnumerationLiteralValue(literal)
+                }
+            }
+        }
+        else if (kind === 'Bool')
+            return value.boolValue()
+        else if (kind === 'String8')
+            return value.stringValue()
+        else if (kind === 'Char8')
+            return value.charValue()
+
         return undefined
     }
 
     public static getValueAs<T>(expression: ast.Expression | undefined, type: ast.Type | PrimitiveTypeKind, accept?: ValidationAcceptor): Value<T> | undefined {
-
+        if (!expression)
+            return
         const value = Solver.getValue(expression, accept)
-        if (value == undefined) return undefined
+        if (value == undefined)
+            return undefined
 
-        let result: Value<T> | undefined
-
-        const kind = ast.isType(type) ? XsmpUtils.getPrimitiveTypeKind(type) : type
-        if (isIntegralType(kind))
-            result = value.integralValue(kind)
-        else if (isFloatingType(kind))
-            result = value.floatValue(kind)
-        else if (ast.isEnumeration(type)) {
-            const literal = value.enumerationLiteral()
-            if (ast.isEnumeration(type) && literal?.getValue().$container == type)
-                result = literal
-            else
-                result = undefined
-        }
-        else if (kind === 'Bool') {
-            result = value.boolValue()
-        }
-        else if (kind === 'String8') {
-            result = value.stringValue()
-        }
-        else if (kind === 'Char8') {
-            result = value.charValue()
-        }
+        const result = this.doGetValueAs(expression, value, type, accept)
+        if (!result && accept)
+            accept('error', `${value.primitiveTypeKind()} cannot be converted to ${this.getTypeName(type)}.`, { node: expression })
 
         return result
     }
 
-
     private static binaryOperationFunction<T, U>(left: Value<T>, right: Value<T>, feature: string): Value<U> | undefined {
+
         switch (feature) {
             case "||": return left.logicalOr(right)
             case "&&": return left.logicalAnd(right)
@@ -367,6 +578,7 @@ export class Solver {
             case ">>": return left.shiftRight(right)
             default: return undefined
         }
+
     }
 
     private static binaryOperation<T>(expression: ast.BinaryOperation, accept?: ValidationAcceptor): Value<T> | undefined {
@@ -377,43 +589,50 @@ export class Solver {
             return undefined
 
         let result: Value<T> | undefined
-        if (left instanceof BoolValue) {
-            if (right instanceof BoolValue) {
-                result = Solver.binaryOperationFunction(left, right, expression.feature)
+        try {
+            if (left instanceof BoolValue) {
+                if (right instanceof BoolValue) {
+                    result = Solver.binaryOperationFunction(left, right, expression.feature)
+                }
+                else if (right instanceof IntegralValue) {
+                    result = Solver.binaryOperationFunction(left.integralValue(right.primitiveTypeKind()), right, expression.feature)
+                }
+                else if (right instanceof FloatValue) {
+                    result = Solver.binaryOperationFunction(left.floatValue(right.primitiveTypeKind()), right, expression.feature)
+                }
             }
-            else if (right instanceof IntegralValue) {
-                result = Solver.binaryOperationFunction(left.integralValue(right.primitiveTypeKind()), right, expression.feature)
+            else if (left instanceof IntegralValue) {
+                if (right instanceof BoolValue) {
+                    result = Solver.binaryOperationFunction(left, right.integralValue(left.primitiveTypeKind()), expression.feature)
+                }
+                else if (right instanceof IntegralValue) {
+                    result = Solver.binaryOperationFunction(left, right, expression.feature)
+                }
+                else if (right instanceof FloatValue) {
+                    result = Solver.binaryOperationFunction(left.floatValue(right.primitiveTypeKind()), right, expression.feature)
+                }
             }
-            else if (right instanceof FloatValue) {
-                result = Solver.binaryOperationFunction(left.floatValue(right.primitiveTypeKind()), right, expression.feature)
+            else if (left instanceof FloatValue) {
+                if (right instanceof BoolValue) {
+                    result = Solver.binaryOperationFunction(left, right.floatValue(left.primitiveTypeKind()), expression.feature)
+                }
+                else if (right instanceof IntegralValue) {
+                    result = Solver.binaryOperationFunction(left, right.floatValue(left.primitiveTypeKind()), expression.feature)
+                }
+                else if (right instanceof FloatValue) {
+                    result = Solver.binaryOperationFunction(left, right, expression.feature)
+                }
+            }
+            if (accept && result === undefined) {
+                accept('error', `Binary operator '${expression.feature}' is not supported for operands of type '${left.primitiveTypeKind()}' and '${right.primitiveTypeKind()}'.`,
+                    { node: expression })
             }
         }
-        else if (left instanceof IntegralValue) {
-            if (right instanceof BoolValue) {
-                result = Solver.binaryOperationFunction(left, right.integralValue(left.primitiveTypeKind()), expression.feature)
-            }
-            else if (right instanceof IntegralValue) {
-                result = Solver.binaryOperationFunction(left, right, expression.feature)
-            }
-            else if (right instanceof FloatValue) {
-                result = Solver.binaryOperationFunction(left.floatValue(right.primitiveTypeKind()), right, expression.feature)
-            }
+        catch (error) {
+            if (accept)
+                accept('error', `${error}`, { node: expression })
         }
-        else if (left instanceof FloatValue) {
-            if (right instanceof BoolValue) {
-                result = Solver.binaryOperationFunction(left, right.floatValue(left.primitiveTypeKind()), expression.feature)
-            }
-            else if (right instanceof IntegralValue) {
-                result = Solver.binaryOperationFunction(left, right.floatValue(left.primitiveTypeKind()), expression.feature)
-            }
-            else if (right instanceof FloatValue) {
-                result = Solver.binaryOperationFunction(left, right, expression.feature)
-            }
-        }
-        if (accept && result === undefined) {
-            accept('error', `Binary operator '${expression.feature}' is not supported for operands of type '${left.primitiveTypeKind()}' and '${right.primitiveTypeKind()}'.`,
-                { node: expression })
-        }
+
         return result
     }
 
