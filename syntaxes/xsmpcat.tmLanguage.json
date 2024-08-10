@@ -28,30 +28,16 @@
 		"literals": {
 			"patterns": [
 				{
-					"begin": "\"",
-					"end": "\"",
-					"name": "string.quoted.double.xsmpcat",
-					"patterns": [
-						{
-							"match": "\\\\(u[0-9A-Fa-f]{4}|x[0-9A-Fa-f]+|[^\"\\\\])",
-							"name": "constant.character.escape.xsmp.catalogue"
-						}
-					]
+					"match": "\"(?:\\\"|[^\"])*\"",
+					"name": "string.quoted.double.xsmpcat"
+				},
+				{
+					"match": "'(?:\\'|[^'])*'",
+					"name": "string.quoted.single.xsmp.catalogue"
 				},
 				{
 					"match": "\\b(0b[01]+|0x[0-9A-Fa-f]+|[0-9]+(\\.[0-9]+)?([eE][+-]?[0-9]+)?([uU][lL]?|[lL][uU]?|ns|us|ms|s|mn|h|d|y|[fF])?)\\b",
 					"name": "constant.numeric.xsmp.catalogue"
-				},
-				{
-					"begin": "'",
-					"end": "'",
-					"name": "string.quoted.single.xsmp.catalogue",
-					"patterns": [
-						{
-							"match": "\\\\(u[0-9A-Fa-f]{4}|x[0-9A-Fa-f]+|[^'\\\\])",
-							"name": "constant.character.escape.xsmp.catalogue"
-						}
-					]
 				},
 				{
 					"match": "\\b(true|false|nullptr)\\b",

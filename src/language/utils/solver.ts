@@ -4,14 +4,12 @@ import * as ast from '../generated/ast.js';
 import { ValidationAcceptor } from "langium";
 import { ChronoUnit, Duration, Instant } from "@js-joda/core";
 
-abstract class Value<T> /*implements Value*/ {
+abstract class Value<T> {
 
 
-    getValue(): boolean | bigint | number | string | ast.EnumerationLiteral {
-        throw new Error("Method not implemented.");
-    }
+    abstract getValue(): boolean | bigint | number | string | ast.EnumerationLiteral
 
-    primitiveTypeKind(): PrimitiveTypeKind { return 'None' }
+    abstract primitiveTypeKind(): PrimitiveTypeKind
 
     //convertion functions
     boolValue(): BoolValue | undefined { return undefined }
@@ -276,6 +274,19 @@ export class FloatValue extends Value<FloatValue> {
 export class Solver {
 
 
+
+
+    private static convertBuiltinFunction<T>(func: ast.BuiltInFunction, accept?: ValidationAcceptor): Value<T> | undefined {
+        if (func.name.endsWith('f')) {
+            const value = this.getValueAs(func.argument, 'Float32', accept)?.floatValue('Float32')
+            return value ? new FloatValue(Math[func.name.substring(0, -1) as ast.BuiltInFloat64Functions](value.getValue()), 'Float32') : undefined
+        }
+        else {
+            const value = this.getValueAs(func.argument, 'Float64', accept)?.floatValue('Float64')
+            return value ? new FloatValue(Math[func.name as ast.BuiltInFloat64Functions](value.getValue()), 'Float64') : undefined
+        }
+
+    }
     public static getValue<T>(expression: ast.Expression | undefined, accept?: ValidationAcceptor): Value<T> | undefined {
         if (expression) {
             if (ast.isIntegerLiteral(expression)) {
@@ -309,163 +320,12 @@ export class Solver {
                 return this.getValue(expression.value?.ref?.value, accept)
             }
             if (ast.isBuiltInConstant(expression)) {
-                switch (expression.name) {
-                    case 'PI': return new FloatValue(Math.PI, 'Float64')
-                    case 'E': return new FloatValue(Math.E, 'Float64')
-                    default: return undefined
-                }
+                return new FloatValue(Math[expression.name], 'Float64')
             }
-
             if (ast.isBuiltInFunction(expression)) {
                 if (!expression.argument && accept)
                     accept('error', 'Missing argument.', { node: expression, property: 'argument' })
-                switch (expression.name) {
-                    case 'cos': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.cos(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'sin': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.sin(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'tan': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.tan(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'acos': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.acos(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'asin': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.asin(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'atan': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.atan(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'cosh': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.cosh(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'sinh': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.sinh(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'tanh': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.tanh(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'exp': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.exp(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'log': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.log(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'log10': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.log10(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'expm1': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.expm1(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'log1p': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.log1p(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'sqrt': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.sqrt(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'ceil': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.ceil(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'floor': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.floor(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'abs': {
-                        const value = this.getValueAs(expression.argument, 'Float64', accept)?.floatValue('Float64')
-                        return value ? new FloatValue(Math.abs(value.getValue()), 'Float64') : undefined
-                    }
-                    case 'cosf': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.cos(value.getValue()), 'Float32') : undefined
-                    }
-                    case 'sinf': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.sin(value.getValue()), 'Float32') : undefined
-                    }
-                    case 'tanf': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.tan(value.getValue()), 'Float32') : undefined
-                    }
-                    case 'acosf': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.acos(value.getValue()), 'Float32') : undefined
-                    }
-                    case 'asinf': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.asin(value.getValue()), 'Float32') : undefined
-                    }
-                    case 'atanf': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.atan(value.getValue()), 'Float32') : undefined
-                    }
-                    case 'coshf': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.cosh(value.getValue()), 'Float32') : undefined
-                    }
-                    case 'sinhf': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.sinh(value.getValue()), 'Float32') : undefined
-                    }
-                    case 'tanhf': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.tanh(value.getValue()), 'Float32') : undefined
-                    }
-                    case 'expf': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.exp(value.getValue()), 'Float32') : undefined
-                    }
-                    case 'logf': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.log(value.getValue()), 'Float32') : undefined
-                    }
-                    case 'log10f': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.log10(value.getValue()), 'Float32') : undefined
-                    }
-                    case 'expm1f': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.expm1(value.getValue()), 'Float32') : undefined
-                    }
-                    case 'log1pf': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.log1p(value.getValue()), 'Float32') : undefined
-                    }
-                    case 'sqrtf': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.sqrt(value.getValue()), 'Float32') : undefined
-                    }
-                    case 'ceilf': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.ceil(value.getValue()), 'Float32') : undefined
-                    }
-                    case 'floorf': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.floor(value.getValue()), 'Float32') : undefined
-                    }
-                    case 'absf': {
-                        const value = this.getValueAs(expression.argument, 'Float32', accept)?.floatValue('Float32')
-                        return value ? new FloatValue(Math.abs(value.getValue()), 'Float32') : undefined
-                    }
-                    default: return undefined
-                }
+                return this.convertBuiltinFunction(expression, accept)
             }
         }
         return undefined
@@ -533,10 +393,23 @@ export class Solver {
         }
         else if (kind === 'Bool')
             return value.boolValue()
-        else if (kind === 'String8')
-            return value.stringValue()
-        else if (kind === 'Char8')
-            return value.charValue()
+        else if (kind === 'String8') {
+            const stringValue = value.stringValue()
+            if (stringValue && accept && ast.isStringType(type)) {
+                const length = Solver.getValue(type.length)?.integralValue('Int64')?.getValue()
+                if (length !== undefined && stringValue.getValue().length > length)
+                    accept('error', `The string length exceeds the allowed length for its type: ${length} character(s).`, { node: expression })
+            }
+            return stringValue
+        }
+        else if (kind === 'Char8') {
+            const charValue = value.charValue()
+            if (charValue && accept) {
+                if (charValue.getValue().length != 1)
+                    accept('error', 'A `Char8` shall contain exactly one character.', { node: expression })
+            }
+            return charValue
+        }
 
         return undefined
     }

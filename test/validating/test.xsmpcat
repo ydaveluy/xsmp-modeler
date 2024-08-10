@@ -8,7 +8,7 @@
  * @version 1.0.0
  */
 catalogue class
-// a comment
+
 /** element that does not start with a letter */
 namespace _ns
 {
@@ -69,13 +69,21 @@ namespace _ns
 
     /** @uuid 780cd2ab-8678-406f-b62c-c08a7769591f */
     float MyFloat2 in 4.0 <.< 0
+    
+    /** @uuid 3f93a746-6547-4ec7-bdb1-730161c18538 */
+    string MyString[-1]
 
+    /** @uuid 86d1b56a-8051-4d98-88ff-802bb6aaa676 */
+    string MyString2[4]
     
     /** @uuid 4906db76-6c03-4182-a3d2-ed702d6d7b30 */
     interface MyInterface extends IComposite, IComposite, MyInterface
     {
         private constant Int32 CST = 0
         protected def void op()
+        @Static
+        @Virtual
+        @Abstract
         readOnly public readWrite property Int32 property
     }
 
@@ -83,11 +91,13 @@ namespace _ns
     /** @uuid 5931bff2-fada-468c-b187-5a2020c19996 */
     model MyModel extends MyModel implements MyInterface, MyInterface
     {
-        private constant Int32 CST = 0
-        @Abstract   
+        private constant Float32 CST = $PI + $cos(1/5)
+        private constant MyString2 CST2 = "123\"5"
+        private constant Char8 CST2 = ''
+        private constant Char8 CST2 = '\'\\'
+        @Abstract
         protected def void op()
-        association Int32 association
-       // readOnly public readWrite property Int32 property
+        protected def void op(Bool b)
     }
 }
 

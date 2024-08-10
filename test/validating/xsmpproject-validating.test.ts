@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from "vitest";
 import { EmptyFileSystem, type LangiumDocument } from "langium";
 import { expandToString as s } from "langium/generate";
-import { parseHelper } from "langium/test";
+import { parseHelper, ParseHelperOptions } from "langium/test";
 import type { Diagnostic } from "vscode-languageserver-types";
 import { createXsmpServices } from "../../src/language/xsmp-module.js";
 import { Project, isProject, } from "../../src/language/generated/ast.js";
@@ -13,7 +13,7 @@ let document: LangiumDocument<Project> | undefined;
 beforeAll(async () => {
     services = createXsmpServices(EmptyFileSystem);
     const doParse = parseHelper<Project>(services.xsmpproject);
-    parse = (input: string) => doParse(input, { validation: true });
+    parse = (input: string, options?: ParseHelperOptions) => doParse(input, { validation: true, ...options});
 
     await services.shared.workspace.WorkspaceManager.initializeWorkspace([]);
 });
@@ -48,24 +48,27 @@ describe('Validating', () => {
             tool "org.eclipse.xsmp.tool.smp"
             tool "adoc"
             tool "adoc"
+            tool "unknown"
 
             source "smdl"
             source "../"
 
             dependency "project-name"
             dependency "project-name"
-        `, { documentUri: 'test/ns/xsmp.project' });
+        `, { documentUri: 'test/ns/xsmp.project'});
 
         expect(
             checkDocumentValid(document) ?? document.diagnostics?.map(diagnosticToString)?.join('\n')
         ).toBe(s`
+            [9:17..9:26]: Could not resolve reference to Tool named 'unknown'.
             [3:20..3:55]: Deprecated Use the "xsmp-sdk" profile instead.
             [4:20..4:55]: Deprecated Use the "xsmp-sdk" profile instead.
             [4:20..4:55]: A profile is already defined.
-            [10:19..10:25]: Source path 'smdl' does not exist.
-            [13:23..13:37]: Cyclic dependency detected 'project-name'.
+            [11:19..11:25]: Source path 'smdl' does not exist.
+            [12:19..12:24]: Source path '../' is not contained within the project directory.
             [14:23..14:37]: Cyclic dependency detected 'project-name'.
-            [14:23..14:37]: Duplicated dependency 'project-name'.
+            [15:23..15:37]: Cyclic dependency detected 'project-name'.
+            [15:23..15:37]: Duplicated dependency 'project-name'.
             [6:17..6:44]: Deprecated Use the "smp" tool instead.
             [8:17..8:23]: Duplicated tool 'adoc'.
         `);

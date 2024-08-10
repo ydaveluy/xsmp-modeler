@@ -28,9 +28,9 @@ export class XsmpprojectValidator {
 
 
         const deprecated = XsmpUtils.getDeprecated(reference.ref)
-        if (deprecated) {
+        if (deprecated)
             accept('warning', `Deprecated ${deprecated.content.toString()}`, { node: node, property: property, index: index });
-        }
+
         return true
     }
 
@@ -42,30 +42,29 @@ export class XsmpprojectValidator {
         let profile: ast.Profile | undefined = undefined;
         project.profile.forEach((p, index) => {
             if (this.checkTypeReference(accept, project, p, 'profile', index)) {
-                if (profile) {
+                if (profile)
                     accept('error', "A profile is already defined.", { node: project, property: 'profile', index: index });
-                } else {
+                else
                     profile = p.ref;
-                }
+
             }
         });
         // check source dir exists
         if (project.$document) {
             const projectUri = UriUtils.dirname(project.$document.uri);
             project.sourcePaths.forEach((source, index) => {
-                if (!fs.existsSync(UriUtils.joinPath(projectUri, source).path)) {
-                    accept('error', "Source path '" + source + "' does not exist.", { node: project, property: 'sourcePaths', index: index });
-                }
-                else if (!UriUtils.resolvePath(projectUri, source).path.startsWith(projectUri.path)) {
+                const path = UriUtils.joinPath(projectUri, source).path;
+                if (!path.startsWith(projectUri.path))
                     accept('error', "Source path '" + source + "' is not contained within the project directory.", { node: project, property: 'sourcePaths', index: index });
-                }
+                else if (!fs.existsSync(path))
+                    accept('error', "Source path '" + source + "' does not exist.", { node: project, property: 'sourcePaths', index: index });
             })
         }
         // check dependencies references & no cyclic dependencies
         project.dependencies.forEach((dependency, index) => {
-            if (this.checkTypeReference(accept, project, dependency, 'dependencies', index) && getAllDependencies(dependency.ref as ast.Project).has(project)) {
+            if (this.checkTypeReference(accept, project, dependency, 'dependencies', index) && getAllDependencies(dependency.ref as ast.Project).has(project))
                 accept('error', "Cyclic dependency detected '" + dependency.ref?.name + "'.", { node: project, property: 'dependencies', index: index });
-            }
+
         })
         // check no duplicated dependency
         project.dependencies.forEach((dependency, index) =>

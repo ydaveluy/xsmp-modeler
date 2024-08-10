@@ -37,7 +37,7 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
             case 'AttributeType:type':
             case 'Field:type':
             case 'Property:type':
-                return (desc) => ast.reflection.isSubtype(desc.type, ast.ValueType)
+                return (desc) => ast.reflection.isSubtype(desc.type, ast.LanguageType)
             case 'Integer:primitiveType':
                 return (desc) => ast.reflection.isSubtype(desc.type, ast.PrimitiveType) && ['Int8', 'Int16', 'Int32', 'Int64', 'UInt8', 'UInt16', 'UInt32', 'UInt64'].includes(desc.name)
             case 'Float:primitiveType':

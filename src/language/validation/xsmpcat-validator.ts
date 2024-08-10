@@ -35,7 +35,6 @@ export function registerXsmpcatValidationChecks(services: XsmpcatServices) {
         StringType: validator.checkString,
         ArrayType: validator.checkArrayType,
         AttributeType: validator.checkAttributeType,
-        Document: validator.checkDocument,
         EntryPoint: validator.checkEntryPoint,
         Service: validator.checkService,
         Catalogue: validator.checkCatalogue,
@@ -208,7 +207,6 @@ export class XsmpcatValidator {
             case 'ValueReference:type':
             case 'AttributeType:type':
             case 'Field:type':
-            case 'Property:type':
                 return ast.ValueType
             case 'Integer:primitiveType':
             case 'Float:primitiveType':
@@ -219,6 +217,7 @@ export class XsmpcatValidator {
             case 'Parameter:type':
             case 'ReturnParameter:type':
             case 'Association:type':
+            case 'Property:type':
                 return ast.LanguageType
             case 'Container:type':
                 return ast.ReferenceType
@@ -459,7 +458,7 @@ export class XsmpcatValidator {
             for (const [index, modifier] of element.modifiers.entries()) {
                 if (check(modifier)) {
                     if (visited)
-                        accept('error', 'Invalid modifier.', { node: element, property: 'modifiers', index: index })
+                        accept('error', 'Illegal modifier.', { node: element, property: 'modifiers', index: index })
                     visited = true
                 }
             }
@@ -467,11 +466,62 @@ export class XsmpcatValidator {
 
         for (const [index, modifier] of element.modifiers.entries()) {
             if (!checks.some(check => check(modifier)))
-                accept('error', 'Illegal modifier.', { node: element, property: 'modifiers', index: index })
+                accept('error', 'Invalid modifier.', { node: element, property: 'modifiers', index: index })
         }
     }
 
 
+    checkDuplicatedMember(members: MultiMap<string, ast.NamedElement>, member: ast.NamedElement, accept: ValidationAcceptor) {
+        const duplicates = members.get(member.name)
+        if (duplicates.length > 0) {
+            if (!ast.isOperation(member))
+                accept('error', 'Duplicated identifier.', { node: member, property: 'name' })
+            else {
+                const sig = XsmpUtils.getSignature(member)
+                if (duplicates.some(d => !ast.isOperation(d) || (sig === XsmpUtils.getSignature(d) && member.$container === d.$container)))
+                    accept('error', 'Duplicated identifier.', { node: member, property: 'name' })
+            }
+        }
+        members.add(member.name, member)
+    }
+
+    collectmembers(type: ast.Type | undefined, duplicates: MultiMap<string, ast.NamedElement>, visited : Set<ast.Type>) {
+        if( !type || visited.has(type))
+            return
+        visited.add(type)
+
+        if (ast.isInterface(type)) {
+            type.elements.forEach(e => duplicates.add(e.name, e))
+            type.base.forEach(b => this.collectmembers(b.ref, duplicates,visited), this)
+        }
+        else if (ast.isComponent(type)) {
+            type.elements.forEach(e => duplicates.add(e.name, e))
+            this.collectmembers(type.base?.ref, duplicates,visited)
+            type.interface.forEach(b => this.collectmembers(b.ref, duplicates,visited), this)
+        }
+        else if (ast.isStructure(type)) {
+            type.elements.forEach(e => duplicates.add(e.name, e))
+            if (ast.isClass(type))
+                this.collectmembers(type.base?.ref, duplicates,visited)
+        }
+    }
+
+    initDuplicatedMembers(type: ast.Type): MultiMap<string, ast.NamedElement> {
+        const duplicates = new MultiMap<string, ast.NamedElement>()
+        const visited = new Set<ast.Type>()
+        visited.add(type)
+        if (ast.isInterface(type))
+            type.base.forEach(b => this.collectmembers(b.ref, duplicates,visited), this)
+        else if (ast.isComponent(type)) {
+            this.collectmembers(type.base?.ref, duplicates,visited)
+            type.interface.forEach(b => this.collectmembers(b.ref, duplicates,visited), this)
+        }
+        else if (ast.isClass(type))
+            this.collectmembers(type.base?.ref, duplicates,visited)
+
+
+        return duplicates
+    }
 
     checkInterface(inter: ast.Interface, accept: ValidationAcceptor): void {
         this.checkModifier(inter, [ast.isVisibilityModifiers], accept)
@@ -488,7 +538,11 @@ export class XsmpcatValidator {
             }
         }
 
+        const duplicates = this.initDuplicatedMembers(inter)
         for (const element of inter.elements) {
+            this.checkDuplicatedMember(duplicates, element, accept)
+
+
             switch (element.$type) {
                 case ast.Constant:
                 case ast.Operation:
@@ -502,6 +556,7 @@ export class XsmpcatValidator {
     }
 
     checkComponent(component: ast.Component, accept: ValidationAcceptor): void {
+
         this.checkModifier(component, [ast.isVisibilityModifiers, (elem) => elem === 'abstract'], accept)
         if (component.base && XsmpUtils.isCyclicComponentBase(component, component.base))
             accept('error', 'Cyclic dependency detected.', { node: component, property: 'base' })
@@ -516,7 +571,10 @@ export class XsmpcatValidator {
             }
         }
 
+        const duplicates = this.initDuplicatedMembers(component)
         for (const element of component.elements) {
+            this.checkDuplicatedMember(duplicates, element, accept)
+
             switch (element.$type) {
                 case ast.Constant:
                 case ast.Operation:
@@ -538,10 +596,14 @@ export class XsmpcatValidator {
     }
 
     checkStructure(structure: ast.Structure, accept: ValidationAcceptor): void {
+
         if (structure.$type !== ast.Structure) return
         this.checkModifier(structure, [ast.isVisibilityModifiers], accept)
 
+        const duplicates = this.initDuplicatedMembers(structure)
         for (const element of structure.elements) {
+            this.checkDuplicatedMember(duplicates, element, accept)
+
             switch (element.$type) {
                 case ast.Constant:
                     this.checkModifier(element, [], accept)
@@ -561,7 +623,11 @@ export class XsmpcatValidator {
             accept('error', 'Cyclic dependency detected.', { node: clazz, property: 'base' })
 
 
+
+        const duplicates = this.initDuplicatedMembers(clazz)
         for (const element of clazz.elements) {
+            this.checkDuplicatedMember(duplicates, element, accept)
+
             switch (element.$type) {
                 case ast.Constant:
                 case ast.Operation:
@@ -649,17 +715,7 @@ export class XsmpcatValidator {
         }
     }
 
-    checkDocument(document: ast.Document, accept: ValidationAcceptor): void {
-        const date = XsmpUtils.getDate(document)
-        if (date) {
-            try {
-                Instant.parse(date.content.toString())
-            }
-            catch (error) {
-                accept('error', 'Invalid date format (e.g: 1970-01-01T00:00:00Z).', { node: document, range: date.content.range })
-            }
-        }
-    }
+
     checkEntryPoint(entryPoint: ast.EntryPoint, accept: ValidationAcceptor): void {
         entryPoint.input.forEach((f, i) => {
             if (f.ref && !XsmpUtils.isInput(f.ref))
@@ -675,6 +731,15 @@ export class XsmpcatValidator {
             accept('error', 'Duplicated Service name.', { node: service, property: 'name' })
     }
     checkCatalogue(catalogue: ast.Catalogue, accept: ValidationAcceptor): void {
+        const date = XsmpUtils.getDate(catalogue)
+        if (date) {
+            try {
+                Instant.parse(date.content.toString())
+            }
+            catch (error) {
+                accept('error', 'Invalid date format (e.g: 1970-01-01T00:00:00Z).', { node: catalogue, range: date.content.range })
+            }
+        }
         if (this.indexManager.allElements(ast.Catalogue).filter(c => c.name === catalogue.name).count() > 1)
             accept('error', 'Duplicated Catalogue name.', { node: catalogue, property: 'name' })
     }
@@ -717,9 +782,9 @@ export class XsmpcatValidator {
             if (XsmpUtils.isAttributeTrue(isAbstract))
                 accept('error', 'A Property shall not be both Static and Abstract.', { node: isAbstract as ast.Attribute });
 
-            const isConst = XsmpUtils.attribute(property, 'Attributes.Const')
+            /*const isConst = XsmpUtils.attribute(property, 'Attributes.Const')
             if (XsmpUtils.isAttributeTrue(isConst))
-                accept('error', 'A Property shall not be both Static and Const.', { node: isConst as ast.Attribute });
+                accept('error', 'A Property shall not be both Static and Const.', { node: isConst as ast.Attribute });*/
 
             if (property.attachedField?.ref && !XsmpUtils.isStatic(property.attachedField.ref))
                 accept('error', 'A Property shall not be Static if the attached field is not Static.', { node: isStatic as ast.Attribute });
@@ -765,9 +830,9 @@ export class XsmpcatValidator {
             if (XsmpUtils.isAttributeTrue(isAbstract))
                 accept('error', 'An Operation shall not be both Static and Abstract.', { node: isAbstract as ast.Attribute });
 
-            const isConst = XsmpUtils.attribute(operation, 'Attributes.Const')
+            /*const isConst = XsmpUtils.attribute(operation, 'Attributes.Const')
             if (XsmpUtils.isAttributeTrue(isConst))
-                accept('error', 'An Operation shall not be both Static and Const.', { node: isConst as ast.Attribute });
+                accept('error', 'An Operation shall not be both Static and Const.', { node: isConst as ast.Attribute });*/
         }
 
         const isConstructor = XsmpUtils.attribute(operation, 'Attributes.Constructor')
@@ -781,15 +846,24 @@ export class XsmpcatValidator {
 
             const isConst = XsmpUtils.attribute(operation, 'Attributes.Const')
             if (XsmpUtils.isAttributeTrue(isConst))
-                accept('error', 'A Constructor shall not be Const.', { node: isConst as ast.Attribute });
+                accept('warning', 'Const attribute is ignored for a Constructor.', { node: isConst as ast.Attribute });
+
             if (operation.returnParameter)
                 accept('error', 'A Constructors shall not have any return parameters.', { node: operation, property: 'returnParameter' });
         }
 
+        const parameterNames = new Set<string>()
+        if (operation.returnParameter?.name)
+            parameterNames.add(operation.returnParameter?.name)
 
         // check that default value of parameters are provided
         let requireDefaultValue = false;
         for (const parameter of operation.parameter) {
+            if (parameterNames.has(parameter.name))
+                accept('error', 'Duplicated parameter name.', { node: parameter, property: 'name' });
+            else
+                parameterNames.add(parameter.name)
+
             if (parameter.default !== undefined)
                 requireDefaultValue = true;
             else if (requireDefaultValue)

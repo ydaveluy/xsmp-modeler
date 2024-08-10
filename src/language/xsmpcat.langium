@@ -18,8 +18,8 @@ entry Catalogue returns Catalogue:
 hidden terminal WS: /\s+/;
 terminal ID: /[_a-zA-Z][\w]*/;
 
-terminal STRING: /"[^"]*"/;
-terminal CHAR: /'[^'\r\n]*'/;
+terminal STRING: /"(?:\\"|[^"])*"/;
+terminal CHAR: /'(?:\\'|[^'])*'/;
 
 
 

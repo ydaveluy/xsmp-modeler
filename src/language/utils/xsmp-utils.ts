@@ -77,7 +77,7 @@ export class XsmpUtils {
         return undefined;
     }
     public static getRealVisibility(node: ast.VisibilityElement): ast.VisibilityModifiers {
-        const visibility = this.getVisibility(node)
+        const visibility = XsmpUtils.getVisibility(node)
         if (visibility)
             return visibility
         if (node.$container?.$type === ast.Structure || node.$container?.$type === ast.Interface)
@@ -130,12 +130,12 @@ export class XsmpUtils {
         }
         else if (ast.isFloat(type)) {
             if (type.primitiveType?.ref)
-                return this.getPrimitiveTypeKind(type.primitiveType.ref)
+                return XsmpUtils.getPrimitiveTypeKind(type.primitiveType.ref)
             return 'Float64'
         }
         else if (ast.isInteger(type)) {
             if (type.primitiveType?.ref)
-                return this.getPrimitiveTypeKind(type.primitiveType.ref)
+                return XsmpUtils.getPrimitiveTypeKind(type.primitiveType.ref)
             return 'Int32'
         }
         else if (ast.isStringType(type)) {
@@ -155,7 +155,7 @@ export class XsmpUtils {
     }
 
     public static getJSDoc(element: AstNode): JSDocComment | undefined {
-        const comment = this.getCommentNode(element)
+        const comment = XsmpUtils.getCommentNode(element)
         if (comment && isJSDoc(comment)) {
             return parseJSDoc(comment)
         }
@@ -163,12 +163,12 @@ export class XsmpUtils {
     }
 
     private static getTag(element: AstNode, tagName: string): JSDocTag | undefined {
-        const tag = this.getJSDoc(element)?.getTag(tagName)
+        const tag = XsmpUtils.getJSDoc(element)?.getTag(tagName)
         return tag?.inline ? undefined : tag
     }
 
     private static getTags(element: AstNode, tagName: string): JSDocTag[] | undefined {
-        return this.getJSDoc(element)?.getTags(tagName).filter(t => !t.inline)
+        return XsmpUtils.getJSDoc(element)?.getTags(tagName).filter(t => !t.inline)
     }
 
     public static getUsages(element: ast.AttributeType): JSDocTag[] | undefined {
@@ -215,15 +215,15 @@ export class XsmpUtils {
     }
 
     public static getUuid(type: ast.Type): JSDocTag | undefined {
-        return this.getTag(type, 'uuid')
+        return XsmpUtils.getTag(type, 'uuid')
     }
 
     public static getDeprecated(element: ast.NamedElement): JSDocTag | undefined {
-        return this.getTag(element, 'deprecated')
+        return XsmpUtils.getTag(element, 'deprecated')
     }
 
     public static IsDeprecated(element: ast.NamedElement): boolean {
-        return this.getDeprecated(element) !== undefined
+        return XsmpUtils.getDeprecated(element) !== undefined
     }
 
     public static attribute(element: ast.NamedElement | ast.ReturnParameter, id: Attributes): ast.Attribute | undefined {
@@ -239,11 +239,11 @@ export class XsmpUtils {
     }
 
     protected static attributeBoolValue(element: ast.NamedElement | ast.ReturnParameter, id: Attributes): boolean | undefined {
-        return XsmpUtils.isAttributeTrue(this.attribute(element, id))
+        return XsmpUtils.isAttributeTrue(XsmpUtils.attribute(element, id))
     }
 
     public static getDescription(element: ast.NamedElement): string | undefined {
-        const jsDoc = this.getJSDoc(element);
+        const jsDoc = XsmpUtils.getJSDoc(element);
         if (!jsDoc)
             return undefined
 
@@ -258,22 +258,32 @@ export class XsmpUtils {
     }
     public static getParameterDescription(element: ast.Parameter): string | undefined {
         const regex = new RegExp(`^${element.name}\\s`);
-        return this.getJSDoc(element.$container)?.getTags('param').find(t => regex.test(t.content.toString()))?.content.toString().slice(element.name.length).trim()
+        return XsmpUtils.getJSDoc(element.$container)?.getTags('param').find(t => regex.test(t.content.toString()))?.content.toString().slice(element.name.length).trim()
     }
     public static getReturnParameterDescription(element: ast.ReturnParameter): string | undefined {
-        return this.getJSDoc(element.$container)?.getTag('return')?.content.toString().trim()
+        return XsmpUtils.getJSDoc(element.$container)?.getTag('return')?.content.toString().trim()
     }
 
 
     public static isStatic(element: ast.NamedElement | ast.ReturnParameter): boolean {
-        return this.attributeBoolValue(element, 'Attributes.Static') ?? false
+        return XsmpUtils.attributeBoolValue(element, 'Attributes.Static') ?? false
     }
     public static isAbstract(element: ast.Operation | ast.Property): boolean {
-        return this.attributeBoolValue(element, 'Attributes.Abstract') ?? false
+        return XsmpUtils.attributeBoolValue(element, 'Attributes.Abstract') ?? false
+    }
+
+    public static isConst(element: ast.Parameter | ast.ReturnParameter | ast.Association | ast.Operation | ast.Property): boolean {
+        return XsmpUtils.attributeBoolValue(element, 'Attributes.Const') ?? false
+    }
+    public static isByPointer(element: ast.Parameter | ast.ReturnParameter | ast.Association | ast.Property): boolean {
+        return XsmpUtils.attributeBoolValue(element, 'Attributes.ByPointer') ?? false
+    }
+    public static isByReference(element: ast.Parameter | ast.ReturnParameter | ast.Property): boolean {
+        return XsmpUtils.attributeBoolValue(element, 'Attributes.ByReference') ?? false
     }
 
     public static isSimpleArray(element: ast.ArrayType): boolean {
-        return this.attributeBoolValue(element, 'Attributes.SimpleArray') ?? false
+        return XsmpUtils.attributeBoolValue(element, 'Attributes.SimpleArray') ?? false
     }
 
     public static allowMultiple(element: ast.AttributeType): boolean {
@@ -337,10 +347,49 @@ export class XsmpUtils {
     public static isRecursiveType(parent: ast.Type, other: ast.Type | undefined): boolean {
         if (parent === other) return true
         if (ast.isArrayType(other))
-            return this.isRecursiveType(parent, other.itemType.ref)
+            return XsmpUtils.isRecursiveType(parent, other.itemType.ref)
         if (ast.isStructure(other))
             return other.elements.filter(ast.isField).some(f => XsmpUtils.isRecursiveType(parent, f.type.ref))
         return false
     }
+
+
+    /**
+     * Compute the signature of an element
+     *
+     * @param op
+     *          the input Operation
+     * @return the signature
+     */
+    public static getSignature(element: ast.NamedElement): string {
+        if (ast.isOperation(element))
+            return element.name + '(' + element.parameter.map(XsmpUtils.getParameterSignature).join(',') + ')';
+        return element.name
+    }
+
+    /**
+     * Get the signature of a parameter
+     *
+     * @param p
+     *          the input Parameter
+     * @return the signature of the parameter
+     */
+    private static getParameterSignature(p: ast.Parameter) {
+        let signature = ''
+
+        if (XsmpUtils.isConst(p))
+            signature += 'const '
+
+        signature += p.type.ref ? XsmpUtils.getQualifiedName(p.type.ref) : p.type.$refText
+
+        if (XsmpUtils.isByPointer(p))
+            signature += '*'
+
+        if (XsmpUtils.isByReference(p))
+            signature += '&'
+
+        return signature
+    }
+
 
 }

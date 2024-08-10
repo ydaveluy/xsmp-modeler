@@ -5,6 +5,7 @@
     // List of extensions which should be recommended for users of this workspace.
     "recommendations": [
         "langium.langium-vscode",
-        "kingwl.vscode-vitest-runner"
+        "kingwl.vscode-vitest-runner",
+        "ydaveluy.xsmp-modeler"
     ]
 }
