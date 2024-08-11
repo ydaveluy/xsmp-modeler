@@ -18,9 +18,8 @@ entry Catalogue returns Catalogue:
 hidden terminal WS: /\s+/;
 terminal ID: /[_a-zA-Z][\w]*/;
 
-terminal STRING: /"(?:\\"|[^"])*"/;
-terminal CHAR: /'(?:\\'|[^'])*'/;
-
+terminal STRING: /"(?:\\(?:[abfnrtv\\\"\'\?]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})|[^"\n])*"/;
+terminal CHAR:   /'(?:\\(?:[abfnrtv\\\"\'\?]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})|[^'\n])*'/;
 
 
 hidden terminal ML_COMMENT: /\/\*[\s\S]*?\*\//;
@@ -602,7 +601,7 @@ Expression returns Expression:
 ;
 
 Attribute returns Attribute:
-    '@' ^type=[AttributeType:QualifiedName ]  ('(' value=Expression ? ')' )?  
+    '@'(^type=[AttributeType:QualifiedName]  ('(' value=Expression ? ')')?)?
 ;
 
 QualifiedName returns string:
@@ -730,7 +729,7 @@ FloatingLiteral returns FloatingLiteral:
 ;
 
 StringLiteral returns Expression:
-    {StringLiteral} value=STRING 
+    {StringLiteral} value+=STRING+
 ;
 
 CharacterLiteral returns Expression:

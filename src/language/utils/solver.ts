@@ -289,43 +289,34 @@ export class Solver {
     }
     public static getValue<T>(expression: ast.Expression | undefined, accept?: ValidationAcceptor): Value<T> | undefined {
         if (expression) {
-            if (ast.isIntegerLiteral(expression)) {
-                return IntegralValue.of(expression, accept)
-            }
-            if (ast.isFloatingLiteral(expression)) {
-                return FloatValue.of(expression, accept)
-            }
-            if (ast.isBooleanLiteral(expression)) {
-                return new BoolValue(expression.isTrue)
-            }
-            if (ast.isStringLiteral(expression)) {
-                return new StringValue(expression.value)
-            }
-            if (ast.isCharacterLiteral(expression)) {
-                //TODO CharValue.of()
-                return new CharValue(expression.value)
-            }
-            if (ast.isUnaryOperation(expression)) {
-                return this.unaryOperation(expression, accept)
-            }
-            if (ast.isBinaryOperation(expression)) {
-                return this.binaryOperation(expression, accept)
-            }
-            if (ast.isParenthesizedExpression(expression)) {
-                return this.getValue(expression.expr, accept)
-            }
-            if (ast.isNamedElementReference(expression)) {
-                if (ast.isEnumerationLiteral(expression.value?.ref))
-                    return new EnumerationLiteralValue(expression.value?.ref)
-                return this.getValue(expression.value?.ref?.value, accept)
-            }
-            if (ast.isBuiltInConstant(expression)) {
-                return new FloatValue(Math[expression.name], 'Float64')
-            }
-            if (ast.isBuiltInFunction(expression)) {
-                if (!expression.argument && accept)
-                    accept('error', 'Missing argument.', { node: expression, property: 'argument' })
-                return this.convertBuiltinFunction(expression, accept)
+            switch (expression.$type) {
+                case ast.IntegerLiteral: return IntegralValue.of(expression as ast.IntegerLiteral, accept)
+                case ast.FloatingLiteral: return FloatValue.of(expression as ast.FloatingLiteral, accept)
+                case ast.BooleanLiteral: return new BoolValue((expression as ast.BooleanLiteral).isTrue)
+                case ast.StringLiteral: return new StringValue((expression as ast.StringLiteral).value.join(''))
+                case ast.CharacterLiteral: return new CharValue((expression as ast.CharacterLiteral).value)
+                case ast.UnaryOperation: return this.unaryOperation(expression as ast.UnaryOperation, accept)
+                case ast.BinaryOperation: return this.binaryOperation(expression as ast.BinaryOperation, accept)
+                case ast.ParenthesizedExpression: return this.getValue((expression as ast.ParenthesizedExpression).expr, accept)
+                case ast.BuiltInConstant: return new FloatValue(Math[(expression as ast.BuiltInConstant).name], 'Float64')
+                case ast.BuiltInFunction:
+                    if (!(expression as ast.BuiltInFunction).argument && accept)
+                        accept('error', 'Missing argument.', { node: expression, property: 'argument' })
+                    return this.convertBuiltinFunction(expression as ast.BuiltInFunction, accept)
+                case ast.NamedElementReference:
+                    const ref = expression as ast.NamedElementReference
+                    if (ast.isEnumerationLiteral(ref.value?.ref))
+                        return new EnumerationLiteralValue(ref.value?.ref)
+                    else if (ast.isConstant(ref.value?.ref))
+                    {
+                        if (accept && !XsmpUtils.isConstantVisibleFrom(expression, ref.value.ref))
+                            accept('error', `The Constant is not visible.`, { node: expression })
+                        return this.getValue(ref.value?.ref?.value, accept)
+                    }
+                    else if (accept) {
+                        accept('error', `Invalid element.`, { node: expression })
+                        return undefined
+                    }
             }
         }
         return undefined

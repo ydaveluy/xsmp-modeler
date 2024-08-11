@@ -5,6 +5,7 @@ import { isFloatingType, PrimitiveTypeKind, XsmpUtils } from '../utils/xsmp-util
 import { Solver } from '../utils/solver.js';
 import { Instant } from '@js-joda/core';
 import { findVisibleUris } from '../utils/project-utils.js';
+
 /**
  * Register custom validation checks.
  */
@@ -45,9 +46,6 @@ export function registerXsmpcatValidationChecks(services: XsmpcatServices) {
         Parameter: validator.checkParameter,
         ReturnParameter: validator.checkReturnParameter,
         PrimitiveType: validator.checkPrimitiveType,
-
-
-
     };
     registry.register(checks, validator, 'fast');
 }
@@ -86,6 +84,7 @@ export class XsmpcatValidator {
 
     protected readonly globalCache: WorkspaceCache<string, MultiMap<string, ast.Type>>;
     protected readonly visibleCache: WorkspaceCache<URI, MultiMap<string, ast.Type>>;
+
     constructor(services: XsmpcatServices) {
         this.indexManager = services.shared.workspace.IndexManager;
         this.documents = services.shared.workspace.LangiumDocuments;
@@ -135,25 +134,6 @@ export class XsmpcatValidator {
         return this.visibleCache.get(uri, () => this.computeTypeNames(uri)).get(XsmpUtils.getQualifiedName(type)).length > 1;
     }
 
-
-
-
-    public static getType(node: AstNode): string {
-        switch (node.$type) {
-
-            case ast.Reference_:
-                return 'Reference'
-            case ast.ArrayType:
-                return 'Array'
-            case ast.ReturnParameter:
-                return ast.Parameter
-            case ast.StringType:
-                return 'String'
-            default:
-                return node.$type;
-        }
-    }
-
     checkNamedElement(element: ast.NamedElement, accept: ValidationAcceptor): void {
 
 
@@ -172,8 +152,8 @@ export class XsmpcatValidator {
                 const type = attribute.type.ref as ast.AttributeType
 
                 const usages = XsmpUtils.getUsages(type)
-                if (usages?.every(t => !ast.reflection.isSubtype(XsmpcatValidator.getType(element), t.content.toString())))
-                    accept('warning', `This annotation is disallowed for element of type ${XsmpcatValidator.getType(element)}.`, { node: attribute, property: 'type' });
+                if (usages?.every(t => !ast.reflection.isSubtype(XsmpUtils.getNodeType(element), t.content.toString())))
+                    accept('warning', `This annotation is disallowed for element of type ${XsmpUtils.getNodeType(element)}.`, { node: attribute, property: 'type' });
 
                 if (!XsmpUtils.allowMultiple(type) && visited.has(type))
                     accept('warning', "Duplicate annotation of a non-repeatable type. Only annotation types marked with `@allowMultiple` can be used multiple times on a single target.",
@@ -231,12 +211,15 @@ export class XsmpcatValidator {
             case 'Property:setRaises':
             case 'Exception:base':
                 return ast.Exception
+            case 'Property:attachedField':
+                return ast.Field
 
             default: {
                 throw new Error(`${referenceId} is not a valid reference id.`);
             }
         }
     }
+
 
     checkTypeReference<N extends AstNode, P extends string = Properties<N>>(accept: ValidationAcceptor, node: N, reference: Reference<ast.Type>, property: Properties<N>, index?: number): boolean {
 
@@ -250,12 +233,31 @@ export class XsmpcatValidator {
             return false
         }
 
-        const visibility = XsmpUtils.getRealVisibility(reference.ref)
-        if ((visibility === 'protected' && AstUtils.getDocument(reference.ref) !== AstUtils.getDocument(node)) ||
-            (visibility === 'private' && !XsmpUtils.isAncestor(AstUtils.getContainerOfType(node, ast.isNamespace), reference.ref)))
+        if (!XsmpUtils.isTypeVisibleFrom(node, reference.ref))
             accept('error', `The ${reference.ref.$type} ${XsmpUtils.getQualifiedName(reference.ref)} is not visible.`, { node: node, property: property, index: index })
 
         const deprecated = XsmpUtils.getDeprecated(reference.ref)
+        if (deprecated) {
+            accept('warning', `Deprecated: ${deprecated.content.toString()}`, { node: node, property: property, index: index });
+        }
+        return true
+    }
+
+
+    checkFieldReference<N extends AstNode, P extends string = Properties<N>>(accept: ValidationAcceptor, node: N, field: ast.Field | undefined, property: Properties<N>, index?: number): field is ast.Field {
+
+        if (!field)
+            return false
+
+        if (field.$type !== ast.Field) {
+            accept('error', `Expecting a Field.`, { node: node, property: property, index: index });
+            return false
+        }
+
+        if (node.$container !== field.$container && XsmpUtils.getRealVisibility(field) === 'private')
+            accept('error', `The Field is not visible.`, { node: node, property: property, index: index })
+
+        const deprecated = XsmpUtils.getDeprecated(field)
         if (deprecated) {
             accept('warning', `Deprecated: ${deprecated.content.toString()}`, { node: node, property: property, index: index });
         }
@@ -485,24 +487,24 @@ export class XsmpcatValidator {
         members.add(member.name, member)
     }
 
-    collectmembers(type: ast.Type | undefined, duplicates: MultiMap<string, ast.NamedElement>, visited : Set<ast.Type>) {
-        if( !type || visited.has(type))
+    collectmembers(type: ast.Type | undefined, duplicates: MultiMap<string, ast.NamedElement>, visited: Set<ast.Type>) {
+        if (!type || visited.has(type))
             return
         visited.add(type)
 
         if (ast.isInterface(type)) {
             type.elements.forEach(e => duplicates.add(e.name, e))
-            type.base.forEach(b => this.collectmembers(b.ref, duplicates,visited), this)
+            type.base.forEach(b => this.collectmembers(b.ref, duplicates, visited), this)
         }
         else if (ast.isComponent(type)) {
             type.elements.forEach(e => duplicates.add(e.name, e))
-            this.collectmembers(type.base?.ref, duplicates,visited)
-            type.interface.forEach(b => this.collectmembers(b.ref, duplicates,visited), this)
+            this.collectmembers(type.base?.ref, duplicates, visited)
+            type.interface.forEach(b => this.collectmembers(b.ref, duplicates, visited), this)
         }
         else if (ast.isStructure(type)) {
             type.elements.forEach(e => duplicates.add(e.name, e))
             if (ast.isClass(type))
-                this.collectmembers(type.base?.ref, duplicates,visited)
+                this.collectmembers(type.base?.ref, duplicates, visited)
         }
     }
 
@@ -511,13 +513,13 @@ export class XsmpcatValidator {
         const visited = new Set<ast.Type>()
         visited.add(type)
         if (ast.isInterface(type))
-            type.base.forEach(b => this.collectmembers(b.ref, duplicates,visited), this)
+            type.base.forEach(b => this.collectmembers(b.ref, duplicates, visited), this)
         else if (ast.isComponent(type)) {
-            this.collectmembers(type.base?.ref, duplicates,visited)
-            type.interface.forEach(b => this.collectmembers(b.ref, duplicates,visited), this)
+            this.collectmembers(type.base?.ref, duplicates, visited)
+            type.interface.forEach(b => this.collectmembers(b.ref, duplicates, visited), this)
         }
         else if (ast.isClass(type))
-            this.collectmembers(type.base?.ref, duplicates,visited)
+            this.collectmembers(type.base?.ref, duplicates, visited)
 
 
         return duplicates
@@ -532,7 +534,7 @@ export class XsmpcatValidator {
                     accept('error', 'Duplicated interface.', { node: inter, property: 'base', index: index })
                 else {
                     visited.add(base.ref)
-                    if (XsmpUtils.isCyclicInterfaceBase(inter, base))
+                    if (XsmpUtils.isBaseOfInterface(inter, base.ref))
                         accept('error', 'Cyclic dependency detected.', { node: inter, property: 'base', index: index })
                 }
             }
@@ -558,7 +560,7 @@ export class XsmpcatValidator {
     checkComponent(component: ast.Component, accept: ValidationAcceptor): void {
 
         this.checkModifier(component, [ast.isVisibilityModifiers, (elem) => elem === 'abstract'], accept)
-        if (component.base && XsmpUtils.isCyclicComponentBase(component, component.base))
+        if (component.base && XsmpUtils.isBaseOfComponent(component, component.base.ref))
             accept('error', 'Cyclic dependency detected.', { node: component, property: 'base' })
 
         const visited = new Set<ast.Type | undefined>()
@@ -619,7 +621,7 @@ export class XsmpcatValidator {
 
     checkClass(clazz: ast.Class, accept: ValidationAcceptor): void {
         this.checkModifier(clazz, [ast.isVisibilityModifiers, (elem) => elem === 'abstract'], accept)
-        if (clazz.base && XsmpUtils.isCyclicClassBase(clazz, clazz.base))
+        if (clazz.base && XsmpUtils.isBaseOfClass(clazz, clazz.base.ref))
             accept('error', 'Cyclic dependency detected.', { node: clazz, property: 'base' })
 
 
@@ -718,11 +720,11 @@ export class XsmpcatValidator {
 
     checkEntryPoint(entryPoint: ast.EntryPoint, accept: ValidationAcceptor): void {
         entryPoint.input.forEach((f, i) => {
-            if (f.ref && !XsmpUtils.isInput(f.ref))
+            if (this.checkFieldReference(accept, entryPoint, f.ref, 'input', i) && !XsmpUtils.isInput(f.ref))
                 accept('error', 'Field is not an Input.', { node: entryPoint, property: 'input', index: i })
         })
         entryPoint.output.forEach((f, i) => {
-            if (f.ref && !XsmpUtils.isOutput(f.ref))
+            if (this.checkFieldReference(accept, entryPoint, f.ref, 'output', i) && !XsmpUtils.isOutput(f.ref))
                 accept('error', 'Field is not an Output.', { node: entryPoint, property: 'output', index: i })
         })
     }
@@ -745,11 +747,12 @@ export class XsmpcatValidator {
     }
 
     checkProperty(property: ast.Property, accept: ValidationAcceptor): void {
-        if (this.checkTypeReference(accept, property, property.type, 'type') && property.attachedField?.ref) {
-            //TODO checkFieldReferenceVisibility(field, p, XsmpPackage.Literals.PROPERTY__ATTACHED_FIELD, -1);
-            if (property.type.ref !== property.attachedField?.ref.type.ref)
-                accept('error', 'The Type of the AttachedField shall match the Type of the Property.', { node: property, property: 'attachedField' });
+        if (this.checkTypeReference(accept, property, property.type, 'type') &&
+            this.checkFieldReference(accept, property, property.attachedField?.ref, 'attachedField') &&
+            property.type.ref !== property.attachedField.ref.type.ref) {
+            accept('error', 'The Type of the AttachedField shall match the Type of the Property.', { node: property, property: 'attachedField' });
         }
+
 
         const getRaises = new Set<ast.Type | undefined>()
         for (const [index, exception] of property.getRaises.entries()) {

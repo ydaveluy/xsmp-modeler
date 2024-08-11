@@ -1,5 +1,5 @@
-import { ReferenceInfo, AstNodeDescription, Stream, MaybePromise, GrammarAST, Reference } from "langium";
-import { CompletionAcceptor, CompletionContext, DefaultCompletionProvider } from "langium/lsp";
+import { ReferenceInfo, AstNodeDescription, Stream, MaybePromise, GrammarAST, AstUtils } from "langium";
+import { CompletionAcceptor, CompletionContext, CompletionValueItem, DefaultCompletionProvider, NextFeature } from "langium/lsp";
 
 
 import { CompletionItemKind, InsertTextFormat, MarkupContent } from 'vscode-languageserver';
@@ -7,67 +7,116 @@ import { Instant } from "@js-joda/core";
 import * as os from 'os';
 import * as ast from '../generated/ast.js';
 import { XsmpUtils } from "../utils/xsmp-utils.js";
+import { XsmpcatServices } from "../xsmpcat-module.js";
+import { XsmpcatTypeProvider } from "../references/type-provider.js";
+import { Solver } from "../utils/solver.js";
 
 export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
 
+    protected readonly typeProvider: XsmpcatTypeProvider;
+    constructor(services: XsmpcatServices) {
+        super(services)
+        this.typeProvider = services.TypeProvider;
+    }
 
+    private isValidAttributeType(desc: AstNodeDescription, attribute: ast.Attribute): boolean {
+        if (!ast.isAttributeType(desc.node))
+            return false
 
-    public static getFilter(refInfo: ReferenceInfo,): ((desc: AstNodeDescription) => boolean) | undefined {
+        const usages = XsmpUtils.getUsages(desc.node)
+        const elementType = XsmpUtils.getNodeType(attribute.$container)
+
+        if (!usages?.find(u => u.content.toString() === elementType))
+            return false
+
+        if (attribute.$container.attributes.some(a => a.type.ref === desc.node) && !XsmpUtils.allowMultiple(desc.node))
+            return false
+        return XsmpUtils.isTypeVisibleFrom(attribute, desc.node)
+    }
+
+    private isValidNamedElementReference(desc: AstNodeDescription, expression: ast.Expression): boolean {
+        const type = this.typeProvider.getType(expression)
+        if (!type)
+            return false
+
+        if (ast.isEnumeration(type))
+            return desc.node?.$container === type
+        else
+            return ast.isConstant(desc.node) && XsmpUtils.isConstantVisibleFrom(expression, desc.node)
+
+    }
+
+    private readonly floatRegex = /^(Smp\.)?Float(32|64)$/;
+    private readonly intRegex = /^(Smp\.)?U?Int(8|16|32|64)$/;
+    public getFilter(refInfo: ReferenceInfo,): ((desc: AstNodeDescription) => boolean) | undefined {
 
         const refId = `${refInfo.container.$type}:${refInfo.property}`
         switch (refId) {
             case 'Attribute:type':
-                return (desc) => ast.AttributeType === desc.type
+                return (desc) => this.isValidAttributeType(desc, refInfo.container as ast.Attribute)
             case 'Class:base':
-                return (desc) => ast.Class === desc.type && !XsmpUtils.isCyclicClassBase(refInfo.container as ast.Class, { ref: desc.node } as Reference<ast.Type>)
+                return (desc) => ast.isClass(desc.node) && !XsmpUtils.isBaseOfClass(refInfo.container as ast.Class, desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node)
             case 'Interface:base':
-                return (desc) => ast.Interface === desc.type && !XsmpUtils.isCyclicInterfaceBase(refInfo.container as ast.Interface, { ref: desc.node } as Reference<ast.Type>) &&
-                    !(refInfo.container as ast.Interface).base.map(i => i.ref).includes(desc.node as ast.Interface)
+                return (desc) => ast.isInterface(desc.node) && !XsmpUtils.isBaseOfInterface(refInfo.container as ast.Interface, desc.node) &&
+                    !(refInfo.container as ast.Interface).base.map(i => i.ref).includes(desc.node as ast.Interface) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node)
             case 'Model:interface':
             case 'Service:interface':
-                return (desc) => ast.Interface === desc.type && !(refInfo.container as ast.Component).interface.map(i => i.ref).includes(desc.node as ast.Interface)
+                return (desc) => ast.isInterface(desc.node) && !(refInfo.container as ast.Component).interface.map(i => i.ref).includes(desc.node as ast.Interface) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node)
             case 'Reference_:interface':
-                return (desc) => ast.Interface === desc.type
+                return (desc) => ast.isInterface(desc.node)
             case 'Model:base':
-                return (desc) => ast.Model === desc.type && !XsmpUtils.isCyclicComponentBase(refInfo.container as ast.Component, { ref: desc.node } as Reference<ast.Type>)
+                return (desc) => ast.isModel(desc.node) && !XsmpUtils.isBaseOfComponent(refInfo.container as ast.Component, desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node)
             case 'Service:base':
-                return (desc) => ast.Service === desc.type && !XsmpUtils.isCyclicComponentBase(refInfo.container as ast.Component, { ref: desc.node } as Reference<ast.Type>)
+                return (desc) => ast.isService(desc.node) && !XsmpUtils.isBaseOfComponent(refInfo.container as ast.Component, desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node)
             case 'ArrayType:itemType':
             case 'ValueReference:type':
             case 'AttributeType:type':
             case 'Field:type':
-            case 'Property:type':
-                return (desc) => ast.reflection.isSubtype(desc.type, ast.LanguageType)
+                return (desc) => ast.reflection.isSubtype(desc.type, ast.ValueType) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node as ast.Type)
+            case 'Property:attachedField':
+                return (desc) => ast.isField(desc.node) && (desc.node.$container === refInfo.container.$container || XsmpUtils.getRealVisibility(desc.node) !== 'private')
             case 'Integer:primitiveType':
-                return (desc) => ast.reflection.isSubtype(desc.type, ast.PrimitiveType) && ['Int8', 'Int16', 'Int32', 'Int64', 'UInt8', 'UInt16', 'UInt32', 'UInt64'].includes(desc.name)
+                return (desc) => desc.type === ast.PrimitiveType && this.intRegex.test(desc.name) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node as ast.Type)
             case 'Float:primitiveType':
-                return (desc) => ast.reflection.isSubtype(desc.type, ast.PrimitiveType) && ['Float32', 'Float64'].includes(desc.name)
+                return (desc) => desc.type === ast.PrimitiveType && this.floatRegex.test(desc.name) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node as ast.Type)
             case 'EventType:eventArgs':
             case 'Constant:type':
-                return (desc) => ast.reflection.isSubtype(desc.type, ast.SimpleType)
+                return (desc) => ast.reflection.isSubtype(desc.type, ast.SimpleType) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node as ast.Type)
             case 'Parameter:type':
             case 'ReturnParameter:type':
             case 'Association:type':
-                return (desc) => ast.reflection.isSubtype(desc.type, ast.LanguageType)
+            case 'Property:type':
+                return (desc) => ast.reflection.isSubtype(desc.type, ast.LanguageType) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node as ast.Type)
             case 'Container:type':
-                return (desc) => ast.reflection.isSubtype(desc.type, ast.ReferenceType)
+                return (desc) => ast.reflection.isSubtype(desc.type, ast.ReferenceType) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node as ast.Type)
             case 'Container:defaultComponent':
-                return (desc) => ast.reflection.isSubtype(desc.type, ast.Component)
+                return (desc) => ast.reflection.isSubtype(desc.type, ast.Component) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node as ast.Type)
             case 'EventSink:type':
             case 'EventSource:type':
-                return (desc) => ast.EventType === desc.type
+                return (desc) => ast.EventType === desc.type && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node as ast.Type)
             case 'Operation:raisedException':
+                return (desc) => ast.Exception === desc.type && !(refInfo.container as ast.Operation).raisedException.some(e => e.ref === desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node as ast.Type)
             case 'Property:getRaises':
+                return (desc) => ast.Exception === desc.type && !(refInfo.container as ast.Property).getRaises.some(e => e.ref === desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node as ast.Type)
             case 'Property:setRaises':
+                return (desc) => ast.Exception === desc.type && !(refInfo.container as ast.Property).setRaises.some(e => e.ref === desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node as ast.Type)
             case 'Exception:base':
-                return (desc) => ast.Exception === desc.type
+                return (desc) => ast.isException(desc.node) && !XsmpUtils.isBaseOfClass(refInfo.container as ast.Class, desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node as ast.Type)
+            case 'EntryPoint:input':
+                return (desc) => ast.isField(desc.node) && XsmpUtils.isInput(desc.node) && (desc.node.$container === refInfo.container.$container || XsmpUtils.getRealVisibility(desc.node) !== 'private')
+            case 'EntryPoint:output':
+                return (desc) => ast.isField(desc.node) && XsmpUtils.isOutput(desc.node) && (desc.node.$container === refInfo.container.$container || XsmpUtils.getRealVisibility(desc.node) !== 'private')
+            case 'NamedElementReference:value':
+                return (desc) => this.isValidNamedElementReference(desc, refInfo.container as ast.Expression)
+            default:
+                return undefined
         }
-        return undefined
+
     }
 
 
     /**
-     * Filter duplicate tools and dependencies
+     * Filter elements
      *
      * @param refInfo Information about the reference for which the candidates are requested.
      * @param _context Information about the completion request including document, cursor position, token under cursor, etc.
@@ -75,13 +124,24 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
      */
     protected override getReferenceCandidates(refInfo: ReferenceInfo, _context: CompletionContext): Stream<AstNodeDescription> {
 
-        const filter = XsmpcatCompletionProvider.getFilter(refInfo)
+        const filter = this.getFilter(refInfo)
         if (filter) {
             return super.getReferenceCandidates(refInfo, _context).filter(filter)
         }
         return super.getReferenceCandidates(refInfo, _context)
     }
 
+    protected override createReferenceCompletionItem(nodeDescription: AstNodeDescription): CompletionValueItem {
+        const kind = this.nodeKindProvider.getCompletionItemKind(nodeDescription);
+        const documentation = this.getReferenceDocumentation(nodeDescription);
+        return {
+            nodeDescription,
+            kind,
+            documentation,
+            detail: nodeDescription.type,
+            sortText: nodeDescription.name.split('.').length.toString().padStart(4, '0')
+        };
+    }
 
     protected getKeywordDocumentation(keyword: GrammarAST.Keyword): MarkupContent | string | undefined {
 
@@ -101,7 +161,7 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
             documentation: this.getKeywordDocumentation(keyword),
             kind: this.getKeywordCompletionItemKind(keyword),
             detail: 'Keyword',
-            sortText: '1'
+            sortText: '1000'
         });
 
         const snippet = this.getSnippet(context, keyword)
@@ -114,10 +174,101 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
                 documentation: this.documentationProvider.getDocumentation(keyword),
                 kind: CompletionItemKind.Snippet,
                 detail: 'Snippet',
-                sortText: '0'
+                sortText: '0000'
             })
         }
     }
+
+    protected override  completionForCrossReference(context: CompletionContext, next: NextFeature<GrammarAST.CrossReference>, acceptor: CompletionAcceptor): MaybePromise<void> {
+        const assignment = AstUtils.getContainerOfType(next.feature, GrammarAST.isAssignment);
+        let node = context.node;
+        if (assignment && node) {
+            if (next.type) {
+                // When `type` is set, it indicates that we have just entered a new parser rule.
+                // The cross reference that we're trying to complete is on a new element that doesn't exist yet.
+                // So we create a new synthetic element with the correct type information.
+                node = {
+                    $type: next.type,
+                    $container: node,
+                    $containerProperty: next.property
+                };
+                AstUtils.assignMandatoryProperties(this.astReflection, node);
+            }
+            const refInfo: ReferenceInfo = {
+                reference: {
+                    $refText: ''
+                },
+                container: node,
+                property: assignment.feature
+            };
+            try {
+                for (const candidate of this.getReferenceCandidates(refInfo, context)) {
+                    acceptor(context, this.createReferenceCompletionItem(candidate));
+                }
+            } catch (err) {
+                console.error(err);
+            }
+
+            if (node.$type === 'NamedElementReference' && assignment.feature === 'value') {
+
+                const type = this.typeProvider.getType(node)
+                if (type)
+                    acceptor(context, {
+                        label: 'Default Value',
+                        insertText: this.getDefaultValueForType(type),
+                        kind: CompletionItemKind.Value,
+                        detail: `Default value for ${type.$type} ${XsmpUtils.getQualifiedName(type)}.`,
+                        sortText: '0000'
+                    })
+            }
+        }
+    }
+    getDefaultValueForType(type: ast.Type | undefined): string {
+        if (!type)
+            return ''
+
+        if (ast.isArrayType(type)) {
+            const value = Solver.getValueAs(type.size, "Int64")?.integralValue('Int64')?.getValue()
+            return value ? `{${new Array(Number(value)).fill(this.getDefaultValueForType(type.itemType.ref)).join(', ')}}` : '{}'
+        }
+        if (ast.isStructure(type))
+            return `{${XsmpUtils.getAllFields(type).map(f => `.${f.name} = ${this.getDefaultValueForType(f.type.ref)}`).join(', ')}}`
+
+        if (ast.isEnumeration(type))
+            return type.literal.length > 0 ? XsmpUtils.getQualifiedName(type.literal[0]) : '0'
+
+        switch (XsmpUtils.getPrimitiveTypeKind(type)) {
+            case 'Bool':
+                return "false";
+            case 'Float32':
+                return "0.0f";
+            case 'Float64':
+                return "0.0";
+            case 'Int8':
+            case 'Int16':
+            case 'Int32':
+                return "0";
+            case 'Int64':
+                return "0L";
+            case 'UInt8':
+            case 'UInt16':
+            case 'UInt32':
+                return "0U";
+            case 'UInt64':
+                return "0UL";
+            case 'Char8':
+                return "'\\0'"
+            case 'String8':
+                return '""'
+            case 'DateTime':
+                return '"1970-01-01T00:00:00Z"'
+            case 'Duration':
+                return 'PT0S'
+        }
+        return ''
+    }
+
+
 
     protected getCrossReferences(context: CompletionContext, type: string, property: string): string {
 

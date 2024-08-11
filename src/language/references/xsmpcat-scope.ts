@@ -4,6 +4,7 @@ import type { XsmpcatServices } from '../xsmpcat-module.js';
 import * as ast from '../generated/ast.js';
 import { AstUtils, Cancellation, WorkspaceCache, EMPTY_SCOPE, interruptAndCheck, MultiMap, stream, DocumentCache } from 'langium';
 import { findVisibleUris } from '../utils/project-utils.js';
+import { XsmpcatTypeProvider } from './type-provider.js';
 import { XsmpUtils } from '../utils/xsmp-utils.js';
 
 
@@ -59,12 +60,12 @@ export class XsmpcatScopeComputation implements ScopeComputation {
         } else if (ast.isStructure(type) || ast.isReferenceType(type)) {
             const elementBaseName = typeName + '.'
             for (const member of type.elements) {
-                if (ast.isConstant(member) && member.name) // export only constants
+                if (member.name && ast.isConstant(member) && XsmpUtils.getRealVisibility(member) === 'public') // export only public constants
                     exportedDescriptions.push(this.descriptions.createDescription(member, elementBaseName + member.name, document));
             }
         }
-
     }
+    
     async computeLocalScopes(document: LangiumDocument, cancelToken = Cancellation.CancellationToken.None): Promise<PrecomputedScopes> {
         const catalogue = document.parseResult.value as ast.Catalogue;
         const scopes = new MultiMap<AstNode, AstNodeDescription>();
@@ -156,7 +157,7 @@ export class XsmpcatScopeProvider implements ScopeProvider {
     protected readonly visibleUris: WorkspaceCache<URI, Set<string> | undefined>;
     protected readonly reflection: AstReflection;
     protected readonly indexManager: IndexManager;
-    protected readonly exprToType: WorkspaceCache<AstNode, ast.Type | undefined>;
+    protected readonly typeProvider: XsmpcatTypeProvider;
     protected readonly globalScopeCache: WorkspaceCache<URI, Scope>;
     protected readonly contexts: Set<Reference> = new Set<Reference>
     protected readonly precomputedCache: DocumentCache<AstNode, Map<string, AstNodeDescription>>;
@@ -167,43 +168,9 @@ export class XsmpcatScopeProvider implements ScopeProvider {
         this.visibleUris = new WorkspaceCache<URI, Set<string> | undefined>(services.shared)
         this.reflection = services.shared.AstReflection;
         this.indexManager = services.shared.workspace.IndexManager;
-        this.exprToType = new WorkspaceCache<AstNode, ast.Type | undefined>(services.shared)
+        this.typeProvider = services.TypeProvider;
         this.globalScopeCache = new WorkspaceCache<URI, Scope>(services.shared);
         this.precomputedCache = new DocumentCache<AstNode, Map<string, AstNodeDescription>>(services.shared);
-    }
-    getType(expression: AstNode): ast.Type | undefined {
-        return this.exprToType.get(expression, () => this.doGetType(expression))
-    }
-
-    doGetType(expression: AstNode): ast.Type | undefined {
-        if (ast.isField(expression.$container)) {
-            return expression.$container.type.ref;
-        }
-        else if (ast.isConstant(expression.$container)) {
-            return expression.$container.type.ref;
-        }
-        else if (ast.isAttributeType(expression.$container)) {
-            return expression.$container.type.ref;
-        }
-        else if (ast.isAttribute(expression.$container)) {
-            const attributeType = expression.$container.type.ref;
-            if (ast.isAttributeType(attributeType)) {
-                return attributeType.type.ref;
-            }
-        }
-        else if (ast.isCollectionLiteral(expression.$container)) {
-            const type = this.getType(expression.$container)
-            if (ast.isStructure(type)) {
-                const field = XsmpUtils.getAllFields(type).toArray().at(expression.$containerIndex as number);
-                if (field)
-                    return field.type.ref;
-            }
-            else if (ast.isArrayType(type)) {
-                return type.itemType.ref;
-            }
-        }
-
-        return undefined
     }
 
     protected collectScopesFromNode(node: AstNode, scopes: Map<string, AstNodeDescription>[],
@@ -258,7 +225,7 @@ export class XsmpcatScopeProvider implements ScopeProvider {
 
         if (ast.isDesignatedInitializer(context.container) && context.property === 'field') {
             if (context.container.$container) {
-                const type = this.getType(context.container.$container);
+                const type = this.typeProvider.getType(context.container.$container);
 
                 if (ast.isStructure(type)) {
                     this.collectScopesFromNode(type, scopes, AstUtils.getDocument(type));
@@ -326,10 +293,14 @@ export class GlobalScope implements Scope {
             this.elements.set(element.name, element);
 
             // import elements from Smp and Attributes namespaces in global namespace
-            if(element.name.startsWith('Smp.'))
-                this.elements.set(element.name.substring(4), element);
-            else if(element.name.startsWith('Attributes.'))
-                this.elements.set(element.name.substring(11), element);
+            if (element.name.startsWith('Smp\.')) {
+                const name = element.name.substring(4)
+                this.elements.set(name, { ...element, name: name });
+            }
+            else if (element.name.startsWith('Attributes\.')) {
+                const name = element.name.substring(11)
+                this.elements.set(name, { ...element, name: name });
+            }
         }
     }
 

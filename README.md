@@ -3,14 +3,16 @@
 - [x] xsmp.project - Grammar
 - [x] xsmp.project - Scoping
 - [x] xsmp.project - Validation
+- [x] xsmp.project - Formatter
 - [x] xsmp.project - Documentation on hover
 - [x] xsmp.project - Content Assist
 - [x] xsmpcat - Grammar
 - [x] xsmpcat - Scoping
 - [x] xsmpcat - Documentation on hover
 - [x] xsmpcat - Validation
+- [x] xsmpcat - Formatter
 - [ ] xsmpcat - Quickfixs
-- [ ] xsmpcat - Content Assist
+- [x] xsmpcat - Content Assist
 - [x] SMP Tool - generator
 - [ ] SMP Tool - import
 - [ ] AsciiDoc Tool - generator
@@ -21,8 +23,8 @@
 ### xsmp-modeler-core (**Xtext**) vs  xsmp-modeler (**Langium**) comparison
 |          | **Xtext** | **Langium** |
 |----------|-----------|-------------|
-| **LOC**  | 24k       |   **3k**    |
-| **size** | 13MB      |  **584KB**  | 
+| **LOC**  | 24k       |   **4k**    |
+| **size** | 13MB      |  **600KB**  | 
 | loading  | 17.4s     |  **6.7s**   |
 
 

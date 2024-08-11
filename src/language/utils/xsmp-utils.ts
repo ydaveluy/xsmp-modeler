@@ -1,4 +1,4 @@
-import { AstNode, AstUtils, CstNode, CstUtils, isAstNodeWithComment, isJSDoc, JSDocComment, JSDocTag, parseJSDoc, Reference, stream, Stream } from "langium";
+import { AstNode, AstUtils, CstNode, CstUtils, isAstNodeWithComment, isJSDoc, JSDocComment, JSDocTag, parseJSDoc, stream, Stream } from "langium";
 import * as ast from "../generated/ast.js";
 import { Solver } from "./solver.js";
 
@@ -77,11 +77,13 @@ export class XsmpUtils {
         return undefined;
     }
     public static getRealVisibility(node: ast.VisibilityElement): ast.VisibilityModifiers {
+        if (node.$container?.$type === ast.Structure || node.$container?.$type === ast.Interface)
+            return 'public'
+
         const visibility = XsmpUtils.getVisibility(node)
         if (visibility)
             return visibility
-        if (node.$container?.$type === ast.Structure || node.$container?.$type === ast.Interface)
-            return 'public'
+
         return 'private'
     }
 
@@ -331,17 +333,36 @@ export class XsmpUtils {
         return result
     }
 
-    public static isCyclicInterfaceBase(parent: ast.Interface, base: Reference<ast.Type>): boolean {
-        return base.ref === parent || ast.isInterface(base.ref) && base.ref.base.some(b => XsmpUtils.isCyclicInterfaceBase(parent, b))
+    private static checkIsBaseOfInterface(parent: ast.Interface, base: ast.Type | undefined, visited: Set<ast.Type>): boolean {
+        if (visited.has(parent))
+            return false
+        visited.add(parent)
+        return base === parent || ast.isInterface(base) && base.base.some(b => XsmpUtils.checkIsBaseOfInterface(parent, b.ref, visited))
     }
 
-    public static isCyclicComponentBase(parent: ast.Component, base: Reference<ast.Type>): boolean {
-        return base.ref === parent || ast.isComponent(base.ref) && base.ref.base !== undefined && XsmpUtils.isCyclicComponentBase(parent, base.ref.base)
+    public static isBaseOfInterface(parent: ast.Interface, base: ast.Type | undefined): boolean {
+        return XsmpUtils.checkIsBaseOfInterface(parent, base, new Set<ast.Type>())
     }
 
+    private static checkIsBaseOfComponent(parent: ast.Component, base: ast.Type | undefined, visited: Set<ast.Type>): boolean {
+        if (visited.has(parent))
+            return false
+        visited.add(parent)
+        return base === parent || ast.isComponent(base) && base.base !== undefined && XsmpUtils.checkIsBaseOfComponent(parent, base.base.ref, visited)
 
-    public static isCyclicClassBase(parent: ast.Class, base: Reference<ast.Type>): boolean {
-        return base.ref === parent || ast.isClass(base.ref) && base.ref.base !== undefined && XsmpUtils.isCyclicClassBase(parent, base.ref.base)
+    }
+    public static isBaseOfComponent(parent: ast.Component, base: ast.Type | undefined): boolean {
+        return XsmpUtils.checkIsBaseOfComponent(parent, base, new Set<ast.Type>())
+    }
+
+    private static checkIsBaseOfClass(parent: ast.Class, base: ast.Type | undefined, visited: Set<ast.Type>): boolean {
+        if (visited.has(parent))
+            return false
+        visited.add(parent)
+        return base === parent || ast.isClass(base) && base.base !== undefined && XsmpUtils.checkIsBaseOfClass(parent, base.base.ref, visited)
+    }
+    public static isBaseOfClass(parent: ast.Class, base: ast.Type | undefined): boolean {
+        return XsmpUtils.checkIsBaseOfClass(parent, base, new Set<ast.Type>())
     }
 
     public static isRecursiveType(parent: ast.Type, other: ast.Type | undefined): boolean {
@@ -351,6 +372,16 @@ export class XsmpUtils {
         if (ast.isStructure(other))
             return other.elements.filter(ast.isField).some(f => XsmpUtils.isRecursiveType(parent, f.type.ref))
         return false
+    }
+
+    public static isConstantVisibleFrom(from: ast.Expression, element: ast.Constant): boolean {
+        return element.$container === AstUtils.getContainerOfType(from, ast.isType) || XsmpUtils.getRealVisibility(element) !== 'private'
+    }
+    public static isTypeVisibleFrom(from: AstNode, element: ast.Type): boolean {
+        const visibility = XsmpUtils.getRealVisibility(element)
+        return !((visibility === 'protected' && AstUtils.getDocument(element) !== AstUtils.getDocument(from)) ||
+            (visibility === 'private' && !XsmpUtils.isAncestor(AstUtils.getContainerOfType(from, ast.isNamespace), element)));
+
     }
 
 
@@ -389,6 +420,21 @@ export class XsmpUtils {
             signature += '&'
 
         return signature
+    }
+    public static getNodeType(node: AstNode): string {
+        switch (node.$type) {
+
+            case ast.Reference_:
+                return 'Reference'
+            case ast.ArrayType:
+                return 'Array'
+            case ast.ReturnParameter:
+                return ast.Parameter
+            case ast.StringType:
+                return 'String'
+            default:
+                return node.$type;
+        }
     }
 
 

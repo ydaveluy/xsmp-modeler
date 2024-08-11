@@ -266,7 +266,7 @@ interface FloatingLiteral extends Expression {
 }
 
 interface StringLiteral extends Expression {
-	value: string
+	value: string[]
 }
 
 interface CharacterLiteral extends Expression {

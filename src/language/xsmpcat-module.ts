@@ -8,6 +8,7 @@ import { XsmpHoverProvider } from './lsp/hover-provider.js';
 import { XsmpDocumentSymbolProvider } from './lsp/document-symbol-provider.js';
 import { XsmpcatCompletionProvider } from './lsp/xsmpcat-completion-provider.js';
 import { XsmpValueConverter } from './parser/value-converter.js';
+import { XsmpcatTypeProvider } from './references/type-provider.js';
 
 /**
  * Declaration of Xsmp services.
@@ -16,6 +17,7 @@ export type XsmpcatAddedServices = {
     validation: {
         XsmpcatValidator: XsmpcatValidator
     },
+    TypeProvider: XsmpcatTypeProvider,
 }
 
 /**
@@ -47,5 +49,6 @@ export const XsmpcatModule: Module<XsmpcatServices, PartialLangiumServices & Xsm
     {
         ValueConverter: () => new XsmpValueConverter(),
     },
+    TypeProvider: (services) => new XsmpcatTypeProvider(services),
 };
 
