@@ -150,7 +150,8 @@ export class IntegralValue extends Value<IntegralValue> {
         const value = BigInt(text)
         const result = new IntegralValue(value, type)
         if (result.value != value) {
-            //TODO warning
+            if (accept)
+                accept('error', `Conversion overflow for type ${type}.`, { node: expr })
             return undefined
         }
         return result
@@ -304,18 +305,19 @@ export class Solver {
                         accept('error', 'Missing argument.', { node: expression, property: 'argument' })
                     return this.convertBuiltinFunction(expression as ast.BuiltInFunction, accept)
                 case ast.NamedElementReference:
-                    const ref = expression as ast.NamedElementReference
-                    if (ast.isEnumerationLiteral(ref.value?.ref))
-                        return new EnumerationLiteralValue(ref.value?.ref)
-                    else if (ast.isConstant(ref.value?.ref))
                     {
-                        if (accept && !XsmpUtils.isConstantVisibleFrom(expression, ref.value.ref))
-                            accept('error', `The Constant is not visible.`, { node: expression })
-                        return this.getValue(ref.value?.ref?.value, accept)
-                    }
-                    else if (accept) {
-                        accept('error', `Invalid element.`, { node: expression })
-                        return undefined
+                        const ref = expression as ast.NamedElementReference
+                        if (ast.isEnumerationLiteral(ref.value?.ref))
+                            return new EnumerationLiteralValue(ref.value?.ref)
+                        else if (ast.isConstant(ref.value?.ref)) {
+                            if (accept && !XsmpUtils.isConstantVisibleFrom(expression, ref.value.ref))
+                                accept('error', `The Constant is not visible.`, { node: expression })
+                            return this.getValue(ref.value?.ref?.value, accept)
+                        }
+                        else if (accept) {
+                            accept('error', `Invalid element.`, { node: expression })
+                            return undefined
+                        }
                     }
             }
         }

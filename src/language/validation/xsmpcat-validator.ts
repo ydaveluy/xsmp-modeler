@@ -1,4 +1,4 @@
-import { AstNode, AstUtils, IndexManager, LangiumDocuments, MultiMap, Properties, Reference, URI, WorkspaceCache, type ValidationAcceptor, type ValidationChecks } from 'langium';
+import { AstNode, AstUtils, diagnosticData, IndexManager, LangiumDocuments, MultiMap, Properties, Reference, URI, WorkspaceCache, type ValidationAcceptor, type ValidationChecks } from 'langium';
 import * as ast from '../generated/ast.js';
 import type { XsmpcatServices } from '../xsmpcat-module.js';
 import { isFloatingType, PrimitiveTypeKind, XsmpUtils } from '../utils/xsmp-utils.js';
@@ -74,6 +74,30 @@ const validUsages = new Set(['NamedElement', 'Array', 'Association', 'AttributeT
 
 const namedElementRegex = /^[a-zA-Z]\w*$/;
 const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+
+export namespace IssueCodes {
+    export const TypeNotVisible = 'type-not-visible';
+    export const FieldNotVisible = 'field-not-visible';
+    export const InvalidFieldName = 'invalid-field-name';
+    export const MissingValue = 'missing-value';
+    export const MissingUuid = 'missing-uuid';
+    export const DuplicatedUuid = 'duplicated-uuid';
+    export const InvalidUuid = 'invalid-uuid';
+    export const IllegalModifier = 'illegal-modifier';
+    export const InvalidModifier = 'invalid-modifier';
+    export const DuplicatedInterfaceBase = 'duplicated-interface-base';
+    export const CyclicInterfaceBase = 'cyclic-interface-base';
+    export const CyclicComponentBase = 'cyclic-component-base';
+    export const CyclicClassBase = 'cyclic-class-base';
+    export const MissingAbstract = 'missing-abstract';
+    export const DuplicatedComponentInterface = 'duplicated-component-interface';
+    export const InvalidUsage = 'invalid-usage';
+    export const DuplicatedUsage = 'duplicated-usage';
+    export const NonSimpleArray = 'non-simple-array';
+    export const InvalidAttribute = 'invalid-attribute';
+    export const DuplicatedException = 'duplicated-exception';
+}
 
 /**
  * Implementation of custom validations.
@@ -153,11 +177,13 @@ export class XsmpcatValidator {
 
                 const usages = XsmpUtils.getUsages(type)
                 if (usages?.every(t => !ast.reflection.isSubtype(XsmpUtils.getNodeType(element), t.content.toString())))
-                    accept('warning', `This annotation is disallowed for element of type ${XsmpUtils.getNodeType(element)}.`, { node: attribute, property: 'type' });
+                    accept('warning', `This annotation is disallowed for element of type ${XsmpUtils.getNodeType(element)}.`,
+                        { node: attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
+
 
                 if (!XsmpUtils.allowMultiple(type) && visited.has(type))
-                    accept('warning', "Duplicate annotation of a non-repeatable type. Only annotation types marked with `@allowMultiple` can be used multiple times on a single target.",
-                        { node: attribute, property: 'type' })
+                    accept('warning', "Duplicated annotation of a non-repeatable type. Only annotation types marked with `@allowMultiple` can be used multiple times on a single target.",
+                        { node: attribute, data: diagnosticData(IssueCodes.InvalidAttribute) })
 
                 visited.add(type)
             }
@@ -234,7 +260,8 @@ export class XsmpcatValidator {
         }
 
         if (!XsmpUtils.isTypeVisibleFrom(node, reference.ref))
-            accept('error', `The ${reference.ref.$type} ${XsmpUtils.getQualifiedName(reference.ref)} is not visible.`, { node: node, property: property, index: index })
+            accept('error', `The ${reference.ref.$type} ${XsmpUtils.getQualifiedName(reference.ref)} is not visible.`,
+                { node: node, property: property, index: index, data: diagnosticData(IssueCodes.TypeNotVisible) })
 
         const deprecated = XsmpUtils.getDeprecated(reference.ref)
         if (deprecated) {
@@ -255,7 +282,7 @@ export class XsmpcatValidator {
         }
 
         if (node.$container !== field.$container && XsmpUtils.getRealVisibility(field) === 'private')
-            accept('error', `The Field is not visible.`, { node: node, property: property, index: index })
+            accept('error', `The Field is not visible.`, { node: node, property: property, index: index, data: diagnosticData(IssueCodes.FieldNotVisible) })
 
         const deprecated = XsmpUtils.getDeprecated(field)
         if (deprecated) {
@@ -300,7 +327,7 @@ export class XsmpcatValidator {
                     let field = fields[i]
                     if (ast.isDesignatedInitializer(exp)) {
                         if (exp.field.ref !== field)
-                            accept('error', `Invalid field name, expecting ${field.name}.`, { node: exp, property: 'field' })
+                            accept('error', `Invalid field name, expecting ${field.name}.`, { node: exp, property: 'field', data: diagnosticData(IssueCodes.InvalidFieldName) })
                         exp = exp.expr;
                     }
                     this.checkExpression(field?.type.ref, exp, accept)
@@ -328,7 +355,7 @@ export class XsmpcatValidator {
             if (attribute.value)
                 this.checkExpression(attributeType.type.ref, attribute.value, accept)
             else if (!attributeType.default)
-                accept('error', 'A value is required.', { node: attribute, property: 'value' });
+                accept('error', 'A value is required.', { node: attribute, property: 'value', data: diagnosticData(IssueCodes.MissingValue) });
         }
     }
 
@@ -337,7 +364,7 @@ export class XsmpcatValidator {
         if (this.checkTypeReference(accept, constant, constant.type, 'type')) {
             const type = constant.type.ref as ast.PrimitiveType
             if (!constant.value)
-                accept('error', 'A Constant must have an initialization value.', { node: constant, property: 'value' });
+                accept('error', 'A Constant must have an initialization value.', { node: constant, property: 'value', data: diagnosticData(IssueCodes.MissingValue) });
             else
                 this.checkExpression(type, constant.value, accept)
         }
@@ -410,17 +437,43 @@ export class XsmpcatValidator {
         }
     }
 
+    getKeywordForType(type: ast.Type): string | undefined {
+        switch (type.$type) {
+            case ast.ArrayType: return 'array'
+            case ast.AttributeType: return 'attribute'
+            case ast.Class: return 'class'
+            case ast.Enumeration: return 'enum'
+            case ast.EventType: return 'event'
+            case ast.Exception: return 'exception'
+            case ast.Float: return 'float'
+            case ast.Integer: return 'integer'
+            case ast.Interface: return 'interface'
+            case ast.Model: return 'model'
+            case ast.NativeType: return 'native'
+            case ast.PrimitiveType: return 'primitive'
+            case ast.Service: return 'service'
+            case ast.StringType: return 'string'
+            case ast.Structure: return 'struct'
+            case ast.ValueReference: return 'using'
+        }
+        return undefined
+    }
+
+
     checkType(type: ast.Type, accept: ValidationAcceptor): void {
 
         const uuid = XsmpUtils.getUuid(type)
         if (uuid === undefined) {
-            accept('error', 'Missing Type UUID.', { node: type, property: 'name' })
+            accept('error', 'Missing Type UUID.', {
+                node: type, keyword: this.getKeywordForType(type),
+                data: { code: IssueCodes.MissingUuid, actionRange: XsmpUtils.getJSDoc(type)?.range ?? { start: type.$cstNode?.range.start, end: type.$cstNode?.range.start } }
+            })
         }
         else if (!uuidRegex.test(uuid.content.toString())) {
-            accept('error', 'The UUID is invalid.', { node: type, range: uuid.range })
+            accept('error', 'The UUID is invalid.', { node: type, range: uuid.content.range, data: diagnosticData(IssueCodes.InvalidUuid) })
         }
         else if (this.isDuplicatedUuid(type, uuid.content.toString())) {
-            accept('error', 'Duplicated UUID.', { node: type, range: uuid.range })
+            accept('error', 'Duplicated UUID.', { node: type, range: uuid.content.range, data: diagnosticData(IssueCodes.DuplicatedUuid) })
         }
 
         if (this.isDuplicatedTypeName(type)) {
@@ -460,7 +513,7 @@ export class XsmpcatValidator {
             for (const [index, modifier] of element.modifiers.entries()) {
                 if (check(modifier)) {
                     if (visited)
-                        accept('error', 'Illegal modifier.', { node: element, property: 'modifiers', index: index })
+                        accept('error', 'Illegal modifier.', { node: element, property: 'modifiers', index: index, data: diagnosticData(IssueCodes.IllegalModifier) })
                     visited = true
                 }
             }
@@ -468,7 +521,7 @@ export class XsmpcatValidator {
 
         for (const [index, modifier] of element.modifiers.entries()) {
             if (!checks.some(check => check(modifier)))
-                accept('error', 'Invalid modifier.', { node: element, property: 'modifiers', index: index })
+                accept('error', 'Invalid modifier.', { node: element, property: 'modifiers', index: index, data: diagnosticData(IssueCodes.InvalidModifier) })
         }
     }
 
@@ -531,11 +584,11 @@ export class XsmpcatValidator {
         for (const [index, base] of inter.base.entries()) {
             if (this.checkTypeReference(accept, inter, base, 'base', index)) {
                 if (visited.has(base.ref))
-                    accept('error', 'Duplicated interface.', { node: inter, property: 'base', index: index })
+                    accept('error', 'Duplicated interface.', { node: inter, property: 'base', index: index, data: diagnosticData(IssueCodes.DuplicatedInterfaceBase) })
                 else {
                     visited.add(base.ref)
                     if (XsmpUtils.isBaseOfInterface(inter, base.ref))
-                        accept('error', 'Cyclic dependency detected.', { node: inter, property: 'base', index: index })
+                        accept('error', 'Cyclic dependency detected.', { node: inter, property: 'base', index: index, data: diagnosticData(IssueCodes.CyclicInterfaceBase) })
                 }
             }
         }
@@ -561,13 +614,13 @@ export class XsmpcatValidator {
 
         this.checkModifier(component, [ast.isVisibilityModifiers, (elem) => elem === 'abstract'], accept)
         if (component.base && XsmpUtils.isBaseOfComponent(component, component.base.ref))
-            accept('error', 'Cyclic dependency detected.', { node: component, property: 'base' })
+            accept('error', 'Cyclic dependency detected.', { node: component, property: 'base', data: diagnosticData(IssueCodes.CyclicComponentBase) })
 
         const visited = new Set<ast.Type | undefined>()
         for (const [index, inter] of component.interface.entries()) {
             if (this.checkTypeReference(accept, component, inter, 'interface', index)) {
                 if (visited.has(inter.ref))
-                    accept('error', 'Duplicated interface.', { node: component, property: 'interface', index: index })
+                    accept('error', 'Duplicated interface.', { node: component, property: 'interface', index: index, data: diagnosticData(IssueCodes.DuplicatedComponentInterface) })
                 else
                     visited.add(inter.ref)
             }
@@ -594,7 +647,7 @@ export class XsmpcatValidator {
 
         if (!component.modifiers.includes('abstract') &&
             component.elements.some(e => (ast.isOperation(e) || ast.isProperty(e)) && XsmpUtils.isAbstract(e)))
-            accept('error', `The ${component.$type} shall be abstract.`, { node: component, property: 'name' })
+            accept('error', `The ${component.$type} shall be abstract.`, { node: component, keyword: component.$type === ast.Model ? 'model' : 'service', data: diagnosticData(IssueCodes.MissingAbstract) })
     }
 
     checkStructure(structure: ast.Structure, accept: ValidationAcceptor): void {
@@ -622,7 +675,7 @@ export class XsmpcatValidator {
     checkClass(clazz: ast.Class, accept: ValidationAcceptor): void {
         this.checkModifier(clazz, [ast.isVisibilityModifiers, (elem) => elem === 'abstract'], accept)
         if (clazz.base && XsmpUtils.isBaseOfClass(clazz, clazz.base.ref))
-            accept('error', 'Cyclic dependency detected.', { node: clazz, property: 'base' })
+            accept('error', 'Cyclic dependency detected.', { node: clazz, property: 'base', data: diagnosticData(IssueCodes.CyclicClassBase) })
 
 
 
@@ -648,7 +701,7 @@ export class XsmpcatValidator {
         }
         if (!clazz.modifiers.includes('abstract') &&
             clazz.elements.some(e => (ast.isOperation(e) || ast.isProperty(e)) && XsmpUtils.isAbstract(e)))
-            accept('error', `The ${clazz.$type} shall be abstract.`, { node: clazz, property: 'name' })
+            accept('error', `The ${clazz.$type} shall be abstract.`, { node: clazz, keyword: clazz.$type === ast.Class ? 'class' : 'exception', data: diagnosticData(IssueCodes.MissingAbstract) })
     }
 
     checkEventType(eventType: ast.EventType, accept: ValidationAcceptor): void {
@@ -690,7 +743,7 @@ export class XsmpcatValidator {
                 accept('error', 'Recursive Array Type.', { node: array, property: 'itemType' })
 
             if (!ast.isSimpleType(type) && XsmpUtils.isSimpleArray(array))
-                accept('error', 'An array annotated with `@SimpleArray` requires a SimpleType item type.', { node: array, property: 'itemType' })
+                accept('error', 'An array annotated with `@SimpleArray` requires a SimpleType item type.', { node: array, property: 'itemType', data: diagnosticData(IssueCodes.NonSimpleArray) })
         }
     }
 
@@ -708,9 +761,9 @@ export class XsmpcatValidator {
                 for (const usage of usages) {
                     const str = usage.content.toString();
                     if (!validUsages.has(str))
-                        accept('warning', 'Invalid usage.', { node: attribute, range: usage.content.range })
+                        accept('warning', 'Invalid usage.', { node: attribute, range: usage.range, data: diagnosticData(IssueCodes.InvalidUsage) })
                     if (visited.has(str))
-                        accept('warning', "Duplicated usage.", { node: attribute, range: usage.content.range })
+                        accept('warning', "Duplicated usage.", { node: attribute, range: usage.range, data: diagnosticData(IssueCodes.DuplicatedUsage) })
                     visited.add(str)
                 }
             }
@@ -758,7 +811,7 @@ export class XsmpcatValidator {
         for (const [index, exception] of property.getRaises.entries()) {
             if (this.checkTypeReference(accept, property, exception, 'getRaises', index)) {
                 if (getRaises.has(exception.ref))
-                    accept('error', 'Duplicated exception.', { node: property, property: 'getRaises', index: index })
+                    accept('error', 'Duplicated exception.', { node: property, property: 'getRaises', index: index, data: diagnosticData(IssueCodes.DuplicatedException) })
                 else
                     getRaises.add(exception.ref)
             }
@@ -767,7 +820,7 @@ export class XsmpcatValidator {
         for (const [index, exception] of property.setRaises.entries()) {
             if (this.checkTypeReference(accept, property, exception, 'setRaises', index)) {
                 if (setRaises.has(exception.ref))
-                    accept('error', 'Duplicated exception.', { node: property, property: 'setRaises', index: index })
+                    accept('error', 'Duplicated exception.', { node: property, property: 'setRaises', index: index, data: diagnosticData(IssueCodes.DuplicatedException) })
                 else
                     setRaises.add(exception.ref)
             }
@@ -775,28 +828,28 @@ export class XsmpcatValidator {
         const isStatic = XsmpUtils.attribute(property, 'Attributes.Static')
         if (XsmpUtils.isAttributeTrue(isStatic)) {
             if (ast.isInterface(property.$container))
-                accept('error', 'A Property of an Interface shall not be static.', { node: isStatic as ast.Attribute });
+                accept('error', 'A Property of an Interface shall not be static.', { node: isStatic as ast.Attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
 
             const isVirtual = XsmpUtils.attribute(property, 'Attributes.Virtual')
             if (XsmpUtils.isAttributeTrue(isVirtual))
-                accept('error', 'A Property shall not be both Static and Virtual.', { node: isVirtual as ast.Attribute });
+                accept('error', 'A Property shall not be both Static and Virtual.', { node: isVirtual as ast.Attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
 
             const isAbstract = XsmpUtils.attribute(property, 'Attributes.Abstract')
             if (XsmpUtils.isAttributeTrue(isAbstract))
-                accept('error', 'A Property shall not be both Static and Abstract.', { node: isAbstract as ast.Attribute });
+                accept('error', 'A Property shall not be both Static and Abstract.', { node: isAbstract as ast.Attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
 
             /*const isConst = XsmpUtils.attribute(property, 'Attributes.Const')
             if (XsmpUtils.isAttributeTrue(isConst))
                 accept('error', 'A Property shall not be both Static and Const.', { node: isConst as ast.Attribute });*/
 
             if (property.attachedField?.ref && !XsmpUtils.isStatic(property.attachedField.ref))
-                accept('error', 'A Property shall not be Static if the attached field is not Static.', { node: isStatic as ast.Attribute });
+                accept('error', 'A Property shall not be Static if the attached field is not Static.', { node: isStatic as ast.Attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
         }
 
         // an element shall not be both byPointer and ByReference
         const isByPointer = XsmpUtils.attribute(property, 'Attributes.ByPointer')
         if (XsmpUtils.isAttributeTrue(isByPointer) && XsmpUtils.isAttributeTrue(XsmpUtils.attribute(property, 'Attributes.ByReference')))
-            accept('error', 'A Property shall not be both ByPointer and ByReference.', { node: isByPointer as ast.Attribute });
+            accept('error', 'A Property shall not be both ByPointer and ByReference.', { node: isByPointer as ast.Attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
     }
 
     checkReference(reference: ast.Reference_, accept: ValidationAcceptor): void {
@@ -814,7 +867,7 @@ export class XsmpcatValidator {
         for (const [index, exception] of operation.raisedException.entries()) {
             if (this.checkTypeReference(accept, operation, exception, 'raisedException', index)) {
                 if (raisedException.has(exception.ref))
-                    accept('error', 'Duplicated exception.', { node: operation, property: 'raisedException', index: index })
+                    accept('error', 'Duplicated exception.', { node: operation, property: 'raisedException', index: index, data: diagnosticData(IssueCodes.DuplicatedException) })
                 else
                     raisedException.add(exception.ref)
             }
@@ -823,15 +876,15 @@ export class XsmpcatValidator {
         const isStatic = XsmpUtils.attribute(operation, 'Attributes.Static')
         if (XsmpUtils.isAttributeTrue(isStatic)) {
             if (ast.isInterface(operation.$container))
-                accept('error', 'An Operation of an Interface shall not be static.', { node: isStatic as ast.Attribute });
+                accept('error', 'An Operation of an Interface shall not be static.', { node: isStatic as ast.Attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
 
             const isVirtual = XsmpUtils.attribute(operation, 'Attributes.Virtual')
             if (XsmpUtils.isAttributeTrue(isVirtual))
-                accept('error', 'An Operation shall not be both Static and Virtual.', { node: isVirtual as ast.Attribute });
+                accept('error', 'An Operation shall not be both Static and Virtual.', { node: isVirtual as ast.Attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
 
             const isAbstract = XsmpUtils.attribute(operation, 'Attributes.Abstract')
             if (XsmpUtils.isAttributeTrue(isAbstract))
-                accept('error', 'An Operation shall not be both Static and Abstract.', { node: isAbstract as ast.Attribute });
+                accept('error', 'An Operation shall not be both Static and Abstract.', { node: isAbstract as ast.Attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
 
             /*const isConst = XsmpUtils.attribute(operation, 'Attributes.Const')
             if (XsmpUtils.isAttributeTrue(isConst))
@@ -841,15 +894,15 @@ export class XsmpcatValidator {
         const isConstructor = XsmpUtils.attribute(operation, 'Attributes.Constructor')
         if (XsmpUtils.isAttributeTrue(isConstructor)) {
             if (XsmpUtils.isAttributeTrue(isStatic))
-                accept('error', 'A Constructor shall not be Static .', { node: isStatic as ast.Attribute });
+                accept('error', 'A Constructor shall not be Static .', { node: isStatic as ast.Attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
 
             const isVirtual = XsmpUtils.attribute(operation, 'Attributes.Virtual')
             if (XsmpUtils.isAttributeTrue(isVirtual))
-                accept('error', 'A Constructor shall not be Virtual.', { node: isVirtual as ast.Attribute });
+                accept('error', 'A Constructor shall not be Virtual.', { node: isVirtual as ast.Attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
 
             const isConst = XsmpUtils.attribute(operation, 'Attributes.Const')
             if (XsmpUtils.isAttributeTrue(isConst))
-                accept('warning', 'Const attribute is ignored for a Constructor.', { node: isConst as ast.Attribute });
+                accept('warning', 'Const attribute is ignored for a Constructor.', { node: isConst as ast.Attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
 
             if (operation.returnParameter)
                 accept('error', 'A Constructors shall not have any return parameters.', { node: operation, property: 'returnParameter' });
@@ -870,7 +923,7 @@ export class XsmpcatValidator {
             if (parameter.default !== undefined)
                 requireDefaultValue = true;
             else if (requireDefaultValue)
-                accept('error', 'The Parameter requires a default vallue.', { node: parameter, property: 'default' });
+                accept('error', 'The Parameter requires a default vallue.', { node: parameter, property: 'default', data: diagnosticData(IssueCodes.MissingValue) });
         }
 
     }
@@ -880,7 +933,7 @@ export class XsmpcatValidator {
 
         const isByPointer = XsmpUtils.attribute(parameter, 'Attributes.ByPointer')
         if (XsmpUtils.isAttributeTrue(isByPointer) && XsmpUtils.isAttributeTrue(XsmpUtils.attribute(parameter, 'Attributes.ByReference')))
-            accept('error', 'A Parameter shall not be both ByPointer and ByReference.', { node: isByPointer as ast.Attribute });
+            accept('error', 'A Parameter shall not be both ByPointer and ByReference.', { node: isByPointer as ast.Attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
     }
 
     checkReturnParameter(parameter: ast.ReturnParameter, accept: ValidationAcceptor): void {
@@ -888,7 +941,7 @@ export class XsmpcatValidator {
 
         const isByPointer = XsmpUtils.attribute(parameter, 'Attributes.ByPointer')
         if (XsmpUtils.isAttributeTrue(isByPointer) && XsmpUtils.isAttributeTrue(XsmpUtils.attribute(parameter, 'Attributes.ByReference')))
-            accept('error', 'A Parameter shall not be both ByPointer and ByReference.', { node: isByPointer as ast.Attribute });
+            accept('error', 'A Parameter shall not be both ByPointer and ByReference.', { node: isByPointer as ast.Attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
     }
 
     checkPrimitiveType(type: ast.PrimitiveType, accept: ValidationAcceptor): void {

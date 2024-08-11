@@ -22,7 +22,7 @@ export class XsmpValueConverter extends DefaultValueConverter {
             't': '\t',
             'v': '\x0b',
             '\\': '\\',
-            '\"': '\"',
+            '"': '"',
             '\'': '\'',
             '?': '\x3f'
         };

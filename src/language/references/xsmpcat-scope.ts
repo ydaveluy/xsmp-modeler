@@ -293,11 +293,11 @@ export class GlobalScope implements Scope {
             this.elements.set(element.name, element);
 
             // import elements from Smp and Attributes namespaces in global namespace
-            if (element.name.startsWith('Smp\.')) {
+            if (element.name.startsWith('Smp.')) {
                 const name = element.name.substring(4)
                 this.elements.set(name, { ...element, name: name });
             }
-            else if (element.name.startsWith('Attributes\.')) {
+            else if (element.name.startsWith('Attributes.')) {
                 const name = element.name.substring(11)
                 this.elements.set(name, { ...element, name: name });
             }

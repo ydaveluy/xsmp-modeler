@@ -11,7 +11,7 @@
 - [x] xsmpcat - Documentation on hover
 - [x] xsmpcat - Validation
 - [x] xsmpcat - Formatter
-- [ ] xsmpcat - Quickfixs
+- [x] xsmpcat - Quickfixs
 - [x] xsmpcat - Content Assist
 - [x] SMP Tool - generator
 - [ ] SMP Tool - import
