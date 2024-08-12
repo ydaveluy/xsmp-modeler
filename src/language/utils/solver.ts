@@ -29,14 +29,14 @@ abstract class Value<T> {
     logicalOr(val: Value<T>): BoolValue | undefined {
         const left = this.boolValue()?.getValue();
         const right = val.boolValue()?.getValue()
-        if (left && right)
+        if (left !== undefined && right !== undefined)
             return new BoolValue(left || right)
         return undefined
     }
     logicalAnd(val: Value<T>): BoolValue | undefined {
         const left = this.boolValue();
         const right = val.boolValue()
-        if (left && right)
+        if (left !== undefined && right !== undefined)
             return new BoolValue(left.value && right.value)
         return undefined
     }
@@ -66,6 +66,7 @@ export class BoolValue extends Value<BoolValue> {
         super()
         this.value = value
     }
+    override not(): BoolValue { return new BoolValue(!this.value) }
     override getValue(): boolean { return this.value }
     override primitiveTypeKind(): PrimitiveTypeKind { return 'Bool' }
     override boolValue(): this { return this }
@@ -196,7 +197,7 @@ export class IntegralValue extends Value<IntegralValue> {
     override negate(): IntegralValue { return new IntegralValue(-this.value, this.type) }
     promote(type: IntegralPrimitiveTypeKind): IntegralPrimitiveTypeKind {
 
-        switch (this.type) { // promote correcty Int8
+        switch (this.type) { // promote correctly Int8
             case 'Int8':
             case 'Int16':
             case 'UInt8':
@@ -399,7 +400,7 @@ export class Solver {
             const charValue = value.charValue()
             if (charValue && accept) {
                 if (charValue.getValue().length != 1)
-                    accept('error', 'A `Char8` shall contain exactly one character.', { node: expression })
+                    accept('error', 'A \'Char8\' shall contain exactly one character.', { node: expression })
             }
             return charValue
         }
@@ -421,7 +422,7 @@ export class Solver {
         return result
     }
 
-    private static binaryOperationFunction<T, U>(left: Value<T>, right: Value<T>, feature: string): Value<U> | undefined {
+    private static binaryOperationFunction<T, U>(left: Value<T>, right: Value<T>, feature: ast.OpBinary): Value<U> | undefined {
 
         switch (feature) {
             case "||": return left.logicalOr(right)
@@ -442,7 +443,6 @@ export class Solver {
             case "%": return left.remainder(right)
             case "<<": return left.shiftLeft(right)
             case ">>": return left.shiftRight(right)
-            default: return undefined
         }
 
     }
@@ -502,7 +502,7 @@ export class Solver {
         return result
     }
 
-    private static unaryOperationFunction<T, U>(operand: Value<T>, feature: string): Value<U> | undefined {
+    private static unaryOperationFunction<T, U>(operand: Value<T>, feature: ast.OpUnary): Value<U> | undefined {
 
         switch (feature) {
             case '+': return operand.plus()
@@ -510,7 +510,6 @@ export class Solver {
             case '~': return operand.unaryComplement()
             case '!': return operand.not()
         }
-        return undefined
     }
     private static unaryOperation<T>(expression: ast.UnaryOperation, accept?: ValidationAcceptor): Value<T> | undefined {
         let operand = this.getValue(expression.operand, accept)

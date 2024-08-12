@@ -244,7 +244,7 @@ ArrayType returns ArrayType:
 	 * Dynamic arrays are not supported by SMDL, as they are not supported by some potential target platforms, and introduce various difficulties in memory management. 
 	 * Remarks : Nevertheless, specific mechanisms are available to allow dynamic collections of components, either for containment (composition) or references (aggregation). 
      */
-    'array' name=ValidID  '=' itemType=[ValueType:QualifiedName ] '['  size=Expression ? ']' 
+    'array' name=ValidID  '=' itemType=[ValueType:QualifiedName ] '['  size=Expression? ']' 
 ;
 ValueReference returns ValueReference:
     attributes+=Attribute*  
@@ -324,7 +324,7 @@ StringType returns StringType:
 	 * The **String** language element defines an **Array** of **Char8** values, but allows a more natural handling of it, e.g. by storing a string value as one string, not as an array of individual characters.
 	 * As with arrays, SMDL does not allow defining variable-sized strings, as these have the same problems as dynamic arrays (e.g. their size is not know up-front, and their use requires memory allocation).
 	*/
-    'string' name=ValidID  ('[' length=Expression  ']')?
+    'string' name=ValidID '[' length=Expression?  ']'
 ;
 PrimitiveType returns PrimitiveType:
     attributes+=Attribute*  
@@ -612,7 +612,7 @@ OrExpression returns Expression:
     AndExpression ({BinaryOperation.leftOperand=current} feature=OpOr    rightOperand=AndExpression  )*  
 ;
 
-OpOr returns string:
+OpOr returns OpOr:
     '||' 
 ;
 
@@ -620,7 +620,7 @@ AndExpression returns Expression:
     BitwiseOrExpression ({BinaryOperation.leftOperand=current} feature=OpAnd    rightOperand=BitwiseOrExpression  )*  
 ;
 
-OpAnd returns string:
+OpAnd returns OpAnd:
     '&&' 
 ;
 
@@ -628,7 +628,7 @@ BitwiseOrExpression returns Expression:
     BitwiseXorExpression ({BinaryOperation.leftOperand=current} feature=OpBitwiseOr    rightOperand=BitwiseXorExpression  )*  
 ;
 
-OpBitwiseOr returns string:
+OpBitwiseOr returns OpBitwiseOr:
     '|' 
 ;
 
@@ -636,7 +636,7 @@ BitwiseXorExpression returns Expression:
     BitwiseAndExpression ({BinaryOperation.leftOperand=current} feature=OpBitwiseXor    rightOperand=BitwiseAndExpression  )*  
 ;
 
-OpBitwiseXor returns string:
+OpBitwiseXor returns OpBitwiseXor:
     '^' 
 ;
 
@@ -644,7 +644,7 @@ BitwiseAndExpression returns Expression:
     EqualityExpression ({BinaryOperation.leftOperand=current} feature=OpBitwiseAnd    rightOperand=EqualityExpression  )*  
 ;
 
-OpBitwiseAnd returns string:
+OpBitwiseAnd returns OpBitwiseAnd:
     '&' 
 ;
 
@@ -652,7 +652,7 @@ EqualityExpression returns Expression:
     RelationalExpression ({BinaryOperation.leftOperand=current} feature=OpEquality    rightOperand=RelationalExpression  )*  
 ;
 
-OpEquality returns string:
+OpEquality returns OpEquality:
     '==' | '!=' 
 ;
 
@@ -660,7 +660,7 @@ RelationalExpression returns Expression:
     BitwiseExpression ({BinaryOperation.leftOperand=current} feature=OpCompare    rightOperand=BitwiseExpression  )*  
 ;
 
-OpCompare returns string:
+OpCompare returns OpCompare:
     '>=' | '<=' | '>' | '<' 
 ;
 
@@ -668,7 +668,7 @@ BitwiseExpression returns Expression:
     AdditiveExpression ({BinaryOperation.leftOperand=current} feature=OpBitwise    rightOperand=AdditiveExpression  )*  
 ;
 
-OpBitwise returns string:
+OpBitwise returns OpBitwise:
     '<<' | '>>' 
 ;
 
@@ -676,7 +676,7 @@ AdditiveExpression returns Expression:
     MultiplicativeExpression ({BinaryOperation.leftOperand=current} feature=OpAdd    rightOperand=MultiplicativeExpression  )*  
 ;
 
-OpAdd returns string:
+OpAdd returns OpAdd:
     '+' | '-' 
 ;
 
@@ -684,15 +684,15 @@ MultiplicativeExpression returns Expression:
     UnaryOperation ({BinaryOperation.leftOperand=current} feature=OpMulti    rightOperand=UnaryOperation  )*  
 ;
 
-OpMulti returns string:
+OpMulti returns OpMulti:
     '*' | '/' | '%' 
 ;
 
 UnaryOperation returns Expression:
-    {UnaryOperation} feature=OpUnary  operand=UnaryOperation   | Literal 
+    {UnaryOperation} feature=OpUnary  operand=UnaryOperation  | Literal 
 ;
 
-OpUnary returns string:
+OpUnary returns OpUnary:
     "!" | "-" | "+" | "~" 
 ;
 

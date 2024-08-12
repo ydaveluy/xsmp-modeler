@@ -176,13 +176,13 @@ export class XsmpcatValidator {
                 const type = attribute.type.ref as ast.AttributeType
 
                 const usages = XsmpUtils.getUsages(type)
-                if (usages?.every(t => !ast.reflection.isSubtype(XsmpUtils.getNodeType(element), t.toString())))
+                if (usages?.every(t => !ast.reflection.isSubtype(XsmpUtils.getNodeType(element), t.toString().trim())))
                     accept('warning', `This annotation is disallowed for element of type ${XsmpUtils.getNodeType(element)}.`,
                         { node: attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
 
 
                 if (!XsmpUtils.allowMultiple(type) && visited.has(type))
-                    accept('warning', "Duplicated annotation of a non-repeatable type. Only annotation types marked with `@allowMultiple` can be used multiple times on a single target.",
+                    accept('warning', 'Duplicated annotation of a non-repeatable type. Only annotation types marked with \'@allowMultiple\' can be used multiple times on a single target.',
                         { node: attribute, data: diagnosticData(IssueCodes.InvalidAttribute) })
 
                 visited.add(type)
@@ -237,9 +237,6 @@ export class XsmpcatValidator {
             case 'Property:setRaises':
             case 'Exception:base':
                 return ast.Exception
-            case 'Property:attachedField':
-                return ast.Field
-
             default: {
                 throw new Error(`${referenceId} is not a valid reference id.`);
             }
@@ -265,7 +262,9 @@ export class XsmpcatValidator {
 
         const deprecated = XsmpUtils.getDeprecated(reference.ref)
         if (deprecated) {
-            accept('warning', `Deprecated: ${deprecated.toString()}`, { node: node, property: property, index: index });
+
+            accept('warning', deprecated.toString().length > 0 ? `Deprecated: ${deprecated.toString()}` : 'Deprecated.', { node: node, property: property, index: index });
+
         }
         return true
     }
@@ -277,16 +276,16 @@ export class XsmpcatValidator {
             return false
 
         if (field.$type !== ast.Field) {
-            accept('error', `Expecting a Field.`, { node: node, property: property, index: index });
+            accept('error', 'Expecting a Field.', { node: node, property: property, index: index });
             return false
         }
 
         if (node.$container !== field.$container && XsmpUtils.getRealVisibility(field) === 'private')
-            accept('error', `The Field is not visible.`, { node: node, property: property, index: index, data: diagnosticData(IssueCodes.FieldNotVisible) })
+            accept('error', 'The Field is not visible.', { node: node, property: property, index: index, data: diagnosticData(IssueCodes.FieldNotVisible) })
 
         const deprecated = XsmpUtils.getDeprecated(field)
         if (deprecated) {
-            accept('warning', `Deprecated: ${deprecated.toString()}`, { node: node, property: property, index: index });
+            accept('warning', deprecated.toString().length > 0 ? `Deprecated: ${deprecated.toString()}` : 'Deprecated.', { node: node, property: property, index: index });
         }
         return true
     }
@@ -406,6 +405,10 @@ export class XsmpcatValidator {
     ]);
     checkInteger(integer: ast.Integer, accept: ValidationAcceptor): void {
         this.checkModifier(integer, [ast.isVisibilityModifiers], accept)
+
+        if (integer.primitiveType)
+            this.checkTypeReference(accept, integer, integer.primitiveType, 'primitiveType')
+
         const kind = XsmpUtils.getPrimitiveTypeKind(integer)
         if (this.integerTypes.has(kind)) {
             const min = this.checkExpression(kind, integer.minimum, accept)
@@ -421,6 +424,10 @@ export class XsmpcatValidator {
     }
     checkFloat(float: ast.Float, accept: ValidationAcceptor): void {
         this.checkModifier(float, [ast.isVisibilityModifiers], accept)
+
+        if (float.primitiveType)
+            this.checkTypeReference(accept, float, float.primitiveType, 'primitiveType')
+
         const kind = XsmpUtils.getPrimitiveTypeKind(float)
         if (isFloatingType(kind)) {
             const min = this.checkExpression(kind, float.minimum, accept)
@@ -529,13 +536,14 @@ export class XsmpcatValidator {
     checkDuplicatedMember(members: MultiMap<string, ast.NamedElement>, member: ast.NamedElement, accept: ValidationAcceptor) {
         const duplicates = members.get(member.name)
         if (duplicates.length > 0) {
-            if (!ast.isOperation(member))
-                accept('error', 'Duplicated identifier.', { node: member, property: 'name' })
-            else {
+            if (ast.isOperation(member)) {
                 const sig = XsmpUtils.getSignature(member)
                 if (duplicates.some(d => !ast.isOperation(d) || (sig === XsmpUtils.getSignature(d) && member.$container === d.$container)))
                     accept('error', 'Duplicated identifier.', { node: member, property: 'name' })
             }
+            else if (!ast.isConstant(member) || duplicates.find(d => d.$container === member.$container))
+                accept('error', 'Duplicated identifier.', { node: member, property: 'name' })
+
         }
         members.add(member.name, member)
     }
@@ -613,7 +621,7 @@ export class XsmpcatValidator {
     checkComponent(component: ast.Component, accept: ValidationAcceptor): void {
 
         this.checkModifier(component, [ast.isVisibilityModifiers, (elem) => elem === 'abstract'], accept)
-        if (component.base && XsmpUtils.isBaseOfComponent(component, component.base.ref))
+        if (component.base && this.checkTypeReference(accept, component, component.base, 'base') && XsmpUtils.isBaseOfComponent(component, component.base.ref))
             accept('error', 'Cyclic dependency detected.', { node: component, property: 'base', data: diagnosticData(IssueCodes.CyclicComponentBase) })
 
         const visited = new Set<ast.Type | undefined>()
@@ -674,7 +682,7 @@ export class XsmpcatValidator {
 
     checkClass(clazz: ast.Class, accept: ValidationAcceptor): void {
         this.checkModifier(clazz, [ast.isVisibilityModifiers, (elem) => elem === 'abstract'], accept)
-        if (clazz.base && XsmpUtils.isBaseOfClass(clazz, clazz.base.ref))
+        if (clazz.base && this.checkTypeReference(accept, clazz, clazz.base, 'base') && XsmpUtils.isBaseOfClass(clazz, clazz.base.ref))
             accept('error', 'Cyclic dependency detected.', { node: clazz, property: 'base', data: diagnosticData(IssueCodes.CyclicClassBase) })
 
 
@@ -713,7 +721,7 @@ export class XsmpcatValidator {
     checkNativeType(nativeType: ast.NativeType, accept: ValidationAcceptor): void {
         this.checkModifier(nativeType, [ast.isVisibilityModifiers], accept)
         if (!XsmpUtils.getNativeType(nativeType))
-            accept('error', 'The javadoc `@type` tag shall be defined.', { node: nativeType, property: 'name' })
+            accept('error', 'The javadoc \'@type\' tag shall be defined.', { node: nativeType, property: 'name' })
     }
 
     checkEventSink(eventSink: ast.EventSink, accept: ValidationAcceptor): void {
@@ -726,14 +734,18 @@ export class XsmpcatValidator {
     checkString(string: ast.StringType, accept: ValidationAcceptor): void {
         this.checkModifier(string, [ast.isVisibilityModifiers], accept)
         const length = this.checkExpression('Int64', string.length, accept)
-        if (length && length as bigint < 0)
+        if (length === undefined)
+            accept('error', 'Missing String length.', { node: string, property: 'length' })
+        else if (length as bigint < 0)
             accept('error', 'The String length shall be a positive number.', { node: string, property: 'length' })
     }
 
     checkArrayType(array: ast.ArrayType, accept: ValidationAcceptor): void {
         this.checkModifier(array, [ast.isVisibilityModifiers], accept)
         const size = this.checkExpression('Int64', array.size, accept)
-        if (size && size as bigint < 0)
+        if (size === undefined)
+            accept('error', 'Missing Array size.', { node: array, property: 'size' })
+        else if (size as bigint < 0)
             accept('error', 'The Array size shall be a positive number.', { node: array, property: 'size' })
 
         if (this.checkTypeReference(accept, array, array.itemType, 'itemType')) {
@@ -743,7 +755,7 @@ export class XsmpcatValidator {
                 accept('error', 'Recursive Array Type.', { node: array, property: 'itemType' })
 
             if (!ast.isSimpleType(type) && XsmpUtils.isSimpleArray(array))
-                accept('error', 'An array annotated with `@SimpleArray` requires a SimpleType item type.', { node: array, property: 'itemType', data: diagnosticData(IssueCodes.NonSimpleArray) })
+                accept('error', 'An array annotated with \'@SimpleArray\' requires a SimpleType item type.', { node: array, property: 'itemType', data: diagnosticData(IssueCodes.NonSimpleArray) })
         }
     }
 
@@ -946,7 +958,7 @@ export class XsmpcatValidator {
 
     checkPrimitiveType(type: ast.PrimitiveType, accept: ValidationAcceptor): void {
         this.checkModifier(type, [ast.isVisibilityModifiers], accept)
-        if (!XsmpUtils.getPrimitiveTypeKind(type))
+        if (XsmpUtils.getPrimitiveTypeKind(type) === 'None')
             accept('error', 'Unsupported Primitive Type.', { node: type, property: 'name' });
     }
 }

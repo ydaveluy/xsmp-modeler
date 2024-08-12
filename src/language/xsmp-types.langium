@@ -231,13 +231,28 @@ interface Expression {
 interface BinaryOperation extends Expression {
 	leftOperand: Expression
 	rightOperand: Expression
-	feature: string
+	feature: OpBinary
 }
+
+type OpBinary = OpOr| OpAnd| OpBitwiseOr | OpBitwiseXor| OpBitwiseAnd | OpEquality | OpCompare| OpBitwise| OpAdd| OpMulti;
+type OpOr = '||';
+type OpAnd = '&&';
+type OpBitwiseOr = '|';
+type OpBitwiseAnd = '&';
+type OpBitwiseXor = "^"
+type OpEquality = '==' | '!=';
+type OpCompare = '>=' | '<=' | '>' | '<';
+type OpBitwise = '<<' | '>>';
+type OpAdd = '+' | '-';
+type OpMulti = '*' | '/' | '%';
 
 interface UnaryOperation extends Expression {
 	operand: Expression
-	feature: string
+	feature: OpUnary
 }
+
+type OpUnary = "!" | "-" | "+" | "~";
+
 
 type ConstantOrEnumerationLiteral = Constant|EnumerationLiteral
 interface NamedElementReference extends Expression {

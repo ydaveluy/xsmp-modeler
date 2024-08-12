@@ -9,20 +9,42 @@
  */
 catalogue class
 
+namespace hidden
+{
+    
+    integer privateInteger
+    
+    service MyService
+    {
+        
+    }
+}
+namespace Smp
+{
+    primitive Bool
+}
 /** element that does not start with a letter */
 namespace _ns
 {
+    
+    service MyService extends MyStruct
+    {
+         
+        @Abstract
+        protected def void op()
+    }
+
     /**
      * A description
-     * @uuid c489402d-7ecc-466a-a2e7-e1cb3d1da3c6
      * @usage NamedElement
      */
     public private attribute Bool SingleAttribute 
 
 	/**
 	 * @usage Class
+     * @usage Class
+     * @usage Invalid
 	 * @allowMultiple
-	 * @uuid 52057807-e889-40fb-89f9-f568018bddf2
 	 */
     public attribute Bool MultipleAttribute = true
 
@@ -32,30 +54,27 @@ namespace _ns
 	@MultipleAttribute
 	primitive Int10
 	
-	/** @uuid 56d32e6b-43f4-47da-a4e6-808f37d39b9e */
     public protected struct MyStruct
     {
         public constant Float32 constant
+        field Int32 x
+       input output transient field MyStruct aRecursiveField
     }
 
 	
-	/** @uuid cfddbb73-6d5f-41e8-8ced-04b3f40c3ed1 */
     enum MyEnum
     {
     }
 
-    /** @uuid ed2fc2c7-27a9-4685-91d6-6290a49819a6 */
     enum MyEnum2
     {
         L1 = 0,
         L1 = 0
     }
     
-    /** @uuid 36c0f055-3481-4396-896a-acb8b2fe7714 */
-    integer MyInt extends Duration
+    integer MyInt extends Float32
 
     
-    /** @uuid 36c0f055-3481-4396-896a-acb8b2fe7714 */
     integer MyInt2 in 4 ... 2
 
     
@@ -63,42 +82,175 @@ namespace _ns
     float MyFloat extends Int32
  
     
-    /** @uuid 9c0e43e9-1a83-4b19-ae02-1980ec3e6e32 */
     float MyFloat2 in 4.0 ... 0
 
 
     /** @uuid 780cd2ab-8678-406f-b62c-c08a7769591f */
-    float MyFloat2 in 4.0 <.< 0
+    float MyFloat2 in 4.0 <.. 4.0
     
-    /** @uuid 3f93a746-6547-4ec7-bdb1-730161c18538 */
+    /** @uuid 780cd2ab-8678-406f-b62c-c08a7769591f  */
     string MyString[-1]
 
-    /** @uuid 86d1b56a-8051-4d98-88ff-802bb6aaa676 */
-    string MyString2[4]
+    /** 
+     * @deprecated
+     */
+    string MyString2[]
     
-    /** @uuid 4906db76-6c03-4182-a3d2-ed702d6d7b30 */
     interface MyInterface extends IComposite, IComposite, MyInterface
     {
-        private constant Int32 CST = 0
-        protected def void op()
+        private constant Int32 CST0 = 0
         @Static
         @Virtual
         @Abstract
-        readOnly public readWrite property Int32 property
+        protected def @ByPointer @ByReference  Bool returnParameter op(in Bool returnParameter, @ByPointer @ByReference in Bool p = true, in Bool p)
+
+        @Static
+        @Virtual
+        @Abstract
+        @Const
+        readOnly public readWrite property Int32 property -> CST0
     }
 
     
-    /** @uuid 5931bff2-fada-468c-b187-5a2020c19996 */
     model MyModel extends MyModel implements MyInterface, MyInterface
     {
-        private constant Float32 CST = $PI + $cos(1/5)
-        private constant MyString2 CST2 = "123\"5"
+        private constant Float32 CST = $PI + $cos(1 / 5) + ISimulator.SMP_SimulatorModels
+        private constant MyString2 CST2 = "1\28\"5"
         private constant Char8 CST2 = ''
-        private constant Char8 CST2 = '\'\\'
+        private constant Char8 CST2 = '\'aaa'
+        private constant Char8 CST2 = '\u00253a'
+        private constant Char8 CST2 = '\12'
+        protected constant Char8 CST3 = '\127'
+        protected constant Duration CST3 = "PT0S"
+
         @Abstract
-        protected def void op()
+        protected def void op() throws CannotDelete, CannotDelete
         protected def void op(Bool b)
+        protected def void op(Bool b)
+
+        
+        /** @deprecated */
+        @View(Smp.ViewKind.VK_None)
+        field hidden.privateInteger f = CST0
+
+        @ByPointer
+        @ByReference
+        readOnly public readWrite property Int64 property  get throws CannotDelete, CannotDelete set throws CannotDelete,CannotDelete -> f
+       
+       entrypoint ep
+       {
+        in f
+        out f
+        in MyModel
+        out MyModel
+       }
+       reference MyModel? ref1
+       reference MyInterface ref2
+       reference MyInterface[] ref3
+       reference MyInterface[*] ref4
+       reference MyInterface[-5] ref5
+       reference MyInterface[0 ... *] ref6
+       reference MyInterface[-3 ... -4] ref7
+       reference MyInterface[0 ... -4] ref8
+
+       container MyService[*] ctn = MyModel
     }
+
+
+    
+    model MyModel2 extends MyModel
+    {
+        private constant Char8 CST4 = 'a'
+        property Int32 property2 -> f
+
+        field Int8 f2 = 99
+        eventsink Bool esi
+        eventsource Bool eso
+
+    }
+
+    
+    class MyCls extends MyModel2
+    {
+        association MyService association
+        constant Float32 CST = 5
+        input output transient field Bool aField
+        field MyCls aRecursiveField
+        @Abstract
+        property Bool aProp->aField
+    }
+    
+    class MyCls2 extends MyCls2
+    {
+        
+    }
+    
+    exception MyExpection extends  MyCls2
+    {
+        @Abstract
+        property Bool aProp
+    }
+    
+    array MyArray = MyModel2[]
+    
+    array MyArray2 = Int8[-1]
+  
+    array RecursiveArray = RecursiveArray[0]
+
+    
+    @SimpleArray
+    array NonSimpleArray = MyArray2[1]
+    
+    event VoidEventType
+    
+    event EventType extends MyModel2
+
+    using ValueRef = SingleAttribute*
+    
+    native NativeType
 }
+
+
+
+namespace Expressions
+{
+    
+    /** @uuid 0524f9c2-7b42-49d6-90e6-eb8bf4ad4c9e */
+    array ArrayVector = Float64[3]
+
+
+    /** @uuid 4a0dd0db-909f-4995-b8e6-8e831bcf9ae9 */
+    struct StructVector
+    {
+        field Float64 x
+        field Float64 y
+        field Float64 z
+    }
+    
+    /** @uuid bff740c7-3610-4e0b-a373-44499004789b */
+    struct Test
+    {
+        field ArrayVector f1 = {}
+        field ArrayVector f2 = {0,0,0,0}
+
+        field ArrayVector f3 = true
+        field StructVector f4 = {.z = 0.0, .y = 0.0, .x = 0.0}
+        field StructVector f5 = {.x = 0.0}
+        field StructVector f6 = {0,0,0,0}
+        field StructVector f7 = true
+        field Int8 int8 = 128
+        field UInt8 uint8 = 128u
+        field Int32 int32Overflow = 99999999999999
+        field Int64 int64L = 0L/0
+        field Int64 int64l = 0l
+        field Int64 uint64ul = 0ul
+        field Int64 uint64lu = 0lu
+        field Bool boolField = 0 || 0UL && !true
+        field String8 stringField = "" + -"" + !"" + +"" + ~""
+
+    }
+
+
+} // namespace Expressions
 
 
