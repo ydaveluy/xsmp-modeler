@@ -418,7 +418,7 @@ export class XsmpcatValidator {
             }
         }
         else {
-            accept('error', 'Expecting a Floating Point  Type.', { node: float, property: 'primitiveType' })
+            accept('error', 'Expecting a Floating Point Type.', { node: float, property: 'primitiveType' })
         }
     }
 
@@ -472,14 +472,14 @@ export class XsmpcatValidator {
 
 
     checkContainer(container: ast.Container, accept: ValidationAcceptor): void {
-
-        if (this.checkTypeReference(accept, container, container.type, 'type')) {
-            if (container.defaultComponent && this.checkTypeReference(accept, container, container.defaultComponent, 'defaultComponent')) {
-                //TODO check type is base of defaultComponent
-            }
+        if (this.checkTypeReference(accept, container, container.type, 'type') && container.defaultComponent &&
+            this.checkTypeReference(accept, container, container.defaultComponent, 'defaultComponent') &&
+            !XsmpUtils.isBaseOfReferenceType(container.type.ref as ast.ReferenceType, container.defaultComponent.ref)) {
+            accept('error', `The default Component shall be a sub type of ${XsmpUtils.getQualifiedName(container.type.ref as ast.Type)}`,
+                { node: container, property: 'defaultComponent' })
         }
-
     }
+
     checkNamedElementWithMultiplicity(element: ast.NamedElementWithMultiplicity, accept: ValidationAcceptor): void {
         const lower = XsmpUtils.getLower(element)
         if (lower !== undefined && lower < 0)
@@ -633,7 +633,7 @@ export class XsmpcatValidator {
 
         if (!component.modifiers.includes('abstract') &&
             component.elements.some(e => (ast.isOperation(e) || ast.isProperty(e)) && XsmpUtils.isAbstract(e)))
-            accept('error', `The ${component.$type} shall be abstract.`, { node: component, keyword: component.$type === ast.Model ? 'model' : 'service', data: diagnosticData(IssueCodes.MissingAbstract) })
+            accept('warning', `The ${component.$type} shall be abstract.`, { node: component, keyword: component.$type === ast.Model ? 'model' : 'service', data: diagnosticData(IssueCodes.MissingAbstract) })
     }
 
     checkStructure(structure: ast.Structure, accept: ValidationAcceptor): void {
@@ -687,7 +687,7 @@ export class XsmpcatValidator {
         }
         if (!clazz.modifiers.includes('abstract') &&
             clazz.elements.some(e => (ast.isOperation(e) || ast.isProperty(e)) && XsmpUtils.isAbstract(e)))
-            accept('error', `The ${clazz.$type} shall be abstract.`, { node: clazz, keyword: clazz.$type === ast.Class ? 'class' : 'exception', data: diagnosticData(IssueCodes.MissingAbstract) })
+            accept('warning', `The ${clazz.$type} shall be abstract.`, { node: clazz, keyword: clazz.$type === ast.Class ? 'class' : 'exception', data: diagnosticData(IssueCodes.MissingAbstract) })
     }
 
     checkEventType(eventType: ast.EventType, accept: ValidationAcceptor): void {
@@ -699,7 +699,7 @@ export class XsmpcatValidator {
     checkNativeType(nativeType: ast.NativeType, accept: ValidationAcceptor): void {
         this.checkModifier(nativeType, [ast.isVisibilityModifiers], accept)
         if (!XsmpUtils.getNativeType(nativeType))
-            accept('error', 'The javadoc \'@type\' tag shall be defined.', { node: nativeType, property: 'name' })
+            accept('error', 'The javadoc \'@type\' tag shall be defined with the C++ type name.', { node: nativeType, property: 'name' })
     }
 
     checkEventSink(eventSink: ast.EventSink, accept: ValidationAcceptor): void {
@@ -782,7 +782,7 @@ export class XsmpcatValidator {
                 Instant.parse(date.toString())
             }
             catch {
-                accept('error', 'Invalid date format (e.g: 1970-01-01T00:00:00Z).', { node: catalogue, range: date.range })
+                accept('warning', 'Invalid date format (e.g: 1970-01-01T00:00:00Z).', { node: catalogue, range: date.range })
             }
         }
         if (this.indexManager.allElements(ast.Catalogue).filter(c => c.name === catalogue.name).count() > 1)
@@ -828,10 +828,6 @@ export class XsmpcatValidator {
             if (XsmpUtils.isAttributeTrue(isAbstract))
                 accept('error', 'A Property shall not be both Static and Abstract.', { node: isAbstract as ast.Attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
 
-            /*const isConst = XsmpUtils.attribute(property, 'Attributes.Const')
-            if (XsmpUtils.isAttributeTrue(isConst))
-                accept('error', 'A Property shall not be both Static and Const.', { node: isConst as ast.Attribute });*/
-
             if (property.attachedField?.ref && !XsmpUtils.isStatic(property.attachedField.ref))
                 accept('error', 'A Property shall not be Static if the attached field is not Static.', { node: isStatic as ast.Attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
         }
@@ -875,10 +871,6 @@ export class XsmpcatValidator {
             const isAbstract = XsmpUtils.attribute(operation, 'Attributes.Abstract')
             if (XsmpUtils.isAttributeTrue(isAbstract))
                 accept('error', 'An Operation shall not be both Static and Abstract.', { node: isAbstract as ast.Attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
-
-            /*const isConst = XsmpUtils.attribute(operation, 'Attributes.Const')
-            if (XsmpUtils.isAttributeTrue(isConst))
-                accept('error', 'An Operation shall not be both Static and Const.', { node: isConst as ast.Attribute });*/
         }
 
         const isConstructor = XsmpUtils.attribute(operation, 'Attributes.Constructor')

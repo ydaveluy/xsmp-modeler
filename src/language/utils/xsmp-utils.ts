@@ -170,7 +170,7 @@ export class XsmpUtils {
     }
 
     private static getTags(element: AstNode, tagName: string): JSDocParagraph[] | undefined {
-        return XsmpUtils.getJSDoc(element)?.getTags(tagName).filter(t => !t.inline).map(t=>t.content)
+        return XsmpUtils.getJSDoc(element)?.getTags(tagName).filter(t => !t.inline).map(t => t.content)
     }
 
     public static getUsages(element: ast.AttributeType): JSDocParagraph[] | undefined {
@@ -349,7 +349,6 @@ export class XsmpUtils {
             return false
         visited.add(parent)
         return base === parent || ast.isComponent(base) && base.base !== undefined && XsmpUtils.checkIsBaseOfComponent(parent, base.base.ref, visited)
-
     }
     public static isBaseOfComponent(parent: ast.Component, base: ast.Type | undefined): boolean {
         return XsmpUtils.checkIsBaseOfComponent(parent, base, new Set<ast.Type>())
@@ -365,14 +364,46 @@ export class XsmpUtils {
         return XsmpUtils.checkIsBaseOfClass(parent, base, new Set<ast.Type>())
     }
 
-    public static isRecursiveType(parent: ast.Type, other: ast.Type | undefined): boolean {
-        if (parent === other) return true
-        if (ast.isArrayType(other))
-            return XsmpUtils.isRecursiveType(parent, other.itemType.ref)
-        if (ast.isStructure(other))
-            return other.elements.filter(ast.isField).some(f => XsmpUtils.isRecursiveType(parent, f.type.ref))
+
+    private static checkIsBaseOfReferenceType(parent: ast.ReferenceType, base: ast.Type | undefined, visited: Set<ast.Type>): boolean {
+        if (visited.has(parent))
+            return false
+        visited.add(parent)
+        if (base === parent)
+            return true
+
+        if (ast.isInterface(parent))
+            return XsmpUtils.checkIsBaseOfInterface(parent, base, visited)
+
+        if (ast.isComponent(parent))
+            return (parent.base !== undefined && XsmpUtils.checkIsBaseOfReferenceType(parent, parent.base?.ref, visited)) ||
+                parent.interface.some(i => XsmpUtils.checkIsBaseOfReferenceType(parent, i.ref, visited))
+
         return false
     }
+    public static isBaseOfReferenceType(parent: ast.ReferenceType, base: ast.Type | undefined): boolean {
+        return XsmpUtils.checkIsBaseOfReferenceType(parent, base, new Set<ast.Type>())
+    }
+
+
+    private static checkIsRecursiveType(parent: ast.Type, other: ast.Type | undefined, visited: Set<ast.Type>): boolean {
+        if (parent === other) 
+            return true
+        if (!other || visited.has(other))
+            return false
+        visited.add(other)
+
+        if (ast.isArrayType(other))
+            return XsmpUtils.checkIsRecursiveType(parent, other.itemType.ref, visited)
+        if (ast.isStructure(other))
+            return other.elements.filter(ast.isField).some(f => XsmpUtils.checkIsRecursiveType(parent, f.type.ref, visited))
+        return false
+    }
+
+    public static isRecursiveType(parent: ast.Type, other: ast.Type | undefined): boolean {
+        return this.checkIsRecursiveType(parent, other, new Set())
+    }
+
 
     public static isConstantVisibleFrom(from: ast.Expression, element: ast.Constant): boolean {
         return element.$container === AstUtils.getContainerOfType(from, ast.isType) || XsmpUtils.getRealVisibility(element) !== 'private'

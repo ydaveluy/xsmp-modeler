@@ -51,7 +51,7 @@ describe('Validating', () => {
  [71:13..71:14]: Enumeration Literal Values shall be unique within an Enumeration.
  [74:26..74:33]: Expecting an Integral Type.
  [77:22..77:23]: Minimum shall be less or equal than Maximum.
- [81:26..81:31]: Expecting a Floating Point  Type.
+ [81:26..81:31]: Expecting a Floating Point Type.
  [84:22..84:25]: Minimum shall be less or equal than Maximum.
  [88:22..88:25]: Minimum shall be less than Maximum.
  [90:14..90:50]: Duplicated UUID.
@@ -99,6 +99,7 @@ describe('Validating', () => {
  Upper bound shall be -1 or larger or equal to the lower bound.
  [153:29..153:30]: Lower bound shall be less or equal to the upper bound, if present.
  Upper bound shall be -1 or larger or equal to the lower bound.
+ [155:36..155:43]: The default Component shall be a sub type of _ns.MyService
  [160:4..160:9]: Missing Type UUID.
  [163:36..163:37]: The Field is not visible.
  [163:36..163:37]: Deprecated.
@@ -184,7 +185,7 @@ describe('Validating', () => {
  [201:27..201:35]: An array annotated with '@SimpleArray' requires a SimpleType item type.
  [205:28..205:36]: The type Model is not a sub type of SimpleType.
  [207:21..207:36]: The type AttributeType is not a sub type of ValueType.
- [209:11..209:21]: The javadoc '@type' tag shall be defined.
+ [209:11..209:21]: The javadoc '@type' tag shall be defined with the C++ type name.
  [16:12..16:21]: Duplicated Service name.
  [29:12..29:21]: Duplicated Service name.
  [172:24..172:32]: The type Model is not a sub type of Class.

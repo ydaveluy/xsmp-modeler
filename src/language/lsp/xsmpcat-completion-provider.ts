@@ -69,10 +69,12 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
             case 'Service:base':
                 return (desc) => ast.isService(desc.node) && !XsmpUtils.isBaseOfComponent(refInfo.container as ast.Component, desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node)
             case 'ArrayType:itemType':
+                return (desc) => ast.isValueType(desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node) && !XsmpUtils.isRecursiveType(refInfo.container as ast.ArrayType, desc.node)
             case 'ValueReference:type':
             case 'AttributeType:type':
+                return (desc) => ast.isValueType(desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node)
             case 'Field:type':
-                return (desc) => ast.reflection.isSubtype(desc.type, ast.ValueType) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node as ast.Type)
+                return (desc) => ast.isValueType(desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node) && !XsmpUtils.isRecursiveType((refInfo.container as ast.Field).$container, desc.node)
             case 'Property:attachedField':
                 return (desc) => ast.isField(desc.node) && (desc.node.$container === refInfo.container.$container || XsmpUtils.getRealVisibility(desc.node) !== 'private')
             case 'Integer:primitiveType':
@@ -228,7 +230,7 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
             return ''
 
         if (ast.isArrayType(type)) {
-            const value = Solver.getValueAs(type.size, "Int64")?.integralValue('Int64')?.getValue()
+            const value = Solver.getValueAs(type.size, 'Int64')?.integralValue('Int64')?.getValue()
             return value ? `{${new Array(Number(value)).fill(this.getDefaultValueForType(type.itemType.ref)).join(', ')}}` : '{}'
         }
         if (ast.isStructure(type))
@@ -239,23 +241,23 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
 
         switch (XsmpUtils.getPrimitiveTypeKind(type)) {
             case 'Bool':
-                return "false";
+                return 'false';
             case 'Float32':
-                return "0.0f";
+                return '0.0f';
             case 'Float64':
-                return "0.0";
+                return '0.0 ';
             case 'Int8':
             case 'Int16':
             case 'Int32':
-                return "0";
+                return '0 ';
             case 'Int64':
-                return "0L";
+                return '0L ';
             case 'UInt8':
             case 'UInt16':
             case 'UInt32':
-                return "0U";
+                return '0U ';
             case 'UInt64':
-                return "0UL";
+                return '0UL ';
             case 'Char8':
                 return "'\\0'"
             case 'String8':
@@ -263,7 +265,7 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
             case 'DateTime':
                 return '"1970-01-01T00:00:00Z"'
             case 'Duration':
-                return 'PT0S'
+                return '"PT0S"'
         }
         return ''
     }
