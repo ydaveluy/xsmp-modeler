@@ -65,4 +65,4 @@ XSMP Modeler provides additional tools to extend its functionality:
 
 ## License
 
-This project is licensed under the [Eclipse Public License 2.0](http://www.eclipse.org/legal/epl-2.0/).
+This project is licensed under the [MIT License](LICENSE).
