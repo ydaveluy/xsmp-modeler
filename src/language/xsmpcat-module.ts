@@ -14,7 +14,7 @@ import { XsmpcatCodeActionProvider } from './lsp/xsmpcat-code-action.js';
 /**
  * Declaration of Xsmp services.
  */
-export type XsmpcatAddedServices = {
+export interface XsmpcatAddedServices {
     validation: {
         XsmpcatValidator: XsmpcatValidator
     },

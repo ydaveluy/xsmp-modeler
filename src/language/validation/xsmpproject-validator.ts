@@ -1,19 +1,20 @@
-import { AstNode, Properties, Reference, UriUtils, type ValidationAcceptor, type ValidationChecks } from 'langium';
+import type { AstNode, Properties, Reference, ValidationAcceptor, ValidationChecks } from 'langium';
+import { UriUtils } from 'langium';
 import type { XsmpprojectServices } from '../xsmpproject-module.js';
 import * as fs from 'node:fs';
-import { getAllDependencies } from '../utils/project-utils.js';
-import * as ast from '../generated/ast.js';
-import { XsmpUtils } from '../utils/xsmp-utils.js';
+import * as ProjectUtils from '../utils/project-utils.js';
+import type * as ast from '../generated/ast.js';
+import * as XsmpUtils from '../utils/xsmp-utils.js';
 
 /**
  * Register custom validation checks.
  */
 export function registerXsmpprojectValidationChecks(services: XsmpprojectServices) {
-    const registry = services.validation.ValidationRegistry;
-    const validator = services.validation.XsmpprojectValidator;
-    const checks: ValidationChecks<ast.XsmpAstType> = {
-        Project: validator.checkProject
-    };
+    const registry = services.validation.ValidationRegistry,
+        validator = services.validation.XsmpprojectValidator,
+        checks: ValidationChecks<ast.XsmpAstType> = {
+            Project: validator.checkProject
+        };
     registry.register(checks, validator);
 }
 
@@ -23,83 +24,75 @@ export function registerXsmpprojectValidationChecks(services: XsmpprojectService
 export class XsmpprojectValidator {
 
     checkTypeReference<N extends AstNode>(accept: ValidationAcceptor, node: N, reference: Reference<ast.NamedElement>, property: Properties<N>, index?: number): boolean {
-        if (!reference.ref)
-            return false
-
-
-        const deprecated = XsmpUtils.getDeprecated(reference.ref)
-        if (deprecated)
-            accept('warning', `Deprecated ${deprecated.toString()}`, { node: node, property: property, index: index });
-
-        return true
+        if (!reference.ref) {
+            return false;
+        }
+        const deprecated = XsmpUtils.getDeprecated(reference.ref);
+        if (deprecated) {
+            accept('warning', `Deprecated ${deprecated.toString()}`, { node, property, index });
+        }
+        return true;
     }
 
-
     checkProject(project: ast.Project, accept: ValidationAcceptor): void {
-
-
-        // check only one profile (or zero)
-        let profile: ast.Profile | undefined = undefined;
+        // Check only one profile (or zero)
+        let profile: ast.Profile | undefined;
         project.profile.forEach((p, index) => {
             if (this.checkTypeReference(accept, project, p, 'profile', index)) {
-                if (profile)
-                    accept('error', "A profile is already defined.", { node: project, property: 'profile', index: index });
-                else
+                if (profile) {
+                    accept('error', 'A profile is already defined.', { node: project, property: 'profile', index });
+                }
+                else {
                     profile = p.ref;
+                }
 
             }
         });
-        // check source dir exists
+        // Check source dir exists
         if (project.$document) {
             const projectUri = UriUtils.dirname(project.$document.uri);
             project.sourcePaths.forEach((source, index) => {
-                const path = UriUtils.joinPath(projectUri, source).path;
-                if (!path.startsWith(projectUri.path))
-                    accept('error', "Source path '" + source + "' is not contained within the project directory.", { node: project, property: 'sourcePaths', index: index });
-                else if (!fs.existsSync(path))
-                    accept('error', "Source path '" + source + "' does not exist.", { node: project, property: 'sourcePaths', index: index });
-            })
+                const { path } = UriUtils.joinPath(projectUri, source);
+                if (!path.startsWith(projectUri.path)) {
+                    accept('error', `Source path '${source}' is not contained within the project directory.`, { node: project, property: 'sourcePaths', index });
+                }
+                else if (!fs.existsSync(path)) {
+                    accept('error', `Source path '${source}' does not exist.`, { node: project, property: 'sourcePaths', index });
+                }
+            });
         }
-        // check dependencies references & no cyclic dependencies
+        // Check dependencies references & no cyclic dependencies
         project.dependencies.forEach((dependency, index) => {
-            if (this.checkTypeReference(accept, project, dependency, 'dependencies', index) && getAllDependencies(dependency.ref as ast.Project).has(project))
-                accept('error', "Cyclic dependency detected '" + dependency.ref?.name + "'.", { node: project, property: 'dependencies', index: index });
+            if (this.checkTypeReference(accept, project, dependency, 'dependencies', index) && ProjectUtils.getAllDependencies(dependency.ref!).has(project)) {
+                accept('error', `Cyclic dependency detected '${dependency.ref?.name}'.`, { node: project, property: 'dependencies', index });
+            }
 
-        })
-        // check no duplicated dependency
+        });
+        // Check no duplicated dependency
         project.dependencies.forEach((dependency, index) =>
             project.dependencies.slice(index + 1).some((other, index2) => {
                 if (dependency.ref && dependency.ref.name === other.ref?.name) {
-                    accept('error', "Duplicated dependency '" + dependency.ref.name + "'.", { node: project, property: 'dependencies', index: index + 1 + index2 });
-                    return true
+                    accept('error', `Duplicated dependency '${dependency.ref.name}'.`, { node: project, property: 'dependencies', index: index + 1 + index2 });
+                    return true;
                 }
-                return false
+                return false;
             })
         );
 
-        // check tools references
+        // Check tools references
         project.tools.forEach((tool, index) =>
             this.checkTypeReference(accept, project, tool, 'tools', index)
         );
 
-        // check no duplicated tool
+        // Check no duplicated tool
         project.tools.forEach((tool, index) =>
             project.tools.slice(index + 1).some((other, index2) => {
-                if (tool.ref && tool.ref?.name === other.ref?.name) {
-                    accept('error', "Duplicated tool '" + tool.ref?.name + "'.", { node: project, property: 'tools', index: index + 1 + index2 });
-                    return true
+                if (tool.ref && tool.ref.name === other.ref?.name) {
+                    accept('error', `Duplicated tool '${tool.ref.name}'.`, { node: project, property: 'tools', index: index + 1 + index2 });
+                    return true;
                 }
-                return false
+                return false;
             })
         );
-
-
-
     }
-
-
 }
-
-
-
-

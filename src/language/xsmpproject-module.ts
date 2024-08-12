@@ -1,5 +1,5 @@
 
-import { type Module } from 'langium';
+import type { Module } from 'langium';
 import { XsmpprojectValidator } from './validation/xsmpproject-validator.js';
 import type { LangiumServices, PartialLangiumServices } from 'langium/lsp';
 import { XsmpprojectFormatter } from './lsp/xsmpproject-formatter.js';
@@ -10,7 +10,7 @@ import { XsmpprojectCompletionProvider } from './lsp/xsmpproject-completion-prov
 /**
  * Declaration of custom services.
  */
-export type XsmpprojectAddedServices = {
+export interface XsmpprojectAddedServices {
     validation: {
         XsmpprojectValidator: XsmpprojectValidator
     },

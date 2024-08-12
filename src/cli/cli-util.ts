@@ -34,7 +34,7 @@ export async function extractDocument(fileName: string, services: LangiumCoreSer
 }
 
 export async function extractAstNode<T extends AstNode>(fileName: string, services: LangiumCoreServices): Promise<T> {
-    return (await extractDocument(fileName, services)).parseResult?.value as T;
+    return (await extractDocument(fileName, services)).parseResult.value as T;
 }
 
 interface FilePathData {

@@ -1,31 +1,26 @@
-import { BuildOptions, Cancellation, DefaultDocumentBuilder, LangiumDocument } from "langium";
-import { isProfile, isTool, isProject } from "../generated/ast.js";
-
+import { Cancellation, DefaultDocumentBuilder } from 'langium';
+import type { BuildOptions, LangiumDocument } from 'langium';
+import * as ast from '../generated/ast.js';
 
 export class XsmpDocumentBuilder extends DefaultDocumentBuilder {
-
-
     /**
      * Build first all project files to ensure that dependencies are properly linked before building other documents
      */
     protected override async buildDocuments(documents: LangiumDocument[], options: BuildOptions, cancelToken = Cancellation.CancellationToken.None): Promise<void> {
-
-        //console.time('build')
-        const projects: LangiumDocument[] = []
-        const others: LangiumDocument[] = []
+        const projects: LangiumDocument[] = [],
+            others: LangiumDocument[] = [];
 
         documents.forEach(doc => {
-            if (isProject(doc.parseResult.value) || isProfile(doc.parseResult.value) || isTool(doc.parseResult.value))
-                projects.push(doc)
-            else
-                others.push(doc)
-        })
+            if (ast.isProject(doc.parseResult.value) || ast.isProfile(doc.parseResult.value) || ast.isTool(doc.parseResult.value)) {
+                projects.push(doc);
+            }
+            else {
+                others.push(doc);
+            }
+        });
 
-        await super.buildDocuments(projects, options, cancelToken)
-        await super.buildDocuments(others, options, cancelToken)
-
-
-        //console.timeEnd('build')
+        await super.buildDocuments(projects, options, cancelToken);
+        await super.buildDocuments(others, options, cancelToken);
     }
 
     protected override shouldRelink(document: LangiumDocument, changedUris: Set<string>): boolean {

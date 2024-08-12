@@ -4,19 +4,19 @@ import { XsmpprojectLanguageMetaData } from '../language/generated/module.js';
 import * as url from 'node:url';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
+const __dirname = url.fileURLToPath(new URL('.', import.meta.url)),
 
-const packagePath = path.resolve(__dirname, '..', '..', 'package.json');
-const packageContent = await fs.readFile(packagePath, 'utf-8');
+ packagePath = path.resolve(__dirname, '..', '..', 'package.json'),
+ packageContent = await fs.readFile(packagePath, 'utf-8');
 
-export const generateAction = async (fileName: string, opts: GenerateOptions): Promise<void> => {
-   // const services = createXsmpServices(NodeFileSystem).xsmpproject;
-   // const project = await extractAstNode<Project>(fileName, services);
-   // const generatedFilePath = generateJavaScript(project, fileName, opts.destination);
-    console.log(chalk.green(`Project code generated successfully`));
+export const generateAction = async (_fileName: string, _opts: GenerateOptions): Promise<void> => {
+   // Const services = createXsmpServices(NodeFileSystem).xsmpproject;
+   // Const project = await extractAstNode<Project>(fileName, services);
+   // Const generatedFilePath = generateJavaScript(project, fileName, opts.destination);
+    console.log(chalk.green('Project code generated successfully'));
 };
 
-export type GenerateOptions = {
+export interface GenerateOptions {
     destination?: string;
 }
 

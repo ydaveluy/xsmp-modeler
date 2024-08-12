@@ -1,9 +1,8 @@
-import { AstNode, URI } from "langium";
+import type { AstNode, URI } from 'langium';
 
-
-export interface XsmpGenerator<T extends AstNode> 
+export interface XsmpGenerator<T extends AstNode>
 {
 
-     getGenerationTasks(node: T, projectUri: URI): Promise<void>[] 
+     getGenerationTasks: (node: T, projectUri: URI) => Array<Promise<void>>
 
 }

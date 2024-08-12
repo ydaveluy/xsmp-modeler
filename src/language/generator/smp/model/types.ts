@@ -1,34 +1,24 @@
-import { Metadata, NamedElement } from "./elements.js";
-import { Xlink } from "./xlink.js";
+import type { Metadata, NamedElement } from './elements.js';
+import type { Xlink } from './xlink.js';
 
+export type VisibilityKind = 'public' | 'private' | 'protected';
 
+export type AccessKind = 'readWrite' | 'readOnly' | 'writeOnly';
 
-export type VisibilityKind = "public" | "private" | "protected";
-
-
-export type AccessKind = "readWrite" | "readOnly" | "writeOnly";
-
-
-export type ParameterDirectionKind = "in" | "out" | "inout" | "return";
-
-
+export type ParameterDirectionKind = 'in' | 'out' | 'inout' | 'return';
 
 export interface VisibilityElement extends NamedElement {
     '@Visibility'?: VisibilityKind;
 }
-
 
 export interface Type extends VisibilityElement {
     '@xsi:type': string;
     '@Uuid': string;
 }
 
-
 export interface LanguageType extends Type { }
 
-
 export interface ValueType extends LanguageType { }
-
 
 export interface ValueReference extends LanguageType {
     Type: Xlink
@@ -45,23 +35,17 @@ export interface NativeType extends LanguageType {
     Platform?: PlatformMapping[];
 }
 
-
 export interface SimpleType extends ValueType { }
 
-
 export interface PrimitiveType extends SimpleType { }
-
 
 export interface EnumerationLiteral extends NamedElement {
     '@Value': bigint;
 }
 
-
 export interface Enumeration extends SimpleType {
     Literal: EnumerationLiteral[];
 }
-
-
 
 export interface Integer extends SimpleType {
     PrimitiveType?: Xlink;
@@ -69,7 +53,6 @@ export interface Integer extends SimpleType {
     '@Maximum'?: bigint;
     '@Unit'?: string;
 }
-
 
 export interface Float extends SimpleType {
     PrimitiveType?: Xlink;
@@ -80,26 +63,21 @@ export interface Float extends SimpleType {
     '@Unit'?: string;
 }
 
-
 export interface String extends SimpleType {
     '@Length': bigint;
 }
-
 
 export interface Array extends ValueType {
     ItemType: Xlink;
     '@Size': bigint;
 }
 
-
 export interface Structure extends ValueType {
     Constant?: Constant[];
     Field?: Field[];
 }
 
-
 export interface Exception extends Class { }
-
 
 export interface Class extends Structure {
     Base?: Xlink;
@@ -109,12 +87,10 @@ export interface Class extends Structure {
     '@Abstract'?: boolean;
 }
 
-
 export interface Constant extends VisibilityElement {
     Type: Xlink;
     Value?: SimpleValue;
 }
-
 
 export interface Field extends VisibilityElement {
     Type: Xlink
@@ -123,7 +99,6 @@ export interface Field extends VisibilityElement {
     '@Input'?: boolean;
     '@Output'?: boolean;
 }
-
 
 export interface Property extends VisibilityElement {
     Type: Xlink;
@@ -134,11 +109,9 @@ export interface Property extends VisibilityElement {
     '@Category'?: string;
 }
 
-
 export interface Association extends VisibilityElement {
     Type: Xlink;
 }
-
 
 export interface Operation extends VisibilityElement {
     Parameter?: Parameter[];

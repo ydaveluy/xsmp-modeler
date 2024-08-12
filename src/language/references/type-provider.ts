@@ -1,9 +1,8 @@
-import { AstNode, WorkspaceCache } from "langium";
+import type { AstNode } from 'langium';
+import { WorkspaceCache } from 'langium';
 import * as ast from '../generated/ast.js';
-import { XsmpcatServices } from "../xsmpcat-module.js";
-import { XsmpUtils } from "../utils/xsmp-utils.js";
-
-
+import type { XsmpcatServices } from '../xsmpcat-module.js';
+import * as XsmpUtils from '../utils/xsmp-utils.js';
 
 /**
  * Provide the the type of any Expression in the AST.
@@ -13,12 +12,12 @@ export class XsmpcatTypeProvider {
 
     protected readonly typeCache: WorkspaceCache<AstNode, ast.Type | undefined>;
     constructor(services: XsmpcatServices) {
-        this.typeCache = new WorkspaceCache<AstNode, ast.Type | undefined>(services.shared)
+        this.typeCache = new WorkspaceCache<AstNode, ast.Type | undefined>(services.shared);
     }
 
-    /** get the type of the expression on undefined if no type can be found */
+    /** Get the type of the expression on undefined if no type can be found */
     public getType(expression: AstNode): ast.Type | undefined {
-        return this.typeCache.get(expression, () => this.doGetType(expression))
+        return this.typeCache.get(expression, () => this.doGetType(expression));
     }
 
     private doGetType(expression: AstNode): ast.Type | undefined {
@@ -29,18 +28,17 @@ export class XsmpcatTypeProvider {
             return expression.$container.type.ref;
         }
         else if (ast.isCollectionLiteral(expression.$container)) {
-            const type = this.getType(expression.$container)
+            const type = this.getType(expression.$container);
             if (ast.isStructure(type)) {
-                const field = XsmpUtils.getAllFields(type).toArray().at(expression.$containerIndex as number);
-                if (field)
-                    return field.type.ref;
+                const field = XsmpUtils.getAllFields(type).toArray().at(expression.$containerIndex!);
+                if (field) { return field.type.ref; }
             }
             else if (ast.isArrayType(type)) {
                 return type.itemType.ref;
             }
         }
         else if (ast.isExpression(expression.$container)) {
-            return this.getType(expression.$container)
+            return this.getType(expression.$container);
         }
         else if (ast.isAttribute(expression.$container)) {
             const attributeType = expression.$container.type.ref;
@@ -51,7 +49,6 @@ export class XsmpcatTypeProvider {
         else if (ast.isAttributeType(expression.$container)) {
             return expression.$container.type.ref;
         }
-
-        return undefined
+        return undefined;
     }
 }

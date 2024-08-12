@@ -1,13 +1,11 @@
-import { URI } from "vscode-uri";
-
+import { URI } from 'vscode-uri';
 
 export function isBuiltinLibrary(uri: URI): boolean {
-    return uri.scheme == "builtin"
+    return uri.scheme === 'builtin';
 }
 
-
 // Déclaration et initialisation de la map
-export const builtins: Map<string, string> = new Map([
+export const builtins = new Map<string, string>([
     [URI.parse('builtin:///xsmp-sdk.profile').toString(), `
 /**
  * XSMP-SDK Profile
@@ -61,7 +59,7 @@ tool "smp"
 tool "org.eclipse.xsmp.tool.python"
 `],
 
-[URI.parse('builtin:///python.tool').toString(), `
+    [URI.parse('builtin:///python.tool').toString(), `
 /**
  * Python tool
  */
@@ -75,7 +73,7 @@ tool "python"
  */
 tool "org.eclipse.xsmp.tool.adoc"
 `],
-[URI.parse('builtin:///adoc.tool').toString(), `
+    [URI.parse('builtin:///adoc.tool').toString(), `
 /**
  * AsciiDoc tool
  */

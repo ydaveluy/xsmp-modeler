@@ -1,17 +1,11 @@
-import {
-    AstNode,
-    DefaultWorkspaceManager,
-    LangiumDocument,
-    LangiumDocumentFactory,
-    LangiumSharedCoreServices,
-    WorkspaceFolder
-} from "langium";
+import type { LangiumDocument, LangiumDocumentFactory, LangiumSharedCoreServices, WorkspaceFolder } from 'langium';
+import { DefaultWorkspaceManager } from 'langium';
 import { builtins } from '../builtins.js';
-import { URI } from "vscode-uri";
+import { URI } from 'vscode-uri';
 
 export class XsmpWorkspaceManager extends DefaultWorkspaceManager {
 
-    private documentFactory: LangiumDocumentFactory;
+    private readonly documentFactory: LangiumDocumentFactory;
 
     constructor(services: LangiumSharedCoreServices) {
         super(services);
@@ -20,11 +14,11 @@ export class XsmpWorkspaceManager extends DefaultWorkspaceManager {
 
     protected override async loadAdditionalDocuments(
         folders: WorkspaceFolder[],
-        collector: (document: LangiumDocument<AstNode>) => void
+        collector: (document: LangiumDocument) => void
     ): Promise<void> {
         await super.loadAdditionalDocuments(folders, collector);
 
-        // load all buildins documents (ecss.smp.smp.xsmpcat, profiles, tools, ...)
+        // Load all buildins documents (ecss.smp.smp.xsmpcat, profiles, tools, ...)
         for (const [uri, value] of builtins) {
             collector(this.documentFactory.fromString(value, URI.parse(uri)));
         }

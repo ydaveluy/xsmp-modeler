@@ -1,7 +1,7 @@
 
-import { AstReflection, IndexManager, LangiumDocument, MaybePromise, DiagnosticData, Cancellation } from 'langium';
+import type { AstReflection, Cancellation, DiagnosticData, IndexManager, LangiumDocument, MaybePromise } from 'langium';
 
-import { CodeActionProvider, LangiumServices } from 'langium/lsp';
+import type { CodeActionProvider, LangiumServices } from 'langium/lsp';
 import { CodeActionKind, type Diagnostic } from 'vscode-languageserver';
 import type { CodeActionParams } from 'vscode-languageserver-protocol';
 import type { CodeAction, Command } from 'vscode-languageserver-types';
@@ -24,9 +24,9 @@ export class XsmpcatCodeActionProvider implements CodeActionProvider {
      * @throws `OperationCancelled` if cancellation is detected during execution
      * @throws `ResponseError` if an error is detected that should be sent as response to the client
      */
-    getCodeActions(document: LangiumDocument, params: CodeActionParams, cancelToken?: Cancellation.CancellationToken): MaybePromise<Array<Command | CodeAction>> {
-        const result: CodeAction[] = [];
-        const acceptor = (ca: CodeAction | undefined) => ca && result.push(ca);
+    getCodeActions(document: LangiumDocument, params: CodeActionParams, _cancelToken?: Cancellation.CancellationToken): MaybePromise<Array<Command | CodeAction>> {
+        const result: CodeAction[] = [],
+            acceptor = (ca: CodeAction | undefined) => ca && result.push(ca);
         for (const diagnostic of params.context.diagnostics) {
             this.createCodeActions(diagnostic, document, acceptor);
         }
@@ -34,7 +34,7 @@ export class XsmpcatCodeActionProvider implements CodeActionProvider {
     }
 
     private createCodeActions(diagnostic: Diagnostic, document: LangiumDocument, accept: (ca: CodeAction | undefined) => void): void {
-        switch ((diagnostic.data as DiagnosticData)?.code) {
+        switch ((diagnostic.data as DiagnosticData).code) {
             case IssueCodes.InvalidUuid:
             case IssueCodes.DuplicatedUuid:
                 accept(this.replaceUuid(diagnostic, document));
@@ -52,7 +52,6 @@ export class XsmpcatCodeActionProvider implements CodeActionProvider {
             case IssueCodes.MissingUuid:
                 accept(this.generateUuid(diagnostic, document));
                 break;
-
 
         }
         return undefined;
@@ -73,22 +72,23 @@ export class XsmpcatCodeActionProvider implements CodeActionProvider {
 
         if (data.actionRange) {
 
-
-            let newText: string
-            if (data.actionRange.start.character !== data.actionRange.end.character || data.actionRange.start.line !== data.actionRange.end.line)
-                newText = `\n${' '.repeat(data.actionRange.start.character - 2)} * @uuid ${randomUUID().toString()}`
-            else
-                newText = `/** @uuid ${randomUUID().toString()} */\n${' '.repeat(data.actionRange.start.character)}`
+            let newText: string;
+            if (data.actionRange.start.character !== data.actionRange.end.character || data.actionRange.start.line !== data.actionRange.end.line) {
+                newText = `\n${' '.repeat(data.actionRange.start.character - 2)} * @uuid ${randomUUID().toString()}`;
+            }
+            else {
+                newText = `/** @uuid ${randomUUID().toString()} */\n${' '.repeat(data.actionRange.start.character)}`;
+            }
 
             return {
                 title: 'Generate missing UUID.',
                 kind: CodeActionKind.QuickFix,
                 diagnostics: [diagnostic],
                 isPreferred: true,
-                edit: { changes: { [document.textDocument.uri]: [{ range: { start: data.actionRange.end, end: data.actionRange.end }, newText: newText }] } }
+                edit: { changes: { [document.textDocument.uri]: [{ range: { start: data.actionRange.end, end: data.actionRange.end }, newText }] } }
             };
         }
-        return undefined
+        return undefined;
     }
 
     private removeRegion(diagnostic: Diagnostic, document: LangiumDocument): CodeAction {

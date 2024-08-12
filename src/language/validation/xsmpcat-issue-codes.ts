@@ -1,5 +1,4 @@
 
-
 export const TypeNotVisible = 'type-not-visible';
 export const FieldNotVisible = 'field-not-visible';
 export const InvalidFieldName = 'invalid-field-name';

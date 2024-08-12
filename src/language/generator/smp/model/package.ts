@@ -1,6 +1,6 @@
-import { Xlink } from "./xlink.js";
+import type { Xlink } from './xlink.js';
 
-import { Document } from "./elements.js";
+import type { Document } from './elements.js';
 
 export interface Package extends Document{
     '@xmlns:Elements': string;
@@ -13,4 +13,4 @@ export interface Package extends Document{
     Implementation?: Xlink[];
     Dependency?: Xlink[];
   }
-  
+

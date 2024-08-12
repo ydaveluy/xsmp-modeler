@@ -1,14 +1,11 @@
-import {
-    DefaultIndexManager,
-    LangiumDocument} from "langium";
-import { findProjectContainingUri, getAllDependencies } from "../utils/project-utils.js";
+import { DefaultIndexManager } from 'langium';
+import type { LangiumDocument } from 'langium';
+import * as ProjectUtils from '../utils/project-utils.js';
 
 /**
  * Customized IndexManager to correctly handle the rebuild of a document (xsmpcat) when its project configuration changed
  */
 export class XsmpIndexManager extends DefaultIndexManager {
-
-
 
     /**
      * Overrides the isAffected method from the parent class. This method checks if a document needs to be rebuilt based on changes in its project's dependencies.
@@ -18,16 +15,15 @@ export class XsmpIndexManager extends DefaultIndexManager {
      */
     override isAffected(document: LangiumDocument, changedUris: Set<string>): boolean {
 
-        const project = findProjectContainingUri(this.documents, document.uri)
+        const project = ProjectUtils.findProjectContainingUri(this.documents, document.uri);
         if (project) {
-            for (const dependency of getAllDependencies(project)) {
+            for (const dependency of ProjectUtils.getAllDependencies(project)) {
                 if (dependency.$document && changedUris.has(dependency.$document.uri.toString())) {
-                    return document.references.some(ref => ref.error !== undefined)
+                    return document.references.some(ref => ref.error !== undefined);
                 }
             }
         }
-        // otherwise default behaviour
+        // Otherwise default behaviour
         return super.isAffected(document, changedUris);
     }
-
 }

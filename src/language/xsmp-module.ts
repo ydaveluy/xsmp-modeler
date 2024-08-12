@@ -1,5 +1,6 @@
-import { DeepPartial, inject, Module } from 'langium';
-import { createDefaultModule, createDefaultSharedModule, type DefaultSharedModuleContext, type LangiumSharedServices } from 'langium/lsp';
+import { inject } from 'langium';
+import type { DeepPartial, Module } from 'langium';
+import { type DefaultSharedModuleContext, type LangiumSharedServices, createDefaultModule, createDefaultSharedModule } from 'langium/lsp';
 import { XsmpGeneratedSharedModule, XsmpcatGeneratedModule, XsmpprojectGeneratedModule } from './generated/module.js';
 import type { XsmpprojectServices } from './xsmpproject-module.js';
 import { XsmpprojectModule } from './xsmpproject-module.js';
@@ -39,13 +40,13 @@ export function createXsmpServices(context: DefaultSharedModuleContext): {
         createDefaultSharedModule(context),
         XsmpGeneratedSharedModule,
         XsmpSharedModule,
-    );
-    // XSMP Project
-    const xsmpproject = inject(
-        createDefaultModule({ shared }),
-        XsmpprojectGeneratedModule,
-        XsmpprojectModule
-    );
+    ),
+        // XSMP Project
+        xsmpproject = inject(
+            createDefaultModule({ shared }),
+            XsmpprojectGeneratedModule,
+            XsmpprojectModule
+        );
     shared.ServiceRegistry.register(xsmpproject);
     registerXsmpprojectValidationChecks(xsmpproject);
 
@@ -66,9 +67,9 @@ export function createXsmpServices(context: DefaultSharedModuleContext): {
     return { shared, xsmpproject, xsmpcat };
 }
 /**
- * Declaration of custom shared services 
+ * Declaration of custom shared services
  */
-export type XsmpAddedSharedServices = {
+export interface XsmpAddedSharedServices {
     DocumentGenerator: XsmpDocumentGenerator,
 }
 
@@ -76,7 +77,6 @@ export type XsmpAddedSharedServices = {
  * Union of Langium default shared services and Xsmp custom shared services
  */
 export type XsmpSharedServices = LangiumSharedServices & XsmpAddedSharedServices
-
 
 export const XsmpSharedModule: Module<XsmpSharedServices, DeepPartial<XsmpSharedServices>> = {
     workspace: {
@@ -87,7 +87,7 @@ export const XsmpSharedModule: Module<XsmpSharedServices, DeepPartial<XsmpShared
     },
     lsp: {
         NodeKindProvider: () => new XsmpNodeKindProvider(),
-        DocumentUpdateHandler: (services)=>new XsmpDocumentUpdateHandler(services),
+        DocumentUpdateHandler: (services) => new XsmpDocumentUpdateHandler(services),
     },
-    DocumentGenerator:(services) => new XsmpDocumentGenerator(services),
-}
+    DocumentGenerator: (services) => new XsmpDocumentGenerator(services),
+};

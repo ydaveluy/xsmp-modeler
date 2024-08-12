@@ -1,8 +1,7 @@
 
-import { NamedElement, Document } from "./elements.js";
-import { Association, Constant, Field, LanguageType, Operation, Property, Type } from "./types.js";
-import { Xlink } from "./xlink.js";
-
+import type { Document, NamedElement } from './elements.js';
+import type { Association, Constant, Field, LanguageType, Operation, Property, Type } from './types.js';
+import type { Xlink } from './xlink.js';
 
 export interface Catalogue extends Document {
   '@xmlns:Elements': string;
@@ -14,19 +13,16 @@ export interface Catalogue extends Document {
   Namespace?: Namespace[];
 }
 
-
 export interface Namespace extends NamedElement {
   Namespace?: Namespace[];
   Type?: Type[];
 }
-
 
 export interface ReferenceType extends LanguageType {
   Constant?: Constant[];
   Property?: Property[];
   Operation?: Operation[];
 }
-
 
 export interface Component extends ReferenceType {
   Base?: Xlink;
@@ -40,14 +36,11 @@ export interface Component extends ReferenceType {
   Reference?: Reference[];
 }
 
-
 export interface Interface extends ReferenceType {
   Base?: Xlink[];
 }
 
-
 export interface Model extends Component { }
-
 
 export interface Service extends Component { }
 
@@ -55,7 +48,6 @@ export interface EntryPoint extends NamedElement {
   Input?: Xlink[];
   Output?: Xlink[];
 }
-
 
 export interface Container extends NamedElement {
   Type: Xlink;
@@ -69,7 +61,6 @@ export interface Reference extends NamedElement {
   '@Lower'?: bigint;
   '@Upper'?: bigint;
 }
-
 
 export interface EventType extends Type {
   EventArgs?: Xlink;
