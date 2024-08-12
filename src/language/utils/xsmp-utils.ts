@@ -1,4 +1,4 @@
-import { AstNode, AstUtils, CstNode, CstUtils, isAstNodeWithComment, isJSDoc, JSDocComment, JSDocTag, parseJSDoc, stream, Stream } from "langium";
+import { AstNode, AstUtils, CstNode, CstUtils, isAstNodeWithComment, isJSDoc, JSDocComment, JSDocParagraph, parseJSDoc, stream, Stream } from "langium";
 import * as ast from "../generated/ast.js";
 import { Solver } from "./solver.js";
 
@@ -164,31 +164,31 @@ export class XsmpUtils {
         return undefined
     }
 
-    private static getTag(element: AstNode, tagName: string): JSDocTag | undefined {
+    private static getTag(element: AstNode, tagName: string): JSDocParagraph | undefined {
         const tag = XsmpUtils.getJSDoc(element)?.getTag(tagName)
-        return tag?.inline ? undefined : tag
+        return tag?.inline ? undefined : tag?.content
     }
 
-    private static getTags(element: AstNode, tagName: string): JSDocTag[] | undefined {
-        return XsmpUtils.getJSDoc(element)?.getTags(tagName).filter(t => !t.inline)
+    private static getTags(element: AstNode, tagName: string): JSDocParagraph[] | undefined {
+        return XsmpUtils.getJSDoc(element)?.getTags(tagName).filter(t => !t.inline).map(t=>t.content)
     }
 
-    public static getUsages(element: ast.AttributeType): JSDocTag[] | undefined {
+    public static getUsages(element: ast.AttributeType): JSDocParagraph[] | undefined {
         return XsmpUtils.getTags(element, 'usage')
     }
 
 
     public static getId(element: ast.NamedElement | ast.ReturnParameter): string | undefined {
-        return XsmpUtils.getTag(element, 'id')?.content.toString()
+        return XsmpUtils.getTag(element, 'id')?.toString()
     }
     public static getNativeType(element: ast.NativeType): string | undefined {
-        return XsmpUtils.getTag(element, 'type')?.content.toString()
+        return XsmpUtils.getTag(element, 'type')?.toString()
     }
     public static getNativeNamespace(element: ast.NativeType): string | undefined {
-        return XsmpUtils.getTag(element, 'namespace')?.content.toString()
+        return XsmpUtils.getTag(element, 'namespace')?.toString()
     }
     public static getNativeLocation(element: ast.NativeType): string | undefined {
-        return XsmpUtils.getTag(element, 'location')?.content.toString()
+        return XsmpUtils.getTag(element, 'location')?.toString()
     }
     public static isMulticast(element: ast.EventSource): boolean {
         return XsmpUtils.getTag(element, 'singlecast') === undefined
@@ -196,31 +196,31 @@ export class XsmpUtils {
 
 
     public static getPropertyCategory(element: ast.Property): string | undefined {
-        return XsmpUtils.getTag(element, 'category')?.content.toString()
+        return XsmpUtils.getTag(element, 'category')?.toString()
     }
     public static getUnit(element: ast.Integer | ast.Float): string | undefined {
-        return XsmpUtils.getTag(element, 'unit')?.content.toString()
+        return XsmpUtils.getTag(element, 'unit')?.toString()
     }
 
     public static getTitle(element: ast.Document): string | undefined {
-        return XsmpUtils.getTag(element, 'title')?.content.toString()
+        return XsmpUtils.getTag(element, 'title')?.toString()
     }
-    public static getDate(element: ast.Document): JSDocTag | undefined {
+    public static getDate(element: ast.Document): JSDocParagraph | undefined {
         return XsmpUtils.getTag(element, 'date')
     }
 
     public static getCreator(element: ast.Document): string | undefined {
-        return XsmpUtils.getTags(element, 'creator')?.map(e => e.content.toString()).join(', ')
+        return XsmpUtils.getTags(element, 'creator')?.map(e => e.toString()).join(', ')
     }
     public static getVersion(element: ast.Document): string | undefined {
-        return XsmpUtils.getTag(element, 'version')?.content.toString()
+        return XsmpUtils.getTag(element, 'version')?.toString()
     }
 
-    public static getUuid(type: ast.Type): JSDocTag | undefined {
+    public static getUuid(type: ast.Type): JSDocParagraph | undefined {
         return XsmpUtils.getTag(type, 'uuid')
     }
 
-    public static getDeprecated(element: ast.NamedElement): JSDocTag | undefined {
+    public static getDeprecated(element: ast.NamedElement): JSDocParagraph | undefined {
         return XsmpUtils.getTag(element, 'deprecated')
     }
 

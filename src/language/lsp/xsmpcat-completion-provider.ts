@@ -26,7 +26,7 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
         const usages = XsmpUtils.getUsages(desc.node)
         const elementType = XsmpUtils.getNodeType(attribute.$container)
 
-        if (!usages?.find(u => u.content.toString() === elementType))
+        if (!usages?.find(u => u.toString() === elementType))
             return false
 
         if (attribute.$container.attributes.some(a => a.type.ref === desc.node) && !XsmpUtils.allowMultiple(desc.node))
@@ -58,10 +58,10 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
                 return (desc) => ast.isClass(desc.node) && !XsmpUtils.isBaseOfClass(refInfo.container as ast.Class, desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node)
             case 'Interface:base':
                 return (desc) => ast.isInterface(desc.node) && !XsmpUtils.isBaseOfInterface(refInfo.container as ast.Interface, desc.node) &&
-                    !(refInfo.container as ast.Interface).base.map(i => i.ref).includes(desc.node as ast.Interface) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node)
+                    !(refInfo.container as ast.Interface).base.map(i => i.ref).includes(desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node)
             case 'Model:interface':
             case 'Service:interface':
-                return (desc) => ast.isInterface(desc.node) && !(refInfo.container as ast.Component).interface.map(i => i.ref).includes(desc.node as ast.Interface) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node)
+                return (desc) => ast.isInterface(desc.node) && !(refInfo.container as ast.Component).interface.map(i => i.ref).includes(desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node)
             case 'Reference_:interface':
                 return (desc) => ast.isInterface(desc.node)
             case 'Model:base':
@@ -232,7 +232,7 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
             return value ? `{${new Array(Number(value)).fill(this.getDefaultValueForType(type.itemType.ref)).join(', ')}}` : '{}'
         }
         if (ast.isStructure(type))
-            return `{${XsmpUtils.getAllFields(type).map(f => `.${f.name} = ${this.getDefaultValueForType(f.type.ref)}`).join(', ')}}`
+            return `{${XsmpUtils.getAllFields(type).map(f => '.' + f.name + ' = ' + this.getDefaultValueForType(f.type.ref)).join(', ')}}`
 
         if (ast.isEnumeration(type))
             return type.literal.length > 0 ? XsmpUtils.getQualifiedName(type.literal[0]) : '0'

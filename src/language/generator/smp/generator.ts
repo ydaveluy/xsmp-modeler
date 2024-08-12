@@ -1,19 +1,21 @@
-import * as ast from '../../language/generated/ast.js';
+import * as ast from '../../generated/ast.js';
 const { create } = require('xmlbuilder2');
-import * as Catalogue from './catalogue.js';
-import * as Elements from './elements.js';
-import * as Types from './types.js';
-import * as Package from './package.js';
-import * as xlink from './xlink.js';
-import { FloatingPrimitiveTypeKind, IntegralPrimitiveTypeKind, XsmpUtils } from '../../language/utils/xsmp-utils.js';
-import { AstNode, AstUtils, JSDocTag, Reference, URI, UriUtils } from 'langium';
+import * as Catalogue from './model/catalogue.js';
+import * as Elements from './model/elements.js';
+import * as Types from './model/types.js';
+import * as Package from './model/package.js';
+import * as xlink from './model/xlink.js';
+import { FloatingPrimitiveTypeKind, IntegralPrimitiveTypeKind, XsmpUtils } from '../../utils/xsmp-utils.js';
+import { AstNode, AstUtils, JSDocParagraph, Reference, URI, UriUtils } from 'langium';
 import * as fs from 'fs';
-import { Solver } from '../../language/utils/solver.js';
+import { Solver } from '../../utils/solver.js';
 import { Duration, Instant } from '@js-joda/core';
+import { XsmpGenerator } from '../generator.js';
 
 
 
-export class SmpcatGenerator {
+export class SmpcatGenerator implements XsmpGenerator<ast.Catalogue> {
+
 
     protected getId(element: ast.NamedElement | ast.ReturnParameter): string {
         return XsmpUtils.getId(element) ?? XsmpUtils.getQualifiedName(element);
@@ -95,7 +97,7 @@ export class SmpcatGenerator {
         return {
             '@xsi:type': id,
             ...this.convertVisibilityElement(type),
-            '@Uuid': XsmpUtils.getUuid(type)?.content.toString() ?? '',
+            '@Uuid': XsmpUtils.getUuid(type)?.toString() ?? '',
         }
     }
     protected convertValueReference(valueReference: ast.ValueReference): Types.ValueReference {
@@ -319,7 +321,7 @@ export class SmpcatGenerator {
             Type: this.convertXlink(attributeType.type, attributeType),
             Default: attributeType.default ? this.convertValue(attributeType.type.ref, attributeType.default) : undefined,
             '@AllowMultiple': XsmpUtils.allowMultiple(attributeType),
-            Usage: XsmpUtils.getUsages(attributeType)?.map(t => t.content.toString()),
+            Usage: XsmpUtils.getUsages(attributeType)?.map(t => t.toString()),
         }
     }
     protected convertArrayType(arrayType: ast.ArrayType): Types.Array {
@@ -363,7 +365,7 @@ export class SmpcatGenerator {
             const doc = AstUtils.getDocument(context)
 
 
-            let href = '#' + (XsmpUtils.getId(link.ref)?? XsmpUtils.getQualifiedName(link.ref));
+            let href = '#' + (XsmpUtils.getId(link.ref) ?? XsmpUtils.getQualifiedName(link.ref));
             if (doc !== refDoc) {
                 let fileName = UriUtils.basename(refDoc.uri).replace(/\.xsmpcat$/, '.smpcat')
                 if (fileName === 'ecss.smp.smpcat')
@@ -378,7 +380,7 @@ export class SmpcatGenerator {
 
     }
     protected convertOperation(operation: ast.Operation): Types.Operation {
-        const id = XsmpUtils.getId(operation)?? XsmpUtils.getQualifiedName(operation) + (operation.parameter.length > 0 ? '-' : '') + operation.parameter.map(p => p.type.ref?.name).join('-');
+        const id = XsmpUtils.getId(operation) ?? XsmpUtils.getQualifiedName(operation) + (operation.parameter.length > 0 ? '-' : '') + operation.parameter.map(p => p.type.ref?.name).join('-');
         return {
             ...this.convertVisibilityElement(operation),
             "@Id": id,
@@ -451,11 +453,11 @@ export class SmpcatGenerator {
         }
     }
 
-    private convertDate(date: JSDocTag | undefined): string | undefined {
+    private convertDate(date: JSDocParagraph | undefined): string | undefined {
         if (!date)
             return undefined
         try {
-            return Instant.parse(date.content.toString()).toString()
+            return Instant.parse(date.toString()).toString()
         }
         catch {
             return undefined
@@ -463,7 +465,7 @@ export class SmpcatGenerator {
     }
 
     protected convertCatalogue(catalogue: ast.Catalogue): Catalogue.Catalogue {
-        const id = XsmpUtils.getId(catalogue)?? '_' + XsmpUtils.getQualifiedName(catalogue);
+        const id = XsmpUtils.getId(catalogue) ?? '_' + XsmpUtils.getQualifiedName(catalogue);
 
         return {
             '@xmlns:Elements': "http://www.ecss.nl/smp/2019/Core/Elements",
@@ -484,7 +486,7 @@ export class SmpcatGenerator {
         }
     }
     protected convertPackage(catalogue: ast.Catalogue): Package.Package {
-        const id = XsmpUtils.getId(catalogue)?? '_' + XsmpUtils.getQualifiedName(catalogue);
+        const id = XsmpUtils.getId(catalogue) ?? '_' + XsmpUtils.getQualifiedName(catalogue);
         const doc = AstUtils.getDocument(catalogue)
         const prefix = UriUtils.basename(doc.uri).replace(/\.xsmpcat$/, '.smpcat') + '#'
         const dependencies = doc.references.map(e => e.ref ? AstUtils.getDocument(e.ref).parseResult.value : undefined).filter(ast.isCatalogue).filter(e => e !== catalogue && e.name !== 'ecss_smp_smp').sort((l, r) => l.name.localeCompare(r.name))
@@ -534,35 +536,37 @@ export class SmpcatGenerator {
         return doc.end({ prettyPrint: true });
     }
 
-    public generate(catalogue: ast.Catalogue, uri: URI): void {
+    getGenerationTasks(node: ast.Catalogue, projectUri: URI): Promise<void>[] {
+        return [
+            this.generateCatalogue(node, projectUri),
+            this.generatePackage(node, projectUri)
+        ]
+    }
+    private createOutputDir(projectUri: URI): URI {
+        const outputDir = UriUtils.joinPath(projectUri, 'smdl-gen');
 
-        const outputDir = UriUtils.joinPath(uri, 'smdl-gen');
+        fs.mkdirSync(outputDir.fsPath, { recursive: true });
+        return outputDir
+    }
 
-        fs.mkdir(outputDir.fsPath, { recursive: true }, (err) => {
-            if (err) {
-                console.error('Error creating directory:', err);
-                return;
-            }
 
-            const smpcatFile = UriUtils.joinPath(outputDir, UriUtils.basename(catalogue.$document?.uri as URI).replace(/\.xsmpcat$/, '.smpcat'));
+    public async generateCatalogue(catalogue: ast.Catalogue, projectUri: URI): Promise<void> {
+        const outputDir = this.createOutputDir(projectUri)
 
-            fs.writeFile(smpcatFile.fsPath, this.doGenerateCatalogue(catalogue), (err) => {
-                if (err) {
-                    console.error('Error writing file:', err);
-                } else {
-                    console.log(`File written successfully to ${smpcatFile.fsPath}`);
-                }
-            });
-            const smppkgFile = UriUtils.joinPath(outputDir, UriUtils.basename(catalogue.$document?.uri as URI).replace(/\.xsmpcat$/, '.smppkg'));
+        const smpcatFile = UriUtils.joinPath(outputDir, UriUtils.basename(catalogue.$document?.uri as URI).replace(/\.xsmpcat$/, '.smpcat'));
 
-            fs.writeFile(smppkgFile.fsPath, this.doGeneratePackage(catalogue), (err) => {
-                if (err) {
-                    console.error('Error writing file:', err);
-                } else {
-                    console.log(`File written successfully to ${smppkgFile.fsPath}`);
-                }
-            });
-        });
+        fs.writeFileSync(smpcatFile.fsPath, this.doGenerateCatalogue(catalogue));
+        console.log(`File written successfully to ${smpcatFile.fsPath}`);
+    }
+
+
+    public async generatePackage(catalogue: ast.Catalogue, projectUri: URI): Promise<void> {
+
+        const outputDir = this.createOutputDir(projectUri)
+
+        const smppkgFile = UriUtils.joinPath(outputDir, UriUtils.basename(catalogue.$document?.uri as URI).replace(/\.xsmpcat$/, '.smppkg'));
+        fs.writeFileSync(smppkgFile.fsPath, this.doGeneratePackage(catalogue));
+        console.log(`File written successfully to ${smppkgFile.fsPath}`);
     }
 }
 

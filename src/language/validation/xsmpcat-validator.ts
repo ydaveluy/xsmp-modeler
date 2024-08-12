@@ -119,10 +119,10 @@ export class XsmpcatValidator {
     private computeUuidsForTypes(): MultiMap<string, ast.Type> {
         const map = new MultiMap<string, ast.Type>()
         for (const type of this.indexManager.allElements(ast.Type)) {
-            if (ast.isType(type.node)) {
-                const uuid = XsmpUtils.getUuid(type.node)?.content.toString()
+            if (type.node) {
+                const uuid = XsmpUtils.getUuid(type.node as ast.Type)?.toString()
                 if (uuid)
-                    map.add(uuid, type.node)
+                    map.add(uuid, type.node as ast.Type)
             }
         }
         return map;
@@ -135,8 +135,8 @@ export class XsmpcatValidator {
     private computeServiceNames(): MultiMap<string, ast.Service> {
         const map = new MultiMap<string, ast.Service>()
         for (const type of this.indexManager.allElements(ast.Service)) {
-            if (ast.isService(type.node))
-                map.add(type.name, type.node)
+            if (type.node)
+                map.add((type.node as ast.Service).name, type.node as ast.Service)
         }
         return map;
     }
@@ -147,8 +147,8 @@ export class XsmpcatValidator {
     private computeTypeNames(uri: URI): MultiMap<string, ast.Type> {
         const map = new MultiMap<string, ast.Type>()
         for (const type of this.indexManager.allElements(ast.Type, findVisibleUris(this.documents, uri)?.add(uri.toString()))) {
-            if (ast.isType(type.node))
-                map.add(XsmpUtils.getQualifiedName(type.node), type.node)
+            if (type.node)
+                map.add(type.name, type.node as ast.Type)
         }
         return map;
     }
@@ -176,7 +176,7 @@ export class XsmpcatValidator {
                 const type = attribute.type.ref as ast.AttributeType
 
                 const usages = XsmpUtils.getUsages(type)
-                if (usages?.every(t => !ast.reflection.isSubtype(XsmpUtils.getNodeType(element), t.content.toString())))
+                if (usages?.every(t => !ast.reflection.isSubtype(XsmpUtils.getNodeType(element), t.toString())))
                     accept('warning', `This annotation is disallowed for element of type ${XsmpUtils.getNodeType(element)}.`,
                         { node: attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
 
@@ -265,7 +265,7 @@ export class XsmpcatValidator {
 
         const deprecated = XsmpUtils.getDeprecated(reference.ref)
         if (deprecated) {
-            accept('warning', `Deprecated: ${deprecated.content.toString()}`, { node: node, property: property, index: index });
+            accept('warning', `Deprecated: ${deprecated.toString()}`, { node: node, property: property, index: index });
         }
         return true
     }
@@ -286,7 +286,7 @@ export class XsmpcatValidator {
 
         const deprecated = XsmpUtils.getDeprecated(field)
         if (deprecated) {
-            accept('warning', `Deprecated: ${deprecated.content.toString()}`, { node: node, property: property, index: index });
+            accept('warning', `Deprecated: ${deprecated.toString()}`, { node: node, property: property, index: index });
         }
         return true
     }
@@ -469,11 +469,11 @@ export class XsmpcatValidator {
                 data: { code: IssueCodes.MissingUuid, actionRange: XsmpUtils.getJSDoc(type)?.range ?? { start: type.$cstNode?.range.start, end: type.$cstNode?.range.start } }
             })
         }
-        else if (!uuidRegex.test(uuid.content.toString())) {
-            accept('error', 'The UUID is invalid.', { node: type, range: uuid.content.range, data: diagnosticData(IssueCodes.InvalidUuid) })
+        else if (!uuidRegex.test(uuid.toString())) {
+            accept('error', 'The UUID is invalid.', { node: type, range: uuid.range, data: diagnosticData(IssueCodes.InvalidUuid) })
         }
-        else if (this.isDuplicatedUuid(type, uuid.content.toString())) {
-            accept('error', 'Duplicated UUID.', { node: type, range: uuid.content.range, data: diagnosticData(IssueCodes.DuplicatedUuid) })
+        else if (this.isDuplicatedUuid(type, uuid.toString())) {
+            accept('error', 'Duplicated UUID.', { node: type, range: uuid.range, data: diagnosticData(IssueCodes.DuplicatedUuid) })
         }
 
         if (this.isDuplicatedTypeName(type)) {
@@ -759,7 +759,7 @@ export class XsmpcatValidator {
             const visited = new Set<string>()
             if (usages) {
                 for (const usage of usages) {
-                    const str = usage.content.toString();
+                    const str = usage.toString();
                     if (!validUsages.has(str))
                         accept('warning', 'Invalid usage.', { node: attribute, range: usage.range, data: diagnosticData(IssueCodes.InvalidUsage) })
                     if (visited.has(str))
@@ -789,10 +789,10 @@ export class XsmpcatValidator {
         const date = XsmpUtils.getDate(catalogue)
         if (date) {
             try {
-                Instant.parse(date.content.toString())
+                Instant.parse(date.toString())
             }
             catch (error) {
-                accept('error', 'Invalid date format (e.g: 1970-01-01T00:00:00Z).', { node: catalogue, range: date.content.range })
+                accept('error', 'Invalid date format (e.g: 1970-01-01T00:00:00Z).', { node: catalogue, range: date.range })
             }
         }
         if (this.indexManager.allElements(ast.Catalogue).filter(c => c.name === catalogue.name).count() > 1)

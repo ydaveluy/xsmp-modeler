@@ -29,7 +29,7 @@ export class XsmpprojectValidator {
 
         const deprecated = XsmpUtils.getDeprecated(reference.ref)
         if (deprecated)
-            accept('warning', `Deprecated ${deprecated.content.toString()}`, { node: node, property: property, index: index });
+            accept('warning', `Deprecated ${deprecated.toString()}`, { node: node, property: property, index: index });
 
         return true
     }
