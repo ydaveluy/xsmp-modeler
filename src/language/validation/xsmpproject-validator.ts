@@ -22,7 +22,7 @@ export function registerXsmpprojectValidationChecks(services: XsmpprojectService
  */
 export class XsmpprojectValidator {
 
-    checkTypeReference<N extends AstNode, P extends string = Properties<N>>(accept: ValidationAcceptor, node: N, reference: Reference<ast.NamedElement>, property: Properties<N>, index?: number): boolean {
+    checkTypeReference<N extends AstNode>(accept: ValidationAcceptor, node: N, reference: Reference<ast.NamedElement>, property: Properties<N>, index?: number): boolean {
         if (!reference.ref)
             return false
 

@@ -84,22 +84,24 @@ export class StringValue extends Value<StringValue> {
     override stringValue(): this | undefined { return this }
 
     override integralValue(type: IntegralPrimitiveTypeKind): IntegralValue | undefined {
-        if (type === 'DateTime')
+        if (type === 'DateTime') {
             try {
                 const instant = Instant.parse(this.value)
                 return new IntegralValue(BigInt(instant.epochSecond()) * BigInt(1000000000) + BigInt(instant.nano()), type)
             }
-            catch (error) {
-                // return undefined
+            catch {
+                return undefined
             }
-        else if (type === 'Duration')
+        }
+        else if (type === 'Duration') {
             try {
                 const duration = Duration.parse(this.value)
                 return new IntegralValue(BigInt(duration.get(ChronoUnit.SECONDS)) * BigInt(1000000000) + BigInt(duration.get(ChronoUnit.NANOS)), type)
             }
-            catch (error) {
-                // return undefined
+            catch {
+                return undefined
             }
+        }
         return undefined
     }
 
@@ -239,7 +241,7 @@ export class FloatValue extends Value<FloatValue> {
         this.type = type
     }
     public static of(expr: ast.FloatingLiteral, accept?: ValidationAcceptor): FloatValue {
-        let text = expr.text.replaceAll("'", '')
+        const text = expr.text.replaceAll("'", '')
         if (text.endsWith('f') || text.endsWith('F')) {
             return new FloatValue(parseFloat(text.slice(0, -1)), 'Float32')
         }
@@ -252,9 +254,8 @@ export class FloatValue extends Value<FloatValue> {
     override boolValue(): BoolValue { return new BoolValue(this.value != 0.) }
     override integralValue(type: IntegralPrimitiveTypeKind): IntegralValue | undefined {
         try {
-
             return new IntegralValue(BigInt(this.value), type)
-        } catch (error) {
+        } catch {
             return undefined
         }
     }
@@ -449,8 +450,8 @@ export class Solver {
 
     private static binaryOperation<T>(expression: ast.BinaryOperation, accept?: ValidationAcceptor): Value<T> | undefined {
 
-        let left = this.getValue(expression.leftOperand, accept)
-        let right = this.getValue(expression.rightOperand, accept)
+        const left = this.getValue(expression.leftOperand, accept)
+        const right = this.getValue(expression.rightOperand, accept)
         if (!left || !right)
             return undefined
 
@@ -512,7 +513,7 @@ export class Solver {
         }
     }
     private static unaryOperation<T>(expression: ast.UnaryOperation, accept?: ValidationAcceptor): Value<T> | undefined {
-        let operand = this.getValue(expression.operand, accept)
+        const operand = this.getValue(expression.operand, accept)
         if (!operand)
             return undefined
 

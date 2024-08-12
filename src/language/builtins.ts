@@ -56,8 +56,16 @@ tool "smp"
     [URI.parse('builtin:///org.eclipse.xsmp.tool.python.tool').toString(), `
 /**
  * Python tool
+ * @deprecated Use the "python" tool instead.
  */
 tool "org.eclipse.xsmp.tool.python"
+`],
+
+[URI.parse('builtin:///python.tool').toString(), `
+/**
+ * Python tool
+ */
+tool "python"
 `],
 
     [URI.parse('builtin:///org.eclipse.xsmp.tool.adoc.tool').toString(), `

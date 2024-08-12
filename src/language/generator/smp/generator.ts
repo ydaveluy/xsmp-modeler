@@ -1,5 +1,4 @@
 import * as ast from '../../generated/ast.js';
-const { create } = require('xmlbuilder2');
 import * as Catalogue from './model/catalogue.js';
 import * as Elements from './model/elements.js';
 import * as Types from './model/types.js';
@@ -11,6 +10,7 @@ import * as fs from 'fs';
 import { Solver } from '../../utils/solver.js';
 import { Duration, Instant } from '@js-joda/core';
 import { XsmpGenerator } from '../generator.js';
+import { create } from 'xmlbuilder2';
 
 
 

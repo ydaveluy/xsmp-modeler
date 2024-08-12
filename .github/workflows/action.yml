@@ -49,27 +49,6 @@ jobs:
           -Dsonar.exclusions=src/language/generated/*,src/language/builtins.ts,out/**
           -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
           -Dsonar.coverage.exclusions=**/*.test.*
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    - name: Use Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-    - name: Build
-      shell: bash
-      run: |
-        npm ci
-        npm run langium:generate
-        npm run build:clean
-    - name: Check Git Status
-      shell: bash
-      run: git diff --exit-code .
-    - name: Lint
-      shell: bash
-      run: npm run lint
+          -Dsonar.tests=test/
+          -Dsonar.links.scm=https://github.com/ydaveluy/xsmp-modeler
+          -Dsonar.links.issue=https://github.com/ydaveluy/xsmp-modeler/issues

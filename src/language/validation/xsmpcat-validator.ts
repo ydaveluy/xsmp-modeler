@@ -5,6 +5,7 @@ import { isFloatingType, PrimitiveTypeKind, XsmpUtils } from '../utils/xsmp-util
 import { Solver } from '../utils/solver.js';
 import { Instant } from '@js-joda/core';
 import { findVisibleUris } from '../utils/project-utils.js';
+import * as IssueCodes from './xsmpcat-issue-codes.js';
 
 /**
  * Register custom validation checks.
@@ -75,29 +76,6 @@ const validUsages = new Set(['NamedElement', 'Array', 'Association', 'AttributeT
 const namedElementRegex = /^[a-zA-Z]\w*$/;
 const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
-
-export namespace IssueCodes {
-    export const TypeNotVisible = 'type-not-visible';
-    export const FieldNotVisible = 'field-not-visible';
-    export const InvalidFieldName = 'invalid-field-name';
-    export const MissingValue = 'missing-value';
-    export const MissingUuid = 'missing-uuid';
-    export const DuplicatedUuid = 'duplicated-uuid';
-    export const InvalidUuid = 'invalid-uuid';
-    export const IllegalModifier = 'illegal-modifier';
-    export const InvalidModifier = 'invalid-modifier';
-    export const DuplicatedInterfaceBase = 'duplicated-interface-base';
-    export const CyclicInterfaceBase = 'cyclic-interface-base';
-    export const CyclicComponentBase = 'cyclic-component-base';
-    export const CyclicClassBase = 'cyclic-class-base';
-    export const MissingAbstract = 'missing-abstract';
-    export const DuplicatedComponentInterface = 'duplicated-component-interface';
-    export const InvalidUsage = 'invalid-usage';
-    export const DuplicatedUsage = 'duplicated-usage';
-    export const NonSimpleArray = 'non-simple-array';
-    export const InvalidAttribute = 'invalid-attribute';
-    export const DuplicatedException = 'duplicated-exception';
-}
 
 /**
  * Implementation of custom validations.
@@ -244,7 +222,7 @@ export class XsmpcatValidator {
     }
 
 
-    checkTypeReference<N extends AstNode, P extends string = Properties<N>>(accept: ValidationAcceptor, node: N, reference: Reference<ast.Type>, property: Properties<N>, index?: number): boolean {
+    checkTypeReference<N extends AstNode>(accept: ValidationAcceptor, node: N, reference: Reference<ast.Type>, property: Properties<N>, index?: number): boolean {
 
         if (!reference.ref)
             return false
@@ -270,7 +248,7 @@ export class XsmpcatValidator {
     }
 
 
-    checkFieldReference<N extends AstNode, P extends string = Properties<N>>(accept: ValidationAcceptor, node: N, field: ast.Field | undefined, property: Properties<N>, index?: number): field is ast.Field {
+    checkFieldReference<N extends AstNode>(accept: ValidationAcceptor, node: N, field: ast.Field | undefined, property: Properties<N>, index?: number): field is ast.Field {
 
         if (!field)
             return false
@@ -323,7 +301,7 @@ export class XsmpcatValidator {
                 const size = collectionSize < fieldCount ? collectionSize : fieldCount
                 for (let i = 0; i < size; ++i) {
                     let exp = expression.elements[i]
-                    let field = fields[i]
+                    const field = fields[i]
                     if (ast.isDesignatedInitializer(exp)) {
                         if (exp.field.ref !== field)
                             accept('error', `Invalid field name, expecting ${field.name}.`, { node: exp, property: 'field', data: diagnosticData(IssueCodes.InvalidFieldName) })
@@ -381,7 +359,7 @@ export class XsmpcatValidator {
             accept('error', 'An Enumeration shall contains at least one literal.', { node: enumeration, property: 'literal' });
         }
 
-        const values = new Set<any>();
+        const values = new Set<string | number | bigint | boolean | ast.EnumerationLiteral>();
         const literals = new Set<string>();
         for (const literal of enumeration.literal) {
             if (literals.has(literal.name))
@@ -803,7 +781,7 @@ export class XsmpcatValidator {
             try {
                 Instant.parse(date.toString())
             }
-            catch (error) {
+            catch {
                 accept('error', 'Invalid date format (e.g: 1970-01-01T00:00:00Z).', { node: catalogue, range: date.range })
             }
         }

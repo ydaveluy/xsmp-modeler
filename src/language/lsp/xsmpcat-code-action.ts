@@ -5,7 +5,7 @@ import { CodeActionProvider, LangiumServices } from 'langium/lsp';
 import { CodeActionKind, type Diagnostic } from 'vscode-languageserver';
 import type { CodeActionParams } from 'vscode-languageserver-protocol';
 import type { CodeAction, Command } from 'vscode-languageserver-types';
-import { IssueCodes } from '../validation/xsmpcat-validator.js';
+import * as  IssueCodes from '../validation/xsmpcat-issue-codes.js';
 import { randomUUID } from 'crypto';
 
 export class XsmpcatCodeActionProvider implements CodeActionProvider {

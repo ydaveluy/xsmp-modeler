@@ -17,7 +17,7 @@ export class XsmpprojectCompletionProvider extends DefaultCompletionProvider {
      * @param _context Information about the completion request including document, cursor position, token under cursor, etc.
      * @returns A stream of all elements being valid for the given reference.
      */
-    protected override getReferenceCandidates(refInfo: ReferenceInfo, _context: CompletionContext): Stream<AstNodeDescription> {
+    protected override getReferenceCandidates(refInfo: ReferenceInfo/*, context: CompletionContext*/): Stream<AstNodeDescription> {
         if (ast.isProject(refInfo.container)) {
             const project = refInfo.container
             switch (refInfo.property) {

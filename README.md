@@ -18,6 +18,7 @@
 - [ ] AsciiDoc Tool - generator
 - [ ] xsmp-sdk Profile - generator
 - [ ] esa-cdk Profile - generator
+- [x] Project Wizard
 
 
 ### xsmp-modeler-core (**Xtext**) vs  xsmp-modeler (**Langium**) comparison

@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import * as path from 'node:path';
 import { LanguageClient, TransportKind } from 'vscode-languageclient/node.js';
 import { builtins } from '../language/builtins.js';
+import { createProjectWizard } from '../language/wizard/wizard.js';
 
 
 let client: LanguageClient;
@@ -11,6 +12,12 @@ let client: LanguageClient;
 export function activate(context: vscode.ExtensionContext): void {
     client = startLanguageClient(context);
     BuiltinLibraryFileSystemProvider.register(context);
+    
+    // New project Wizard
+    context.subscriptions.push(
+        vscode.commands.registerCommand('xsmp.wizard', createProjectWizard)
+    );
+
 }
 
 // This function is called when the extension is deactivated.

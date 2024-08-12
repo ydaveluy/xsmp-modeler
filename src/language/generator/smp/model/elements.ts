@@ -28,9 +28,4 @@ export interface Metadata extends NamedElement {
 export interface Comment extends Metadata { }
 
 
-export interface Documentation extends Metadata {
-    Resource?: any[];
-}
-
-
 
