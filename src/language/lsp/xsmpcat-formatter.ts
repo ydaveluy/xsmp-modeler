@@ -29,7 +29,11 @@ export class XsmpcatFormatter extends AbstractFormatter {
             const formatter = this.getNodeFormatter(node);
             formatter.property('direction').append(Formatting.oneSpace());
             formatter.property('name').prepend(Formatting.oneSpace());
-            formatter.keywords('=').surround(Formatting.oneSpace());
+            formatter.keyword('=').surround(Formatting.oneSpace());
+        }
+        else if (ast.isReturnParameter(node)) {
+            const formatter = this.getNodeFormatter(node);
+            formatter.property('name').surround(Formatting.oneSpace());
         }
         else if (ast.isContainer(node)) {
             const formatter = this.getNodeFormatter(node);
@@ -37,7 +41,7 @@ export class XsmpcatFormatter extends AbstractFormatter {
             formatter.property('name').prepend(Formatting.oneSpace());
             formatter.property('optional').prepend(Formatting.noSpace());
             formatter.property('multiplicity').prepend(Formatting.noSpace());
-            formatter.keywords('=').surround(Formatting.oneSpace());
+            formatter.keyword('=').surround(Formatting.oneSpace());
         }
         else if (ast.isReference_(node)) {
             const formatter = this.getNodeFormatter(node);
@@ -82,19 +86,20 @@ export class XsmpcatFormatter extends AbstractFormatter {
             formatter.property('type').surround(Formatting.oneSpace());
             formatter.keyword('get').surround(Formatting.oneSpace());
             formatter.keyword('set').surround(Formatting.oneSpace());
-            formatter.keywords('throws').surround(Formatting.oneSpace());
+            formatter.keywords('throws').append(Formatting.oneSpace());
             this.formatCommaList(formatter);
             formatter.keyword('->').surround(Formatting.oneSpace());
         }
         else if (ast.isOperation(node)) {
             const formatter = this.getNodeFormatter(node);
             this.formatMofifiers(formatter);
-            formatter.keywords('void').surround(Formatting.oneSpace());
+            formatter.keyword('void').surround(Formatting.oneSpace());
             formatter.property('returnParameter').surround(Formatting.oneSpace());
             formatter.property('name').prepend(Formatting.oneSpace()).append(Formatting.noSpace());
+            formatter.keyword('(').append(Formatting.noSpace());
             this.formatCommaList(formatter);
-            formatter.keywords(')').prepend(Formatting.noSpace());
-            formatter.keywords('throws').surround(Formatting.oneSpace());
+            formatter.keyword(')').prepend(Formatting.noSpace());
+            formatter.keyword('throws').surround(Formatting.oneSpace());
         }
 
     }

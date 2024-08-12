@@ -1,5 +1,5 @@
 
-import type { AstReflection, Cancellation, DiagnosticData, IndexManager, LangiumDocument, MaybePromise } from 'langium';
+import { type AstReflection, type Cancellation, type DiagnosticData, type IndexManager, type LangiumDocument, type MaybePromise } from 'langium';
 
 import type { CodeActionProvider, LangiumServices } from 'langium/lsp';
 import { CodeActionKind, type Diagnostic } from 'vscode-languageserver';
@@ -7,6 +7,13 @@ import type { CodeActionParams } from 'vscode-languageserver-protocol';
 import type { CodeAction, Command } from 'vscode-languageserver-types';
 import * as  IssueCodes from '../validation/xsmpcat-issue-codes.js';
 import { randomUUID } from 'crypto';
+
+
+function isDiagnosticData(obj: any): obj is DiagnosticData {
+    return typeof obj === 'object' &&
+        obj !== null &&
+        typeof obj.code === 'string';
+}
 
 export class XsmpcatCodeActionProvider implements CodeActionProvider {
 
@@ -34,28 +41,30 @@ export class XsmpcatCodeActionProvider implements CodeActionProvider {
     }
 
     private createCodeActions(diagnostic: Diagnostic, document: LangiumDocument, accept: (ca: CodeAction | undefined) => void): void {
-        switch ((diagnostic.data as DiagnosticData).code) {
-            case IssueCodes.InvalidUuid:
-            case IssueCodes.DuplicatedUuid:
-                accept(this.replaceUuid(diagnostic, document));
-                break;
-            case IssueCodes.IllegalModifier:
-            case IssueCodes.InvalidModifier:
-            case IssueCodes.InvalidAttribute:
-            case IssueCodes.InvalidUsage:
-            case IssueCodes.DuplicatedUsage:
-                accept(this.removeRegion(diagnostic, document));
-                break;
-            case IssueCodes.MissingAbstract:
-                accept(this.addAbstract(diagnostic, document));
-                break;
-            case IssueCodes.MissingUuid:
-                accept(this.generateUuid(diagnostic, document));
-                break;
+        if (isDiagnosticData(diagnostic.data)) {
+            switch (diagnostic.data.code) {
+                case IssueCodes.InvalidUuid:
+                case IssueCodes.DuplicatedUuid:
+                    accept(this.replaceUuid(diagnostic, document));
+                    break;
+                case IssueCodes.IllegalModifier:
+                case IssueCodes.InvalidModifier:
+                case IssueCodes.InvalidAttribute:
+                case IssueCodes.InvalidUsage:
+                case IssueCodes.DuplicatedUsage:
+                    accept(this.removeRegion(diagnostic, document));
+                    break;
+                case IssueCodes.MissingAbstract:
+                    accept(this.addAbstract(diagnostic, document));
+                    break;
+                case IssueCodes.MissingUuid:
+                    accept(this.generateUuid(diagnostic, document));
+                    break;
 
+            }
         }
-        return undefined;
     }
+
 
     private replaceUuid(diagnostic: Diagnostic, document: LangiumDocument): CodeAction {
         return {

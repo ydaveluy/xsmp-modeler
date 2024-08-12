@@ -1,0 +1,96 @@
+/**
+ * Catalogue Test
+ * 
+ */
+catalogue    catalogue
+
+
+/** element that does not start with a letter */
+namespace    ns
+{
+    
+        /** @uuid ab0a7c41-a2c6-402e-a008-c25495479f73 */
+    @   SimpleArray    (true   )
+    public     array    AnArray    =    Bool   [ 4   + 5    -3]
+
+
+    /** 
+     * @uuid 457a8f9b-fdde-4af5-b95e-d2879a6b8502
+     */
+     protected     attribute   Bool    AnAttribute     =  false
+
+
+    /** @uuid 60911584-10fc-49d6-945e-d27a8e9ba1b3 */
+   abstract   private    class    AClass    extends AClass
+    {
+        private    association    Bool   asso
+      protected  constant    Int32    Cst     =   {. x   =42* -5,1,1+-1}
+     public    def   void    voidOp    (   )
+     protected def Bool  returnName anOp(in    Bool p    =true    , in Bool p2=   false)
+field Bool    aField =   false     ||true &&(true)
+     property Bool aProperty get throws A   ,B set   throws A   ,   C    ->aField
+    }
+
+
+
+    /** @uuid 7e0af47c-0c14-4365-9c5f-a532874d282c */
+    event EventType  extends  Char8
+    
+
+    
+    /** @uuid ef098f86-1778-41c4-9438-79e21f56cf64 */
+    enum MyEnum    {
+     L1    =    0}
+
+    /** @uuid 80043e07-e0d1-40c1-92ac-7d547e75c87a */
+   abstract    protected   model    MyModel
+    {
+        container    MyModel   [  0   ... *  ]    ctn
+        reference    IComponent   [  5 ]    ref
+        entrypoint    ep
+        eventsink   EventType  esi
+        eventsource   EventType  eso
+    }
+    
+    /** @uuid 08aaf20f-a684-45d7-87d4-0e8cc4ade2f8 */
+    struct    MyStruct
+    {
+        
+    }
+
+    
+    /** @uuid a0a9b46d-c521-4cb6-982e-5f45ba5c4d7a */
+    integer     MyInt    extends    Int32   in    0    ...42
+
+
+/** @uuid ac1c88fe-e5fc-4e16-b47e-b7124238fb83 */
+float    MyFloat    extends    Float32   in   0   <.<5/3.1
+
+/** @uuid fe017ee6-93b3-4876-b1f9-699f73fcd900 */
+string    MyStr   [ 4   +5  ]
+
+/** @uuid 36f30717-fa90-4809-8dca-7454a4485823 */
+   using    VRef    =   Bool   *
+
+
+
+/** @uuid a5a5d6a2-5af1-4019-8ba6-724e2d97d374 */
+interface    MyInter    extends IAggregate   , ICollection 
+{
+    
+}
+
+
+    /** 
+     * @type native_type
+     * @location native_location
+     * @namespace native_namespace
+     * @uuid cf6efcd7-aa8e-4d0b-bdf5-a4fcb205e90c
+     */
+    native NativeType
+
+
+
+} // namespace Expressions
+
+

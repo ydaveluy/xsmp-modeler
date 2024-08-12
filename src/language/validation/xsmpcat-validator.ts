@@ -691,13 +691,15 @@ export class XsmpcatValidator {
         const date = XsmpUtils.getDate(catalogue);
         if (date) {
             try {
-                Instant.parse(date.toString());
+                Instant.parse(date.toString().trim());
             }
             catch {
                 accept('warning', 'Invalid date format (e.g: 1970-01-01T00:00:00Z).', { node: catalogue, range: date.range });
             }
         }
-        if (this.indexManager.allElements(ast.Catalogue).filter(c => c.name === catalogue.name).count() > 1) { accept('error', 'Duplicated Catalogue name.', { node: catalogue, property: 'name' }); }
+        if (this.indexManager.allElements(ast.Catalogue).filter(c => c.name === catalogue.name).count() > 1) {
+            accept('error', 'Duplicated Catalogue name.', { node: catalogue, property: 'name' });
+        }
     }
 
     checkProperty(property: ast.Property, accept: ValidationAcceptor): void {
@@ -710,33 +712,55 @@ export class XsmpcatValidator {
         const getRaises = new Set<ast.Type | undefined>();
         for (const [index, exception] of property.getRaises.entries()) {
             if (this.checkTypeReference(accept, property, exception, 'getRaises', index)) {
-                if (getRaises.has(exception.ref)) { accept('error', 'Duplicated exception.', { node: property, property: 'getRaises', index, data: diagnosticData(IssueCodes.DuplicatedException) }); }
-                else { getRaises.add(exception.ref); }
+                if (getRaises.has(exception.ref)) {
+                    accept('error', 'Duplicated exception.', {
+                        node: property, property: 'getRaises', index, data: diagnosticData(IssueCodes.DuplicatedException)
+                    });
+                }
+                else {
+                    getRaises.add(exception.ref);
+                }
             }
         }
         const setRaises = new Set<ast.Type | undefined>();
         for (const [index, exception] of property.setRaises.entries()) {
             if (this.checkTypeReference(accept, property, exception, 'setRaises', index)) {
-                if (setRaises.has(exception.ref)) { accept('error', 'Duplicated exception.', { node: property, property: 'setRaises', index, data: diagnosticData(IssueCodes.DuplicatedException) }); }
-                else { setRaises.add(exception.ref); }
+                if (setRaises.has(exception.ref)) {
+                    accept('error', 'Duplicated exception.', {
+                        node: property, property: 'setRaises', index, data: diagnosticData(IssueCodes.DuplicatedException)
+                    });
+                }
+                else {
+                    setRaises.add(exception.ref);
+                }
             }
         }
         const isStatic = XsmpUtils.attribute(property, 'Attributes.Static');
         if (XsmpUtils.isAttributeTrue(isStatic)) {
-            if (ast.isInterface(property.$container)) { accept('error', 'A Property of an Interface shall not be static.', { node: isStatic!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
+            if (ast.isInterface(property.$container)) {
+                accept('error', 'A Property of an Interface shall not be static.', { node: isStatic!, data: diagnosticData(IssueCodes.InvalidAttribute) });
+            }
 
             const isVirtual = XsmpUtils.attribute(property, 'Attributes.Virtual');
-            if (XsmpUtils.isAttributeTrue(isVirtual)) { accept('error', 'A Property shall not be both Static and Virtual.', { node: isVirtual!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
+            if (XsmpUtils.isAttributeTrue(isVirtual)) {
+                accept('error', 'A Property shall not be both Static and Virtual.', { node: isVirtual!, data: diagnosticData(IssueCodes.InvalidAttribute) });
+            }
 
             const isAbstract = XsmpUtils.attribute(property, 'Attributes.Abstract');
-            if (XsmpUtils.isAttributeTrue(isAbstract)) { accept('error', 'A Property shall not be both Static and Abstract.', { node: isAbstract!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
+            if (XsmpUtils.isAttributeTrue(isAbstract)) {
+                accept('error', 'A Property shall not be both Static and Abstract.', { node: isAbstract!, data: diagnosticData(IssueCodes.InvalidAttribute) });
+            }
 
-            if (property.attachedField?.ref && !XsmpUtils.isStatic(property.attachedField.ref)) { accept('error', 'A Property shall not be Static if the attached field is not Static.', { node: isStatic!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
+            if (property.attachedField?.ref && !XsmpUtils.isStatic(property.attachedField.ref)) {
+                accept('error', 'A Property shall not be Static if the attached field is not Static.', { node: isStatic!, data: diagnosticData(IssueCodes.InvalidAttribute) });
+            }
         }
 
         // An element shall not be both byPointer and ByReference
         const isByPointer = XsmpUtils.attribute(property, 'Attributes.ByPointer');
-        if (XsmpUtils.isAttributeTrue(isByPointer) && XsmpUtils.isAttributeTrue(XsmpUtils.attribute(property, 'Attributes.ByReference'))) { accept('error', 'A Property shall not be both ByPointer and ByReference.', { node: isByPointer!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
+        if (XsmpUtils.isAttributeTrue(isByPointer) && XsmpUtils.isAttributeTrue(XsmpUtils.attribute(property, 'Attributes.ByReference'))) {
+            accept('error', 'A Property shall not be both ByPointer and ByReference.', { node: isByPointer!, data: diagnosticData(IssueCodes.InvalidAttribute) });
+        }
     }
 
     checkReference(reference: ast.Reference_, accept: ValidationAcceptor): void {

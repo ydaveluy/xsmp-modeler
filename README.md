@@ -24,8 +24,8 @@
 ### xsmp-modeler-core (**Xtext**) vs  xsmp-modeler (**Langium**) comparison
 |          | **Xtext** | **Langium** |
 |----------|-----------|-------------|
-| **LOC**  | 24k       |   **4k**    |
-| **size** | 13MB      |  **600KB**  | 
+| **LOC**  | 24k       |  **4.6k**   |
+| **size** | 13MB      |  **650KB**  | 
 | loading  | 17.4s     |  **6.7s**   |
 
 

@@ -452,7 +452,7 @@ export class SmpcatGenerator implements XsmpGenerator<ast.Catalogue> {
         if (!date)
             {return undefined;}
         try {
-            return Instant.parse(date.toString()).toString();
+            return Instant.parse(date.toString().trim()).toString();
         }
         catch {
             return undefined;
