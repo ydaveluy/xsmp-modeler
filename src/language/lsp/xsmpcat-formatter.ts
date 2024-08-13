@@ -1,9 +1,95 @@
-import type { AstNode } from 'langium';
-import type { NodeFormatter } from 'langium/lsp';
+import { CstUtils, isLeafCstNode, type AstNode, type CstNode, type LangiumDocument, type TextDocument } from 'langium';
+import type { FormattingAction, FormattingContext, NodeFormatter } from 'langium/lsp';
 import { AbstractFormatter, Formatting } from 'langium/lsp';
 import * as ast from '../generated/ast.js';
+import type { TextEdit, Range } from 'vscode-languageserver-protocol';
+import { FormattingOptions } from 'vscode-languageserver';
 
 export class XsmpcatFormatter extends AbstractFormatter {
+
+    protected override avoidOverlappingEdits(textDocument: TextDocument, textEdits: TextEdit[]): TextEdit[] {
+        const edits: TextEdit[] = [];
+        for (const edit of textEdits) {
+            let last = edits[edits.length - 1];
+            while (last) {
+                const currentStart = textDocument.offsetAt(edit.range.start);
+                const lastEnd = textDocument.offsetAt(last.range.end);
+                if (currentStart < lastEnd) {
+                    edits.pop();
+                    last = edits[edits.length - 1];
+                }
+                else {
+                    break;
+                }
+            }
+            edits.push(edit);
+        }
+        return edits;
+    }
+
+    protected override iterateCstFormatting(document: LangiumDocument, formattings: Map<string, FormattingAction>, options: FormattingOptions, range?: Range): TextEdit[] {
+        const context: FormattingContext = {
+            indentation: 0,
+            options,
+            document: document.textDocument
+        };
+        const edits: TextEdit[] = [];
+        const cstTreeStream = this.iterateCstTree(document, context);
+        const iterator = cstTreeStream.iterator();
+        let lastNode: CstNode | undefined;
+        let result: IteratorResult<CstNode>;
+        do {
+            result = iterator.next();
+            if (!result.done) {
+                const node = result.value;
+                const isLeaf = isLeafCstNode(node);
+                const prependKey = this.nodeModeToKey(node, 'prepend');
+                const prependFormatting = formattings.get(prependKey);
+                if (prependFormatting) {
+                    formattings.delete(prependKey);
+                    if (!lastNode?.hidden || isLeafCstNode(lastNode) && lastNode.tokenType.name !== 'SL_COMMENT') {
+                        const nodeEdits = this.createTextEdit(lastNode, node, prependFormatting, context);
+                        for (const edit of nodeEdits) {
+                            if (edit && this.insideRange(edit.range, range)) {
+                                edits.push(edit);
+                            }
+                        }
+                    }
+                }
+                const appendKey = this.nodeModeToKey(node, 'append');
+                const appendFormatting = formattings.get(appendKey);
+                if (appendFormatting) {
+                    formattings.delete(appendKey);
+                    const nextNode = CstUtils.getNextNode(node);
+                    if (nextNode && !nextNode.hidden) {
+                        const nodeEdits = this.createTextEdit(node, nextNode, appendFormatting, context);
+                        for (const edit of nodeEdits) {
+                            if (edit && this.insideRange(edit.range, range)) {
+                                edits.push(edit);
+                            }
+                        }
+                    }
+                }
+
+                if (!prependFormatting && node.hidden) {
+                    const hiddenEdits = this.createHiddenTextEdits(lastNode, node, undefined, context);
+                    for (const edit of hiddenEdits) {
+                        if (edit && this.insideRange(edit.range, range)) {
+                            edits.push(edit);
+                        }
+                    }
+                }
+
+                if (isLeaf) {
+                    lastNode = node;
+                }
+            }
+        } while (!result.done);
+
+        return edits;
+    }
+
+
     protected override format(node: AstNode): void {
 
         if (ast.isExpression(node)) {
@@ -66,7 +152,10 @@ export class XsmpcatFormatter extends AbstractFormatter {
             this.getNodeFormatter(node).keyword('=').surround(Formatting.oneSpace());
         }
         else if (ast.isCatalogue(node)) {
-            this.getNodeFormatter(node).property('name').prepend(Formatting.oneSpace()).append(Formatting.newLine({ allowMore: true }));
+            const formatter = this.getNodeFormatter(node);
+            formatter.keyword('catalogue').prepend(Formatting.noIndent())
+            formatter.property('name').prepend(Formatting.oneSpace()).append(Formatting.newLine({ allowMore: true }));
+            formatter.nodes(...node.elements).prepend(Formatting.noIndent())
         }
     }
 

@@ -2,14 +2,14 @@
  * Catalogue Test
  * 
  */
-catalogue    catalogue
+    catalogue    catalogue
 
 
-/** element that does not start with a letter */
-namespace    ns
-{
+    /** element that does not start with a letter */
+    namespace    ns
+ {
     
-        /** @uuid ab0a7c41-a2c6-402e-a008-c25495479f73 */
+/** @uuid ab0a7c41-a2c6-402e-a008-c25495479f73 */
     @   SimpleArray    (true   )
     public     array    AnArray    =    Bool   [ 4   + 5    -3]
 
@@ -91,6 +91,6 @@ interface    MyInter    extends IAggregate   , ICollection
 
 
 
-} // namespace Expressions
+          } // namespace Expressions
 
 
