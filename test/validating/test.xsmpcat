@@ -81,18 +81,19 @@ namespace _ns
     /** @uuid eadb2307 */
     float MyFloat extends Int32
  
-    
     float MyFloat2 in 4.0 ... 0
 
-
-    /** @uuid 780cd2ab-8678-406f-b62c-c08a7769591f */
+    /** 
+     * @deprecated 
+     * @uuid 780cd2ab-8678-406f-b62c-c08a7769591f 
+     */
     float MyFloat2 in 4.0 <.. 4.0
     
     /** @uuid 780cd2ab-8678-406f-b62c-c08a7769591f  */
     string MyString[-1]
 
     /** 
-     * @deprecated
+     * @deprecated do not use
      */
     string MyString2[]
     
@@ -102,7 +103,7 @@ namespace _ns
         @Static
         @Virtual
         @Abstract
-        protected def @ByPointer @ByReference  Bool returnParameter op(in Bool returnParameter, @ByPointer @ByReference in Bool p = true, in Bool p)
+        protected def @ByPointer @ByReference  Bool returnParameter op(in MyFloat2 returnParameter, @ByPointer @ByReference in Invalid p = true, in Bool p)
 
         @Static
         @Virtual
@@ -127,11 +128,11 @@ namespace _ns
         protected def void op() throws CannotDelete, CannotDelete
         protected def void op(Bool b)
         protected def void op(Bool b)
-
-        
-        /** @deprecated */
+        /** @deprecated do not use */
         @View(Smp.ViewKind.VK_None)
         field hidden.privateInteger f = CST0
+        /** @deprecated */
+        protected field Int32 f2 = CST0
 
         @ByPointer
         @ByReference
@@ -162,8 +163,9 @@ namespace _ns
     {
         private constant Char8 CST4 = 'a'
         property Int32 property2 -> f
+        property Int32 property3 -> f2
 
-        field Int8 f2 = 99
+        field Int8 f3 = 99
         eventsink Bool esi
         eventsource Bool eso
 
