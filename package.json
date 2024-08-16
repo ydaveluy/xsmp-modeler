@@ -102,14 +102,13 @@
                 "path": "syntaxes/xsmpcat.tmLanguage.json"
             }
         ],
-
-		"commands": [
-			{
-				"command": "xsmp.wizard",
-				"category": "Xsmp",
-				"title": "Create a new project"
-			}
-		],
+        "commands": [
+            {
+                "command": "xsmp.wizard",
+                "category": "Xsmp",
+                "title": "Create a new project"
+            }
+        ],
         "configurationDefaults": {
             "editor.tokenColorCustomizations": {
                 "textMateRules": [
@@ -137,5 +136,11 @@
     "main": "./out/extension/main.cjs",
     "bin": {
         "xsmpproject-cli": "./bin/cli.js"
-    }
+    },
+    "files": [
+        "out/*",
+        "syntaxes/*",
+        "xsmpcat-language-configuration.json",
+        "xsmpproject-language-configuration.json"
+    ]
 }
