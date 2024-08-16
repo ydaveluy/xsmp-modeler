@@ -2,23 +2,23 @@ import type { AstNodeDescription, MaybePromise, ReferenceInfo, Stream } from 'la
 import { AstUtils, GrammarAST } from 'langium';
 import type { CompletionAcceptor, CompletionContext, CompletionValueItem, NextFeature } from 'langium/lsp';
 import { DefaultCompletionProvider } from 'langium/lsp';
-
 import type { MarkupContent } from 'vscode-languageserver';
-import { CompletionItemKind, InsertTextFormat } from 'vscode-languageserver';
+import { CompletionItemKind, CompletionItemTag, InsertTextFormat } from 'vscode-languageserver';
 import { Instant } from '@js-joda/core';
 import * as os from 'os';
 import * as ast from '../generated/ast.js';
 import * as XsmpUtils from '../utils/xsmp-utils.js';
 import type { XsmpcatServices } from '../xsmpcat-module.js';
-import type { XsmpcatTypeProvider } from '../references/type-provider.js';
+import type { XsmpTypeProvider } from '../references/type-provider.js';
 import * as Solver from '../utils/solver.js';
+import type { XsmpSharedServices } from '../xsmp-module.js';
 
 export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
 
-    protected readonly typeProvider: XsmpcatTypeProvider;
+    protected readonly typeProvider: XsmpTypeProvider;
     constructor(services: XsmpcatServices) {
         super(services);
-        this.typeProvider = services.TypeProvider;
+        this.typeProvider = (services.shared as XsmpSharedServices).TypeProvider;
     }
 
     private isValidAttributeType(desc: AstNodeDescription, attribute: ast.Attribute): boolean {
@@ -143,9 +143,15 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
             nodeDescription,
             kind,
             documentation,
+            tags: this.getCompletionTags(nodeDescription),
             detail: nodeDescription.type,
             sortText: nodeDescription.name.split('.').length.toString().padStart(4, '0')
         };
+    }
+    getCompletionTags(nodeDescription: AstNodeDescription): CompletionItemTag[] | undefined {
+        if (ast.isNamedElement(nodeDescription.node) && XsmpUtils.IsDeprecated(nodeDescription.node))
+            return [CompletionItemTag.Deprecated];
+        return undefined;
     }
 
     protected getKeywordDocumentation(keyword: GrammarAST.Keyword): MarkupContent | string | undefined {

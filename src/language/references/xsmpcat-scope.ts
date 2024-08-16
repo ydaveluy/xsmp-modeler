@@ -4,8 +4,9 @@ import type { XsmpcatServices } from '../xsmpcat-module.js';
 import * as ast from '../generated/ast.js';
 import { AstUtils, Cancellation, DocumentCache, EMPTY_SCOPE, MultiMap, WorkspaceCache, interruptAndCheck, stream } from 'langium';
 import * as ProjectUtils from '../utils/project-utils.js';
-import type { XsmpcatTypeProvider } from './type-provider.js';
+import type { XsmpTypeProvider } from './type-provider.js';
 import * as XsmpUtils from '../utils/xsmp-utils.js';
+import type { XsmpSharedServices } from '../xsmp-module.js';
 
 export class XsmpcatScopeComputation implements ScopeComputation {
 
@@ -18,32 +19,37 @@ export class XsmpcatScopeComputation implements ScopeComputation {
     async computeExports(document: LangiumDocument, cancelToken = Cancellation.CancellationToken.None): Promise<AstNodeDescription[]> {
         const catalogue = document.parseResult.value as ast.Catalogue,
             exportedDescriptions: AstNodeDescription[] = [];
-
+        //Export the Catalogue
+        if (catalogue.name) {
+            exportedDescriptions.push(this.descriptions.createDescription(catalogue, catalogue.name, document));
+        }
         for (const namespace of catalogue.elements) {
             await interruptAndCheck(cancelToken);
             if (namespace.name) {
-                await this.computeNamespaceExports(document, namespace, exportedDescriptions, `${namespace.name}.`, cancelToken);
+                await this.computeNamespaceExports(document, namespace, exportedDescriptions, namespace.name, cancelToken);
             }
         }
         return exportedDescriptions;
     }
 
     async computeNamespaceExports(document: LangiumDocument, namespace: ast.Namespace, exportedDescriptions: AstNodeDescription[], baseName: string, cancelToken: Cancellation.CancellationToken) {
+        //Export the Namespace
+        exportedDescriptions.push(this.descriptions.createDescription(namespace, baseName, document));
         for (const element of namespace.elements) {
             if (element.name) {
                 await interruptAndCheck(cancelToken);
-                const elementName = baseName + element.name;
+                const elementName = `${baseName}.${element.name}`;
                 if (ast.isType(element)) {
                     this.computeTypeExports(document, element, exportedDescriptions, elementName);
                 }
                 else {
-                    await this.computeNamespaceExports(document, element, exportedDescriptions, `${elementName}.`, cancelToken);
+                    await this.computeNamespaceExports(document, element, exportedDescriptions, elementName, cancelToken);
                 }
             }
         }
     }
     computeTypeExports(document: LangiumDocument, type: ast.Type, exportedDescriptions: AstNodeDescription[], typeName: string) {
-        //Export the type
+        //Export the Type
         exportedDescriptions.push(this.descriptions.createDescription(type, typeName, document));
 
         if (ast.isEnumeration(type)) {
@@ -153,7 +159,7 @@ export class XsmpcatScopeProvider implements ScopeProvider {
     protected readonly visibleUris: WorkspaceCache<URI, Set<string> | undefined>;
     protected readonly reflection: AstReflection;
     protected readonly indexManager: IndexManager;
-    protected readonly typeProvider: XsmpcatTypeProvider;
+    protected readonly typeProvider: XsmpTypeProvider;
     protected readonly globalScopeCache: WorkspaceCache<URI, Scope>;
     protected readonly contexts: Set<Reference> = new Set<Reference>();
     protected readonly precomputedCache: DocumentCache<AstNode, Map<string, AstNodeDescription>>;
@@ -163,7 +169,7 @@ export class XsmpcatScopeProvider implements ScopeProvider {
         this.visibleUris = new WorkspaceCache<URI, Set<string> | undefined>(services.shared);
         this.reflection = services.shared.AstReflection;
         this.indexManager = services.shared.workspace.IndexManager;
-        this.typeProvider = services.TypeProvider;
+        this.typeProvider = (services.shared as XsmpSharedServices).TypeProvider;
         this.globalScopeCache = new WorkspaceCache<URI, Scope>(services.shared);
         this.precomputedCache = new DocumentCache<AstNode, Map<string, AstNodeDescription>>(services.shared);
     }

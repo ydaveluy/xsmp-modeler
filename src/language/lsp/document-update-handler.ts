@@ -22,7 +22,7 @@ export class XsmpDocumentUpdateHandler extends DefaultDocumentUpdateHandler {
             // Only fire the document generation when the workspace manager is ready
             // Otherwise, we might miss the initial indexing of the workspace
             this.workspaceManager.ready.then(() => {
-                this.workspaceLock.write(_token => { this.documentGenerator.generate(uri); });
+                this.workspaceLock.write(token =>  this.documentGenerator.generate(uri, token));
             }).catch(err => {
                 // This should never happen, but if it does, we want to know about it
                 console.error('Workspace initialization failed. Could not perform document generation.', err);

@@ -6,7 +6,7 @@ import { createXsmpServices } from "../../../src/language/xsmp-module.js";
 import { Catalogue, isCatalogue } from "../../../src/language/generated/ast.js";
 import * as path from 'path';
 import * as fs from 'fs';
-import { SmpcatGenerator } from "../../../src/language/generator/smp/generator.js";
+import { SmpGenerator } from "../../../src/language/generator/smp/generator.js";
 
 let services: ReturnType<typeof createXsmpServices>;
 let parse: ReturnType<typeof parseHelper<Catalogue>>;
@@ -25,7 +25,7 @@ describe('SMP generator tests', () => {
 
   test('test catalogue', async () => {
 
-    const generator = new SmpcatGenerator();
+    const generator = new SmpGenerator();
     document = await parse(fs.readFileSync(path.resolve(__dirname, 'test.xsmpcat')).toString(), { documentUri: 'test.xsmpcat' });
 
     // check for absensce of parser errors the classic way:
@@ -38,7 +38,7 @@ describe('SMP generator tests', () => {
       // prior to the tagged template expression we check for validity of the parsed document object
       //  by means of the reusable function 'checkDocumentValid()' to sort out (critical) typos first;
       checkDocumentValid(document) ??
-      generator.doGenerateCatalogue(document.parseResult.value)
+      await generator.doGenerateCatalogue(document.parseResult.value)
     ).toBe(fs.readFileSync(path.resolve(__dirname,'test.smpcat')).toString());
 
     expect(
@@ -47,7 +47,7 @@ describe('SMP generator tests', () => {
       // prior to the tagged template expression we check for validity of the parsed document object
       //  by means of the reusable function 'checkDocumentValid()' to sort out (critical) typos first;
       checkDocumentValid(document) ??
-      generator.doGeneratePackage(document.parseResult.value)
+      await generator.doGeneratePackage(document.parseResult.value)
     ).toBe(fs.readFileSync(path.resolve(__dirname, 'test.smppkg')).toString());
   });
 });

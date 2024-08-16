@@ -48,6 +48,7 @@ export function registerXsmpcatValidationChecks(services: XsmpcatServices) {
             Parameter: validator.checkParameter,
             ReturnParameter: validator.checkReturnParameter,
             PrimitiveType: validator.checkPrimitiveType,
+            Namespace: validator.checkNamespace,
         };
     registry.register(checks, validator, 'fast');
 }
@@ -84,13 +85,13 @@ export class XsmpcatValidator {
     protected documents: LangiumDocuments;
 
     protected readonly globalCache: WorkspaceCache<string, MultiMap<string, ast.Type>>;
-    protected readonly visibleCache: WorkspaceCache<URI, MultiMap<string, ast.Type>>;
+    protected readonly visibleCache: WorkspaceCache<URI, MultiMap<string, ast.NamedElement>>;
 
     constructor(services: XsmpcatServices) {
         this.indexManager = services.shared.workspace.IndexManager;
         this.documents = services.shared.workspace.LangiumDocuments;
         this.globalCache = new WorkspaceCache<string, MultiMap<string, ast.Type>>(services.shared);
-        this.visibleCache = new WorkspaceCache<URI, MultiMap<string, ast.Type>>(services.shared);
+        this.visibleCache = new WorkspaceCache<URI, MultiMap<string, ast.NamedElement>>(services.shared);
     }
 
     private computeUuidsForTypes(): MultiMap<string, ast.Type> {
@@ -121,17 +122,25 @@ export class XsmpcatValidator {
         return this.globalCache.get('services', () => this.computeServiceNames()).get(service.name).length > 1;
     }
 
-    private computeTypeNames(uri: URI): MultiMap<string, ast.Type> {
-        const map = new MultiMap<string, ast.Type>();
-        for (const type of this.indexManager.allElements(ast.Type, findVisibleUris(this.documents, uri)?.add(uri.toString()))) {
-            if (type.node) { map.add(type.name, type.node as ast.Type); }
+    private computeVisibleNames(uri: URI): MultiMap<string, ast.NamedElement> {
+        const map = new MultiMap<string, ast.NamedElement>();
+        for (const element of this.indexManager.allElements(ast.NamedElement, findVisibleUris(this.documents, uri)?.add(uri.toString()))) {
+            if (element.node) {
+                map.add(element.name, element.node as ast.NamedElement);
+            }
         }
         return map;
     }
-
-    private isDuplicatedTypeName(type: ast.Type): boolean {
-        const { uri } = AstUtils.getDocument(type);
-        return this.visibleCache.get(uri, () => this.computeTypeNames(uri)).get(XsmpUtils.fqn(type)).length > 1;
+    private getDuplicatedName(element: ast.Type | ast.Namespace): readonly ast.NamedElement[] {
+        const { uri } = AstUtils.getDocument(element);
+        return this.visibleCache.get(uri, () => this.computeVisibleNames(uri)).get(XsmpUtils.fqn(element));
+    }
+    private isDuplicatedTypeName(element: ast.Type): boolean {
+        return this.getDuplicatedName(element).length > 1;
+    }
+    private isDuplicatedNamespaceName(element: ast.Namespace): boolean {
+        const duplicates = this.getDuplicatedName(element);
+        return duplicates.length > 1 && (duplicates.some(ast.isType) || duplicates.filter(e => !ast.isCatalogue(e) && AstUtils.getDocument(element) === AstUtils.getDocument(e)).length > 1);
     }
 
     checkNamedElement(element: ast.NamedElement, accept: ValidationAcceptor): void {
@@ -464,9 +473,13 @@ export class XsmpcatValidator {
         if (duplicates.length > 0) {
             if (ast.isOperation(member)) {
                 const sig = XsmpUtils.getSignature(member);
-                if (duplicates.some(d => !ast.isOperation(d) || (sig === XsmpUtils.getSignature(d) && member.$container === d.$container))) { accept('error', 'Duplicated identifier.', { node: member, property: 'name' }); }
+                if (duplicates.some(d => !ast.isOperation(d) || (sig === XsmpUtils.getSignature(d) && member.$container === d.$container))) {
+                    accept('error', 'Duplicated identifier.', { node: member, property: 'name' });
+                }
             }
-            else if (!ast.isConstant(member) || duplicates.find(d => d.$container === member.$container)) { accept('error', 'Duplicated identifier.', { node: member, property: 'name' }); }
+            else if (!(ast.isConstant(member) || ast.isProperty(member)) || duplicates.find(d => d.$container === member.$container)) {
+                accept('error', 'Duplicated identifier.', { node: member, property: 'name' });
+            }
 
         }
         members.add(member.name, member);
@@ -837,5 +850,11 @@ export class XsmpcatValidator {
     checkPrimitiveType(type: ast.PrimitiveType, accept: ValidationAcceptor): void {
         this.checkModifier(type, [ast.isVisibilityModifiers], accept);
         if (XsmpUtils.getPrimitiveTypeKind(type) === 'None') { accept('error', 'Unsupported Primitive Type.', { node: type, property: 'name' }); }
+    }
+
+    checkNamespace(namespace: ast.Namespace, accept: ValidationAcceptor): void {
+        if (this.isDuplicatedNamespaceName(namespace)) {
+            accept('error', 'Duplicated name.', { node: namespace, property: 'name' });
+        }
     }
 }

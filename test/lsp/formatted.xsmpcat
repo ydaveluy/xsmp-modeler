@@ -88,6 +88,19 @@ namespace ns
      * @uuid cf6efcd7-aa8e-4d0b-bdf5-a4fcb205e90c
      */
     native NativeType
+
+
+    /** @uuid a10c5dbd-bba3-4e23-ae83-6798319c7d06 */
+    exception AnException
+    {
+    }
+
+
+    /** @uuid 8d1bf2ef-5665-4076-a555-477288e608d9 */
+    service AService
+    {
+    }
+    primitive UInt64
 } // namespace Expressions
 
 

@@ -5,15 +5,15 @@ import type * as Types from './model/types.js';
 import type * as Package from './model/package.js';
 import type * as xlink from './model/xlink.js';
 import * as XsmpUtils from '../../utils/xsmp-utils.js';
-import type { AstNode, JSDocParagraph, Reference, URI} from 'langium';
+import type { AstNode, JSDocParagraph, Reference, URI } from 'langium';
 import { AstUtils, UriUtils } from 'langium';
 import * as fs from 'fs';
 import * as Solver from '../../utils/solver.js';
 import { Duration, Instant } from '@js-joda/core';
-import type { XsmpGenerator } from '../generator.js';
+import type { TaskAcceptor, XsmpGenerator } from '../generator.js';
 import { create } from 'xmlbuilder2';
 
-export class SmpcatGenerator implements XsmpGenerator<ast.Catalogue> {
+export class SmpGenerator implements XsmpGenerator {
 
     protected getId(element: ast.NamedElement | ast.ReturnParameter): string {
         return XsmpUtils.getId(element) ?? XsmpUtils.fqn(element);
@@ -30,7 +30,7 @@ export class SmpcatGenerator implements XsmpGenerator<ast.Catalogue> {
     protected convertAttribute(element: ast.Attribute): Types.Attribute {
         return {
             '@xsi:type': 'Types:Attribute',
-            '@Id': `${this.getId(element.$container)  }.${  element.type.ref?.name  }.${  element.$containerIndex}`,
+            '@Id': `${this.getId(element.$container)}.${element.type.ref?.name}.${element.$containerIndex}`,
             '@Name': element.type.ref?.name ?? '',
             Type: this.convertXlink(element.type, element),
             Value: element.value ? this.convertValue((element.type.ref as ast.AttributeType).type.ref, element.value) :
@@ -358,20 +358,19 @@ export class SmpcatGenerator implements XsmpGenerator<ast.Catalogue> {
     protected convertXlink(link: Reference<ast.NamedElement>, context: AstNode): xlink.Xlink {
         if (link.ref) {
             const refDoc = AstUtils.getDocument(link.ref),
-             doc = AstUtils.getDocument(context);
+                doc = AstUtils.getDocument(context);
 
-            let href = `#${  XsmpUtils.getId(link.ref) ?? XsmpUtils.fqn(link.ref)}`;
+            let href = `#${XsmpUtils.getId(link.ref) ?? XsmpUtils.fqn(link.ref)}`;
             if (doc !== refDoc) {
                 let fileName = UriUtils.basename(refDoc.uri).replace(/\.xsmpcat$/, '.smpcat');
-                if (fileName === 'ecss.smp.smpcat')
-                    {fileName = 'http://www.ecss.nl/smp/2019/Smdl';}
+                if (fileName === 'ecss.smp.smpcat') { fileName = 'http://www.ecss.nl/smp/2019/Smdl'; }
                 href = fileName + href;
             }
 
             return { '@xlink:title': link.ref.name, '@xlink:href': href };
 
         }
-        return { '@xlink:title': link.$refText, '@xlink:href': `#${  link.$refText}` };
+        return { '@xlink:title': link.$refText, '@xlink:href': `#${link.$refText}` };
 
     }
     protected convertOperation(operation: ast.Operation): Types.Operation {
@@ -387,7 +386,7 @@ export class SmpcatGenerator implements XsmpGenerator<ast.Catalogue> {
     }
     protected convertReturnParameter(parameter: ast.ReturnParameter, id: string): Types.Parameter {
         return {
-            '@Id': `${id  }.${  parameter.name ?? 'return'}`,
+            '@Id': `${id}.${parameter.name ?? 'return'}`,
             '@Name': parameter.name ?? 'return',
             Description: XsmpUtils.getReturnParameterDescription(parameter),
             Metadata: parameter.attributes.map(this.convertAttribute, this),
@@ -397,7 +396,7 @@ export class SmpcatGenerator implements XsmpGenerator<ast.Catalogue> {
     }
     protected convertParameter(parameter: ast.Parameter, id: string): Types.Parameter {
         return {
-            '@Id': `${id  }.${  parameter.name}`,
+            '@Id': `${id}.${parameter.name}`,
             '@Name': parameter.name,
             Description: XsmpUtils.getParameterDescription(parameter),
             Metadata: parameter.attributes.map(this.convertAttribute, this),
@@ -449,8 +448,9 @@ export class SmpcatGenerator implements XsmpGenerator<ast.Catalogue> {
     }
 
     private convertDate(date: JSDocParagraph | undefined): string | undefined {
-        if (!date)
-            {return undefined;}
+        if (!date) {
+            return undefined;
+        }
         try {
             return Instant.parse(date.toString().trim()).toString();
         }
@@ -459,8 +459,8 @@ export class SmpcatGenerator implements XsmpGenerator<ast.Catalogue> {
         }
     }
 
-    protected convertCatalogue(catalogue: ast.Catalogue): Catalogue.Catalogue {
-        const id = XsmpUtils.getId(catalogue) ?? `_${  XsmpUtils.fqn(catalogue)}`;
+    protected async convertCatalogue(catalogue: ast.Catalogue): Promise<Catalogue.Catalogue> {
+        const id = XsmpUtils.getId(catalogue) ?? `_${XsmpUtils.fqn(catalogue)}`;
 
         return {
             '@xmlns:Elements': 'http://www.ecss.nl/smp/2019/Core/Elements',
@@ -480,11 +480,12 @@ export class SmpcatGenerator implements XsmpGenerator<ast.Catalogue> {
             Namespace: catalogue.elements.map(this.convertNamespace, this),
         };
     }
-    protected convertPackage(catalogue: ast.Catalogue): Package.Package {
-        const id = XsmpUtils.getId(catalogue) ?? `_${  XsmpUtils.fqn(catalogue)}`,
-         doc = AstUtils.getDocument(catalogue),
-         prefix = `${UriUtils.basename(doc.uri).replace(/\.xsmpcat$/, '.smpcat')  }#`,
-         dependencies = doc.references.map(e => e.ref ? AstUtils.getDocument(e.ref).parseResult.value : undefined).filter(ast.isCatalogue).filter(e => e !== catalogue && e.name !== 'ecss_smp_smp').sort((l, r) => l.name.localeCompare(r.name));
+    protected async convertPackage(catalogue: ast.Catalogue): Promise<Package.Package> {
+        const id = XsmpUtils.getId(catalogue) ?? `_${XsmpUtils.fqn(catalogue)}`,
+            doc = AstUtils.getDocument(catalogue),
+            prefix = `${UriUtils.basename(doc.uri).replace(/\.xsmpcat$/, '.smpcat')}#`,
+            dependencies = doc.references.map(e => e.ref ? AstUtils.getDocument(e.ref).parseResult.value : undefined).filter(ast.isCatalogue)
+                .filter(e => e !== catalogue && e.name !== 'ecss_smp_smp').sort((l, r) => l.name.localeCompare(r.name));
         return {
             '@xmlns:Elements': 'http://www.ecss.nl/smp/2019/Core/Elements',
             '@xmlns:Types': 'http://www.ecss.nl/smp/2019/Core/Types',
@@ -509,55 +510,58 @@ export class SmpcatGenerator implements XsmpGenerator<ast.Catalogue> {
             })).toArray(),
         };
     }
-    public doGenerateCatalogue(catalogue: ast.Catalogue): string {
+    public async doGenerateCatalogue(catalogue: ast.Catalogue): Promise<string> {
 
         const obj = {
-            'Catalogue:Catalogue': this.convertCatalogue(catalogue),
+            'Catalogue:Catalogue': await this.convertCatalogue(catalogue),
 
         },
-         doc = create({ version: '1.0', encoding: 'UTF-8' }, obj);
+            doc = create({ version: '1.0', encoding: 'UTF-8' }, obj);
         return doc.end({ prettyPrint: true });
     }
 
-    public doGeneratePackage(catalogue: ast.Catalogue): string {
+    generate(node: AstNode, projectUri: URI, acceptTask: TaskAcceptor) {
+        if (ast.isCatalogue(node)) {
+            acceptTask(() => this.generateCatalogue(node, projectUri));
+            acceptTask(() => this.generatePackage(node, projectUri));
+        }
+    }
+
+    protected readonly smdlGenFolder = 'smdl-gen';
+    clean(projectUri: URI) {
+        fs.rmSync(UriUtils.joinPath(projectUri, this.smdlGenFolder).fsPath, { recursive: true, force: true });
+    }
+
+    public async doGeneratePackage(catalogue: ast.Catalogue): Promise<string> {
 
         const obj = {
-            'Package:Package': this.convertPackage(catalogue),
+            'Package:Package': await this.convertPackage(catalogue),
 
         },
-         doc = create({ version: '1.0', encoding: 'UTF-8' }, obj);
+            doc = create({ version: '1.0', encoding: 'UTF-8' }, obj);
         return doc.end({ prettyPrint: true });
     }
 
-    getGenerationTasks(node: ast.Catalogue, projectUri: URI): Array<Promise<void>> {
-        return [
-            this.generateCatalogue(node, projectUri),
-            this.generatePackage(node, projectUri)
-        ];
-    }
-    private createOutputDir(projectUri: URI): URI {
-        const outputDir = UriUtils.joinPath(projectUri, 'smdl-gen');
+    private async createOutputDir(projectUri: URI): Promise<URI> {
+        const outputDir = UriUtils.joinPath(projectUri, this.smdlGenFolder);
 
-        fs.mkdirSync(outputDir.fsPath, { recursive: true });
+        fs.promises.mkdir(outputDir.fsPath, { recursive: true });
         return outputDir;
     }
 
     public async generateCatalogue(catalogue: ast.Catalogue, projectUri: URI): Promise<void> {
-        const outputDir = this.createOutputDir(projectUri),
 
-         smpcatFile = UriUtils.joinPath(outputDir, UriUtils.basename(catalogue.$document?.uri as URI).replace(/\.xsmpcat$/, '.smpcat'));
+        const outputDir = await this.createOutputDir(projectUri);
+        const smpcatFile = UriUtils.joinPath(outputDir, UriUtils.basename(catalogue.$document?.uri as URI).replace(/\.xsmpcat$/, '.smpcat'));
+        fs.promises.writeFile(smpcatFile.fsPath, await this.doGenerateCatalogue(catalogue));
 
-        fs.writeFileSync(smpcatFile.fsPath, this.doGenerateCatalogue(catalogue));
-        console.log(`File written successfully to ${smpcatFile.fsPath}`);
     }
 
     public async generatePackage(catalogue: ast.Catalogue, projectUri: URI): Promise<void> {
+        const outputDir = await this.createOutputDir(projectUri);
+        const smppkgFile = UriUtils.joinPath(outputDir, UriUtils.basename(catalogue.$document?.uri as URI).replace(/\.xsmpcat$/, '.smppkg'));
+        fs.promises.writeFile(smppkgFile.fsPath, await this.doGeneratePackage(catalogue));
 
-        const outputDir = this.createOutputDir(projectUri),
-
-         smppkgFile = UriUtils.joinPath(outputDir, UriUtils.basename(catalogue.$document?.uri as URI).replace(/\.xsmpcat$/, '.smppkg'));
-        fs.writeFileSync(smppkgFile.fsPath, this.doGeneratePackage(catalogue));
-        console.log(`File written successfully to ${smppkgFile.fsPath}`);
     }
 }
 

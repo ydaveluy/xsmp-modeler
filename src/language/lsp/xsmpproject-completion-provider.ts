@@ -1,10 +1,8 @@
 import type { AstNodeDescription, ReferenceInfo, Stream } from 'langium';
-import type { CompletionContext } from 'langium/lsp';
+import type { CompletionValueItem } from 'langium/lsp';
 import { DefaultCompletionProvider } from 'langium/lsp';
 import * as ast from '../generated/ast.js';
 import * as ProjectUtils from '../utils/project-utils.js';
-
-import type { TextEdit } from 'vscode-languageserver-protocol';
 
 export class XsmpprojectCompletionProvider extends DefaultCompletionProvider {
 
@@ -30,21 +28,16 @@ export class XsmpprojectCompletionProvider extends DefaultCompletionProvider {
         return this.scopeProvider.getScope(refInfo).getAllElements();
     }
 
-    protected override buildCompletionTextEdit(context: CompletionContext, label: string, newText: string): TextEdit | undefined {
-        const content = context.textDocument.getText(),
-            identifier = content.substring(context.tokenOffset, context.offset);
-        if (this.fuzzyMatcher.match(identifier, label)) {
-            const start = context.textDocument.positionAt(context.tokenOffset),
-                end = context.position;
-
-            return {
-                newText: `"${newText}"`,
-                range: {
-                    start,
-                    end
-                }
-            };
-        }
-        return undefined;
+    protected override createReferenceCompletionItem(nodeDescription: AstNodeDescription): CompletionValueItem {
+        const kind = this.nodeKindProvider.getCompletionItemKind(nodeDescription);
+        const documentation = this.getReferenceDocumentation(nodeDescription);
+        return {
+            nodeDescription,
+            kind,
+            documentation,
+            insertText: `"${nodeDescription.name}"`,
+            detail: nodeDescription.type,
+            sortText: '0'
+        };
     }
 }

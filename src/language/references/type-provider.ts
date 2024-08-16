@@ -1,18 +1,18 @@
 import type { AstNode } from 'langium';
 import { WorkspaceCache } from 'langium';
 import * as ast from '../generated/ast.js';
-import type { XsmpcatServices } from '../xsmpcat-module.js';
 import * as XsmpUtils from '../utils/xsmp-utils.js';
+import type { XsmpSharedServices } from '../xsmp-module.js';
 
 /**
  * Provide the the type of any Expression in the AST.
  * Types are cached to improve performances.
  */
-export class XsmpcatTypeProvider {
+export class XsmpTypeProvider {
 
     protected readonly typeCache: WorkspaceCache<AstNode, ast.Type | undefined>;
-    constructor(services: XsmpcatServices) {
-        this.typeCache = new WorkspaceCache<AstNode, ast.Type | undefined>(services.shared);
+    constructor(services: XsmpSharedServices) {
+        this.typeCache = new WorkspaceCache<AstNode, ast.Type | undefined>(services);
     }
 
     /** Get the type of the expression on undefined if no type can be found */

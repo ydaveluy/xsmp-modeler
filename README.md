@@ -16,7 +16,7 @@
 - [x] SMP Tool - generator
 - [ ] SMP Tool - import
 - [ ] AsciiDoc Tool - generator
-- [ ] xsmp-sdk Profile - generator
+- [ ] xsmp-sdk Profile - generator (in progress)
 - [ ] esa-cdk Profile - generator
 - [x] Project Wizard
 

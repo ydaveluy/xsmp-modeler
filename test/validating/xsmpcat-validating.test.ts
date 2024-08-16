@@ -121,6 +121,7 @@ Upper bound shall be -1 or larger or equal to the lower bound.
 [207:4..207:9]: Missing Type UUID.
 [209:4..209:9]: Missing Type UUID.
 [211:4..211:10]: Missing Type UUID.
+[216:10..216:21]: Duplicated name.
 [234:31..234:33]: Partial initialization, the array type expect 3 element(s), got 0 element(s).
 [235:38..235:39]: The array type expect 3 element(s), got 4 element(s).
 [237:31..237:35]: An array shall be initialized with a collection.
@@ -137,6 +138,7 @@ Upper bound shall be -1 or larger or equal to the lower bound.
 [250:47..250:50]: Unary operator '!' is not supported for operand of type 'String8'.
 [250:53..250:56]: Unary operator '+' is not supported for operand of type 'String8'.
 [250:59..250:62]: Unary operator '~' is not supported for operand of type 'String8'.
+[257:10..257:21]: Duplicated name.
 [14:4..14:11]: Missing Type UUID.
 [29:30..29:38]: The type Structure is not a sub type of Service.
 [29:4..29:11]: The Service shall be abstract.
@@ -175,7 +177,6 @@ Upper bound shall be -1 or larger or equal to the lower bound.
 [122:31..122:35]: Duplicated identifier.
 [124:36..124:40]: Duplicated identifier.
 [129:27..129:29]: Duplicated identifier.
-[138:49..138:57]: Duplicated identifier.
 [138:24..138:33]: Illegal modifier.
 [115:4..115:9]: The Model shall be abstract.
 [147:17..147:24]: The type Model is not a sub type of Interface.

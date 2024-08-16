@@ -1,5 +1,5 @@
-import type { AstNode, CstNode, JSDocComment, JSDocParagraph, Stream } from 'langium';
-import { AstUtils, CstUtils, isAstNodeWithComment, isJSDoc, parseJSDoc, stream } from 'langium';
+import type { AstNode, CstNode, JSDocComment, JSDocParagraph, JSDocTag, Stream } from 'langium';
+import { AstUtils, CstUtils, isJSDoc, parseJSDoc, stream } from 'langium';
 import * as ast from '../generated/ast.js';
 import * as Solver from './solver.js';
 
@@ -30,7 +30,7 @@ export type Attributes = 'Attributes.Static'
     | 'Attributes.Constructor' | 'Attributes.Forcible'
     | 'Attributes.Failure' | 'Attributes.ConstGetter'
     | 'Attributes.NoConstructor' | 'Attributes.NoDestructor'
-    | 'Attributes.SimpleArray' | 'Attributes.OperatorKind';
+    | 'Attributes.SimpleArray' | 'Attributes.OperatorKind' | 'Attributes.View';
 
 /**
  * Get the full qualified name of an element
@@ -38,12 +38,15 @@ export type Attributes = 'Attributes.Static'
  * @param separator optional separator (default is '.')
  * @returns qualified name separated by the separator
  */
-export function fqn(node: ast.NamedElement | ast.ReturnParameter, separator: string = '.'): string {
-    let name = node.name ?? 'return',
-        parent = node.$container;
+export function fqn(node: ast.NamedElement | ast.ReturnParameter | undefined, separator: string = '.'): string {
+    if (!node) {
+        return '<undefined>';
+    }
+    let name = node.name ?? 'return';
+    let parent = node.$container;
 
-    while (ast.isNamespace(parent) || ast.isType(parent)) {
-        name = `${parent.name}${separator}${name}`;
+    while (parent && (parent.$type === ast.Namespace || ast.reflection.isSubtype(parent.$type, ast.Type))) {
+        name = `${(parent as ast.NamedElement).name}${separator}${name}`;
         parent = parent.$container;
     }
     return name;
@@ -80,6 +83,10 @@ export function getAccessKind(node: ast.Property): ast.AccessKind | undefined {
     return undefined;
 }
 
+export function getViewKind(node: ast.Property | ast.Field | ast.Operation | ast.EntryPoint): ast.Expression | undefined {
+    return attribute(node, 'Attributes.View')?.value;
+}
+
 export function isAbstractType(node: ast.Class | ast.Component): boolean {
     return node.modifiers.includes('abstract');
 }
@@ -93,35 +100,38 @@ export function isState(node: ast.VisibilityElement): boolean {
     return !node.modifiers.includes('transient');
 }
 
-export function getPrimitiveTypeKind(type: ast.Type): PrimitiveTypeKind {
-    if (ast.isPrimitiveType(type)) {
-        switch (fqn(type)) {
-            case 'Smp.Bool': return 'Bool';
-            case 'Smp.Char8': return 'Char8';
-            case 'Smp.DateTime': return 'DateTime';
-            case 'Smp.Duration': return 'Duration';
-            case 'Smp.Float32': return 'Float32';
-            case 'Smp.Float64': return 'Float64';
-            case 'Smp.Int8': return 'Int8';
-            case 'Smp.Int16': return 'Int16';
-            case 'Smp.Int32': return 'Int32';
-            case 'Smp.Int64': return 'Int64';
-            case 'Smp.UInt8': return 'UInt8';
-            case 'Smp.UInt16': return 'UInt16';
-            case 'Smp.UInt32': return 'UInt32';
-            case 'Smp.UInt64': return 'UInt64';
-            case 'Smp.String8': return 'String8';
-        }
+export function getPrimitiveTypeKind(type: ast.Type | undefined, defaultKind: PrimitiveTypeKind = 'None'): PrimitiveTypeKind {
+    if (!type) { return defaultKind; }
+    switch (type.$type) {
+        case ast.PrimitiveType:
+            switch (fqn(type)) {
+                case 'Smp.Bool': return 'Bool';
+                case 'Smp.Char8': return 'Char8';
+                case 'Smp.DateTime': return 'DateTime';
+                case 'Smp.Duration': return 'Duration';
+                case 'Smp.Float32': return 'Float32';
+                case 'Smp.Float64': return 'Float64';
+                case 'Smp.Int8': return 'Int8';
+                case 'Smp.Int16': return 'Int16';
+                case 'Smp.Int32': return 'Int32';
+                case 'Smp.Int64': return 'Int64';
+                case 'Smp.UInt8': return 'UInt8';
+                case 'Smp.UInt16': return 'UInt16';
+                case 'Smp.UInt32': return 'UInt32';
+                case 'Smp.UInt64': return 'UInt64';
+                case 'Smp.String8': return 'String8';
+                default: return 'None';
+            }
+        case ast.Float: return getPrimitiveTypeKind((type as ast.Float).primitiveType?.ref, 'Float64');
+        case ast.Integer: return getPrimitiveTypeKind((type as ast.Integer).primitiveType?.ref, 'Int32');
+        case ast.StringType: return 'String8';
+        case ast.Enumeration: return 'Enum';
+        default: return 'None';
     }
-    else if (ast.isFloat(type)) { return type.primitiveType?.ref ? getPrimitiveTypeKind(type.primitiveType.ref) : 'Float64'; }
-    else if (ast.isInteger(type)) { return type.primitiveType?.ref ? getPrimitiveTypeKind(type.primitiveType.ref) : 'Int32'; }
-    else if (ast.isStringType(type)) { return 'String8'; }
-    else if (ast.isEnumeration(type)) { return 'Enum'; }
-    return 'None';
 }
 
-function getCommentNode(node: AstNode): CstNode | undefined {
-    return isAstNodeWithComment(node) ? node.$cstNode : CstUtils.findCommentNode(node.$cstNode, ['ML_COMMENT']);
+export function getCommentNode(node: AstNode): CstNode | undefined {
+    return CstUtils.findCommentNode(node.$cstNode, ['ML_COMMENT']);
 }
 
 export function getJSDoc(element: AstNode): JSDocComment | undefined {
@@ -222,11 +232,10 @@ export function getDescription(element: ast.NamedElement): string | undefined {
 
     const result: string[] = [];
     for (const e of jsDoc.elements) {
-        const text = e.toString();
-        if (text.startsWith('@')) {
+        if (typeof (e as JSDocTag).name === 'string' && !(e as JSDocTag).inline) {
             break;
         }
-        result.push(text);
+        result.push(e.toString());
     }
     return result.length > 0 ? result.join('\n').trim() : undefined;
 }
@@ -237,14 +246,24 @@ export function getParameterDescription(element: ast.Parameter): string | undefi
 export function getReturnParameterDescription(element: ast.ReturnParameter): string | undefined {
     return getJSDoc(element.$container)?.getTag('return')?.content.toString().trim();
 }
-
-export function isStatic(element: ast.NamedElement | ast.ReturnParameter): boolean {
+export function isFailure(element: ast.Field): boolean {
+    return attributeBoolValue(element, 'Attributes.Failure') ?? false;
+}
+export function isForcible(element: ast.Field): boolean {
+    return attributeBoolValue(element, 'Attributes.Forcible') ?? false;
+}
+export function isStatic(element: ast.Operation | ast.Property | ast.Field | ast.Association): boolean {
     return attributeBoolValue(element, 'Attributes.Static') ?? false;
 }
 export function isAbstract(element: ast.Operation | ast.Property): boolean {
     return attributeBoolValue(element, 'Attributes.Abstract') ?? false;
 }
-
+export function isVirtual(element: ast.Operation | ast.Property): boolean {
+    return attributeBoolValue(element, 'Attributes.Virtual') ?? false;
+}
+export function isMutable(element: ast.Field | ast.Association): boolean {
+    return attributeBoolValue(element, 'Attributes.Mutable') ?? false;
+}
 export function isConst(element: ast.Parameter | ast.ReturnParameter | ast.Association | ast.Operation | ast.Property): boolean {
     return attributeBoolValue(element, 'Attributes.Const') ?? false;
 }
@@ -344,13 +363,13 @@ function checkIsBaseOfReferenceType(parent: ast.ReferenceType, base: ast.Type | 
         return true;
     }
     visited.add(base);
-    if (ast.isInterface(parent)) {
-        return checkIsBaseOfInterface(parent, base, visited);
+    if (ast.isInterface(base)) {
+        return base.base.some(i => checkIsBaseOfReferenceType(parent, i.ref, visited));
     }
 
-    if (ast.isComponent(parent)) {
-        return (parent.base !== undefined && checkIsBaseOfReferenceType(parent, parent.base.ref, visited)) ||
-            parent.interface.some(i => checkIsBaseOfReferenceType(parent, i.ref, visited));
+    if (ast.isComponent(base)) {
+        return (base.base !== undefined && checkIsBaseOfReferenceType(parent, base.base.ref, visited)) ||
+            base.interface.some(i => checkIsBaseOfReferenceType(parent, i.ref, visited));
     }
 
     return false;

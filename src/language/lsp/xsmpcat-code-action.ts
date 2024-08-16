@@ -8,11 +8,10 @@ import type { CodeAction, Command } from 'vscode-languageserver-types';
 import * as  IssueCodes from '../validation/xsmpcat-issue-codes.js';
 import { randomUUID } from 'crypto';
 
-
-function isDiagnosticData(obj: any): obj is DiagnosticData {
+function isDiagnosticData(obj: unknown): obj is DiagnosticData {
     return typeof obj === 'object' &&
         obj !== null &&
-        typeof obj.code === 'string';
+        typeof (obj as DiagnosticData).code === 'string';
 }
 
 export class XsmpcatCodeActionProvider implements CodeActionProvider {
@@ -64,7 +63,6 @@ export class XsmpcatCodeActionProvider implements CodeActionProvider {
             }
         }
     }
-
 
     private replaceUuid(diagnostic: Diagnostic, document: LangiumDocument): CodeAction {
         return {

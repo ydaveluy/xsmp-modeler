@@ -299,10 +299,18 @@ export function getValue<T>(expression: ast.Expression | undefined, accept?: Val
             case ast.NamedElementReference:
                 {
                     const ref = expression as ast.NamedElementReference;
-                    if (ast.isEnumerationLiteral(ref.value.ref)) { return new EnumerationLiteralValue(ref.value.ref); }
+                    if (ast.isEnumerationLiteral(ref.value.ref)) {
+                        return new EnumerationLiteralValue(ref.value.ref);
+                    }
                     else if (ast.isConstant(ref.value.ref)) {
-                        if (accept && !XsmpUtils.isConstantVisibleFrom(expression, ref.value.ref)) { accept('error', 'The Constant is not visible.', { node: expression }); }
-                        return getValue(ref.value.ref.value, accept);
+                        const cst = ref.value.ref;
+                        if (accept && !XsmpUtils.isConstantVisibleFrom(expression, cst)) {
+                            accept('error', 'The Constant is not visible.', { node: expression });
+                        }
+                        if (cst.type.ref) {
+                            //do not forward accept
+                            return getValueAs(cst.value, cst.type.ref);
+                        }
                     }
                     else if (accept) {
                         accept('error', 'Invalid element.', { node: expression });

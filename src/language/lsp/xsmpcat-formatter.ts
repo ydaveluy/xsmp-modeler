@@ -5,7 +5,7 @@ import * as ast from '../generated/ast.js';
 import type { TextEdit, Range } from 'vscode-languageserver-protocol';
 
 export class XsmpcatFormatter extends AbstractFormatter {
-
+    // TO BE REMOVED with langium 3.1.4
     protected override avoidOverlappingEdits(textDocument: TextDocument, textEdits: TextEdit[]): TextEdit[] {
         const edits: TextEdit[] = [];
         for (const edit of textEdits) {
@@ -25,10 +25,15 @@ export class XsmpcatFormatter extends AbstractFormatter {
         }
         return edits.filter(e => e.newText !== textDocument.getText(e.range));
     }
-
+    // TO BE REMOVED with langium 3.1.4
     protected override createTextEdit(a: CstNode | undefined, b: CstNode, formatting: FormattingAction, context: FormattingContext): TextEdit[] {
         if (b.hidden) {
             return this.createHiddenTextEdits(a, b, formatting, context);
+        }
+        // Ignore the edit if the previous node ends after the current node starts
+        if (a && (a.range.end.line > b.range.start.line ||
+            (a.range.end.line === b.range.start.line && a.range.end.character > b.range.start.character))) {
+            return [];
         }
         const betweenRange: Range = {
             start: a?.range.end ?? {
@@ -63,16 +68,49 @@ export class XsmpcatFormatter extends AbstractFormatter {
         return edits;
     }
 
-    [key: string]: any;
-
-
+    [key: string]: unknown;
 
     protected override format(node: AstNode): void {
-        const id = `format${node.$type}`;
 
-        if (typeof this[id] === 'function') {
-            const formatter = this.getNodeFormatter(node);
-            this[id](node, formatter);
+        switch (node.$type) {
+            case ast.Attribute: return this.formatAttribute(node as ast.Attribute, this.getNodeFormatter(node));
+            case ast.Parameter: return this.formatParameter(node as ast.Parameter, this.getNodeFormatter(node));
+            case ast.ReturnParameter: return this.formatReturnParameter(node as ast.ReturnParameter, this.getNodeFormatter(node));
+            case ast.Container: return this.formatContainer(node as ast.Container, this.getNodeFormatter(node));
+            case ast.Reference_: return this.formatReference(node as ast.Reference_, this.getNodeFormatter(node));
+            case ast.Multiplicity: return this.formatMultiplicity(node as ast.Multiplicity, this.getNodeFormatter(node));
+            case ast.EntryPoint: return this.formatEntryPoint(node as ast.EntryPoint, this.getNodeFormatter(node));
+            case ast.EventSource: return this.formatEventSource(node as ast.EventSource, this.getNodeFormatter(node));
+            case ast.EventSink: return this.formatEventSink(node as ast.EventSink, this.getNodeFormatter(node));
+            case ast.EnumerationLiteral: return this.formatEnumerationLiteral(node as ast.EnumerationLiteral, this.getNodeFormatter(node));
+            case ast.Catalogue: return this.formatCatalogue(node as ast.Catalogue, this.getNodeFormatter(node));
+            case ast.Namespace: return this.formatNamespace(node as ast.Namespace, this.getNodeFormatter(node));
+            case ast.AttributeType: return this.formatAttributeType(node as ast.AttributeType, this.getNodeFormatter(node));
+            case ast.Field: return this.formatField(node as ast.Field, this.getNodeFormatter(node));
+            case ast.Constant: return this.formatConstant(node as ast.Constant, this.getNodeFormatter(node));
+            case ast.Association: return this.formatAssociation(node as ast.Association, this.getNodeFormatter(node));
+            case ast.Property: return this.formatProperty(node as ast.Property, this.getNodeFormatter(node));
+            case ast.Operation: return this.formatOperation(node as ast.Operation, this.getNodeFormatter(node));
+            case ast.Class: return this.formatClass(node as ast.Class, this.getNodeFormatter(node));
+            case ast.Exception: return this.formatException(node as ast.Exception, this.getNodeFormatter(node));
+            case ast.Structure: return this.formatStructure(node as ast.Structure, this.getNodeFormatter(node));
+            case ast.Integer: return this.formatInteger(node as ast.Integer, this.getNodeFormatter(node));
+            case ast.Float: return this.formatFloat(node as ast.Float, this.getNodeFormatter(node));
+            case ast.Model: return this.formatModel(node as ast.Model, this.getNodeFormatter(node));
+            case ast.Service: return this.formatService(node as ast.Service, this.getNodeFormatter(node));
+            case ast.Interface: return this.formatInterface(node as ast.Interface, this.getNodeFormatter(node));
+            case ast.ArrayType: return this.formatArray(node as ast.ArrayType, this.getNodeFormatter(node));
+            case ast.Enumeration: return this.formatEnumeration(node as ast.Enumeration, this.getNodeFormatter(node));
+            case ast.EventType: return this.formatEventType(node as ast.EventType, this.getNodeFormatter(node));
+            case ast.StringType: return this.formatString(node as ast.StringType, this.getNodeFormatter(node));
+            case ast.ValueReference: return this.formatValueReference(node as ast.ValueReference, this.getNodeFormatter(node));
+            case ast.NativeType: return this.formatNativeType(node as ast.NativeType, this.getNodeFormatter(node));
+            case ast.PrimitiveType: return this.formatPrimitiveType(node as ast.PrimitiveType, this.getNodeFormatter(node));
+            case ast.CollectionLiteral: return this.formatCollectionLiteral(node as ast.CollectionLiteral, this.getNodeFormatter(node));
+            case ast.DesignatedInitializer: return this.formatDesignatedInitializer(node as ast.DesignatedInitializer, this.getNodeFormatter(node));
+            case ast.UnaryOperation: return this.formatUnaryOperation(node as ast.UnaryOperation, this.getNodeFormatter(node));
+            case ast.BinaryOperation: return this.formatBinaryOperation(node as ast.BinaryOperation, this.getNodeFormatter(node));
+            case ast.ParenthesizedExpression: return this.formatParenthesizedExpression(node as ast.ParenthesizedExpression, this.getNodeFormatter(node));
         }
     }
 
@@ -100,7 +138,7 @@ export class XsmpcatFormatter extends AbstractFormatter {
         formatter.keyword('=').surround(Formatting.oneSpace());
     }
 
-    formatReference_(node: ast.Reference_, formatter: NodeFormatter<ast.Reference_>) {
+    formatReference(node: ast.Reference_, formatter: NodeFormatter<ast.Reference_>) {
         formatter.property('interface').prepend(Formatting.oneSpace());
         formatter.property('name').prepend(Formatting.oneSpace());
         formatter.property('optional').prepend(Formatting.noSpace());
@@ -130,9 +168,9 @@ export class XsmpcatFormatter extends AbstractFormatter {
     }
 
     formatCatalogue(node: ast.Catalogue, formatter: NodeFormatter<ast.Catalogue>) {
-        formatter.keyword('catalogue').prepend(Formatting.noIndent())
+        formatter.keyword('catalogue').prepend(Formatting.noIndent());
         formatter.property('name').prepend(Formatting.oneSpace()).append(Formatting.newLine({ allowMore: true }));
-        formatter.nodes(...node.elements).prepend(Formatting.noIndent())
+        formatter.nodes(...node.elements).prepend(Formatting.noIndent());
     }
 
     formatNamespace(node: ast.Namespace, formatter: NodeFormatter<ast.Namespace>) {
@@ -242,7 +280,7 @@ export class XsmpcatFormatter extends AbstractFormatter {
         this.formatBody(node, formatter);
     }
 
-    formatArrayType(node: ast.ArrayType, formatter: NodeFormatter<ast.ArrayType>) {
+    formatArray(node: ast.ArrayType, formatter: NodeFormatter<ast.ArrayType>) {
         this.formatMofifiers(formatter);
         formatter.property('name').prepend(Formatting.oneSpace());
         formatter.keyword('=').surround(Formatting.oneSpace());
@@ -267,7 +305,7 @@ export class XsmpcatFormatter extends AbstractFormatter {
         formatter.keyword('extends').surround(Formatting.oneSpace());
     }
 
-    formatStringType(node: ast.StringType, formatter: NodeFormatter<ast.StringType>) {
+    formatString(node: ast.StringType, formatter: NodeFormatter<ast.StringType>) {
         this.formatMofifiers(formatter);
         formatter.property('name').prepend(Formatting.oneSpace());
         formatter.keyword('[').surround(Formatting.noSpace());
