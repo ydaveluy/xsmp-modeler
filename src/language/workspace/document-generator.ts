@@ -34,37 +34,37 @@ export class XsmpDocumentGenerator {
 
     async generate(uri: URI, _cancelToken: Cancellation.CancellationToken): Promise<void> {
         const document = this.langiumDocuments.getDocument(uri);
-
-        if (document && this.isValid(document)) {
-            console.time(`Generate ${uri.fsPath}`);
-
-            console.time(`Collecting tasks ${uri.fsPath}`);
-            const tasks: Array<Promise<void>> = [];
-
-            const taskAcceptor: TaskAcceptor = (task: Task) => { tasks.push(limit(task)); };
-            if (ast.isCatalogue(document.parseResult.value)) {
-                const project = findProjectContainingUri(this.langiumDocuments, document.uri);
-
-                if (project) {
-                    this.generateCatalogue(project, document.parseResult.value, taskAcceptor);
-                }
-            }
-            else if (ast.isProject(document.parseResult.value)) {
-                const project = document.parseResult.value;
-                for (const doc of this.langiumDocuments.all) {
-                    if (this.isValid(doc) && ast.isCatalogue(doc.parseResult.value) && project === findProjectContainingUri(this.langiumDocuments, doc.uri)) {
-                        this.generateCatalogue(project, doc.parseResult.value, taskAcceptor);
-                    }
-                }
-            }
-
-            console.timeEnd(`Collecting tasks ${uri.fsPath}`);
-            if (tasks.length > 0) {
-                console.log('Executing all generation tasks...');
-                await Promise.all(tasks);
-            }
-            console.timeEnd(`Generate ${uri.fsPath}`);
+        if (!document || !this.isValid(document)) {
+            return;
         }
+
+        console.time(`Generate ${uri.fsPath}`);
+        console.time(`Collecting tasks ${uri.fsPath}`);
+        const tasks: Array<Promise<void>> = [];
+
+        const taskAcceptor: TaskAcceptor = (task: Task) => { tasks.push(limit(task)); };
+        if (ast.isCatalogue(document.parseResult.value)) {
+            const project = findProjectContainingUri(this.langiumDocuments, document.uri);
+            if (project) {
+                this.generateCatalogue(project, document.parseResult.value, taskAcceptor);
+            }
+        }
+        else if (ast.isProject(document.parseResult.value)) {
+            const project = document.parseResult.value;
+            for (const doc of this.langiumDocuments.all) {
+                if (this.isValid(doc) && ast.isCatalogue(doc.parseResult.value) && project === findProjectContainingUri(this.langiumDocuments, doc.uri)) {
+                    this.generateCatalogue(project, doc.parseResult.value, taskAcceptor);
+                }
+            }
+        }
+
+        console.timeEnd(`Collecting tasks ${uri.fsPath}`);
+        if (tasks.length > 0) {
+            console.log('Executing all generation tasks...');
+            await Promise.all(tasks);
+        }
+        console.timeEnd(`Generate ${uri.fsPath}`);
+
     }
 
     generateCatalogue(project: ast.Project, catalogue: ast.Catalogue, taskAcceptor: TaskAcceptor) {

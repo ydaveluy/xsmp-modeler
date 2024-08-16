@@ -1,5 +1,7 @@
-import type { AstNode, IndexManager, LangiumDocuments, Properties, Reference, URI } from 'langium';
-import { AstUtils, MultiMap, type ValidationAcceptor, type ValidationChecks, WorkspaceCache, diagnosticData } from 'langium';
+import {
+    AstUtils, MultiMap, type ValidationAcceptor, type ValidationChecks, WorkspaceCache, diagnosticData,
+    type AstNode, type IndexManager, type LangiumDocuments, type Properties, type Reference, type URI
+} from 'langium';
 import * as ast from '../generated/ast.js';
 import type { XsmpcatServices } from '../xsmpcat-module.js';
 import * as XsmpUtils from '../utils/xsmp-utils.js';
@@ -436,7 +438,7 @@ export class XsmpcatValidator {
         if (this.checkTypeReference(accept, container, container.type, 'type') && container.defaultComponent &&
             this.checkTypeReference(accept, container, container.defaultComponent, 'defaultComponent') &&
             !XsmpUtils.isBaseOfReferenceType(container.type.ref as ast.ReferenceType, container.defaultComponent.ref)) {
-            accept('error', `The default Component shall be a sub type of ${XsmpUtils.fqn(container.type.ref!)}`,
+            accept('error', `The default Component shall be a sub type of ${XsmpUtils.fqn(container.type.ref)}`,
                 { node: container, property: 'defaultComponent' });
         }
     }
