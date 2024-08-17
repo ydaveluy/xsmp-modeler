@@ -1,5 +1,5 @@
 import type { AstNodeDescription, ReferenceInfo, Stream } from 'langium';
-import type { CompletionValueItem } from 'langium/lsp';
+import type { CompletionContext, CompletionValueItem } from 'langium/lsp';
 import { DefaultCompletionProvider } from 'langium/lsp';
 import * as ast from '../generated/ast.js';
 import * as ProjectUtils from '../utils/project-utils.js';
@@ -13,7 +13,7 @@ export class XsmpprojectCompletionProvider extends DefaultCompletionProvider {
      * @param _context Information about the completion request including document, cursor position, token under cursor, etc.
      * @returns A stream of all elements being valid for the given reference.
      */
-    protected override getReferenceCandidates(refInfo: ReferenceInfo/*, context: CompletionContext*/): Stream<AstNodeDescription> {
+    protected override getReferenceCandidates(refInfo: ReferenceInfo, _context: CompletionContext): Stream<AstNodeDescription> {
         if (ast.isProject(refInfo.container)) {
             const project = refInfo.container;
             switch (refInfo.property) {

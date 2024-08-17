@@ -7,7 +7,7 @@ import type { XsmpcatServices } from '../xsmpcat-module.js';
 import * as XsmpUtils from '../utils/xsmp-utils.js';
 import * as Solver from '../utils/solver.js';
 import { Instant } from '@js-joda/core';
-import { findVisibleUris } from '../utils/project-utils.js';
+import { findProjectContainingUri, findVisibleUris } from '../utils/project-utils.js';
 import * as IssueCodes from './xsmpcat-issue-codes.js';
 
 /**
@@ -741,6 +741,12 @@ export class XsmpcatValidator {
         }
         if (this.indexManager.allElements(ast.Catalogue).filter(c => c.name === catalogue.name).count() > 1) {
             accept('error', 'Duplicated Catalogue name.', { node: catalogue, property: 'name' });
+        }
+        if (catalogue.$document && catalogue.$document?.uri.scheme !== 'builtin') {
+            const project = findProjectContainingUri(this.documents, catalogue.$document?.uri);
+            if (!project) {
+                accept('warning', 'This Catalogue in not contained in a project.', { node: catalogue, keyword: 'catalogue' });
+            }
         }
     }
 
