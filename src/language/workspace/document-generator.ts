@@ -3,10 +3,10 @@ import type { Cancellation, DocumentBuilder, IndexManager, LangiumDocument, Lang
 import * as ast from '../generated/ast.js';
 import { findProjectContainingUri } from '../utils/project-utils.js';
 import { DiagnosticSeverity } from 'vscode-languageserver';
-import { SmpGenerator } from '../generator/smp/generator.js';
+import { SmpGenerator } from '../tools/smp/generator.js';
 import pLimit from 'p-limit';
 import type { Task, TaskAcceptor } from '../generator/generator.js';
-import { XsmpSdkGenerator } from '../generator/cpp/xsmp-sdk-generator.js';
+import { XsmpSdkGenerator } from '../profiles/xsmp-sdk/generator.js';
 import type { XsmpSharedServices } from '../xsmp-module.js';
 
 const limit = pLimit(8);
@@ -32,7 +32,7 @@ export class XsmpDocumentGenerator {
         return document.state === DocumentState.Validated && document.parseResult.parserErrors.length === 0 && !document.diagnostics?.some(d => d.severity === DiagnosticSeverity.Error);
     }
 
-    async generate(uri: URI, _cancelToken: Cancellation.CancellationToken): Promise<void> {
+    async generate(uri: URI, _cancelToken?: Cancellation.CancellationToken): Promise<void> {
         const document = this.langiumDocuments.getDocument(uri);
         if (!document || !this.isValid(document)) {
             return;

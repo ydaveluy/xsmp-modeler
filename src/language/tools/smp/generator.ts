@@ -10,7 +10,7 @@ import { AstUtils, UriUtils } from 'langium';
 import * as fs from 'fs';
 import * as Solver from '../../utils/solver.js';
 import { Duration, Instant } from '@js-joda/core';
-import type { TaskAcceptor, XsmpGenerator } from '../generator.js';
+import type { TaskAcceptor, XsmpGenerator } from '../../generator/generator.js';
 import { create } from 'xmlbuilder2';
 
 export class SmpGenerator implements XsmpGenerator {

@@ -1,6 +1,6 @@
-import { GapPatternCppGenerator } from './gap-pattern-generator.js';
+import { GapPatternCppGenerator } from '../../generator/cpp/gap-pattern-generator.js';
 import type { XsmpSharedServices } from '../../xsmp-module.js';
-import { CxxStandard } from './generator.js';
+import { CxxStandard } from '../../generator/cpp/generator.js';
 import type * as ast from '../../generated/ast.js';
 
 import { expandToString as s } from 'langium/generate';
