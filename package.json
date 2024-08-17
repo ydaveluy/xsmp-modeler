@@ -6,7 +6,7 @@
     "author": "ydaveluy",
     "repository": "https://github.com/ydaveluy/xsmp-modeler",
     "type": "module",
-    "license":"MIT",
+    "license": "MIT",
     "scripts": {
         "clean": "shx rm -rf bin/ out/",
         "build": "tsc -b tsconfig.src.json && node esbuild.mjs",
@@ -22,7 +22,6 @@
         "publish": "vsce publish"
     },
     "dependencies": {
-        "@js-joda/core": "^5.6.3",
         "chalk": "~5.3.0",
         "commander": "~12.1.0",
         "langium": "~3.1.3",

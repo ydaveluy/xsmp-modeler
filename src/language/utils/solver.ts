@@ -1,7 +1,8 @@
 import * as XsmpUtils from './xsmp-utils.js';
 import * as ast from '../generated/ast.js';
 import type { ValidationAcceptor } from 'langium';
-import { ChronoUnit, Duration, Instant } from '@js-joda/core';
+import * as Duration from './duration.js';
+
 
 abstract class Value<T> {
 
@@ -81,18 +82,15 @@ export class StringValue extends Value<StringValue> {
 
     override integralValue(type: XsmpUtils.IntegralPrimitiveTypeKind): IntegralValue | undefined {
         if (type === 'DateTime') {
-            try {
-                const instant = Instant.parse(this.value);
-                return new IntegralValue(BigInt(instant.epochSecond()) * BigInt(1000000000) + BigInt(instant.nano()), type);
-            }
-            catch {
+            const instant = Date.parse(this.value)
+            if (isNaN(instant)) {
                 return undefined;
             }
+            return new IntegralValue(BigInt(instant) * BigInt(1_000_000), type);
         }
         else if (type === 'Duration') {
             try {
-                const duration = Duration.parse(this.value);
-                return new IntegralValue(BigInt(duration.get(ChronoUnit.SECONDS)) * BigInt(1000000000) + BigInt(duration.get(ChronoUnit.NANOS)), type);
+                return new IntegralValue(Duration.parse(this.value), type);
             }
             catch {
                 return undefined;

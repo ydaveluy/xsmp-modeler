@@ -4,7 +4,6 @@ import type { CompletionAcceptor, CompletionContext, CompletionValueItem, NextFe
 import { DefaultCompletionProvider } from 'langium/lsp';
 import type { MarkupContent } from 'vscode-languageserver';
 import { CompletionItemKind, CompletionItemTag, InsertTextFormat } from 'vscode-languageserver';
-import { Instant } from '@js-joda/core';
 import * as os from 'os';
 import * as ast from '../generated/ast.js';
 import * as XsmpUtils from '../utils/xsmp-utils.js';
@@ -311,7 +310,7 @@ array \${1:name} = \${2|${this.getCrossReferences(context, 'ArrayType', 'itemTyp
 /**
 * Specifies the SMP Component Model as Catalogue.
 *
-* @date ${Instant.now().toString()}
+* @date ${new Date(Date.now()).toISOString()}
 * @author ${os.userInfo().username}
 * @title Catalogue
 * @version 1.0

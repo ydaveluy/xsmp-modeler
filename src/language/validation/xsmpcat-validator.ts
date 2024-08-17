@@ -6,7 +6,6 @@ import * as ast from '../generated/ast.js';
 import type { XsmpcatServices } from '../xsmpcat-module.js';
 import * as XsmpUtils from '../utils/xsmp-utils.js';
 import * as Solver from '../utils/solver.js';
-import { Instant } from '@js-joda/core';
 import { findProjectContainingUri, findVisibleUris } from '../utils/project-utils.js';
 import * as IssueCodes from './xsmpcat-issue-codes.js';
 import { isBuiltinLibrary } from '../builtins.js';
@@ -732,13 +731,10 @@ export class XsmpcatValidator {
     }
     checkCatalogue(catalogue: ast.Catalogue, accept: ValidationAcceptor): void {
         const date = XsmpUtils.getDate(catalogue);
-        if (date) {
-            try {
-                Instant.parse(date.toString().trim());
-            }
-            catch {
+        if (date && isNaN(Date.parse(date.toString().trim()) )) {
+  
                 accept('warning', 'Invalid date format (e.g: 1970-01-01T00:00:00Z).', { node: catalogue, range: date.range });
-            }
+            
         }
         const duplicates = this.indexManager.allElements(ast.Catalogue).filter(c => c.name === catalogue.name);
         if (duplicates.count() > 1) {

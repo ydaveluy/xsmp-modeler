@@ -1,7 +1,6 @@
 
 import { CstUtils, isJSDoc, isLeafCstNode, type LangiumDocument } from 'langium';
 import { getCommentNode } from '../utils/xsmp-utils.js';
-import { ChronoUnit, ZonedDateTime, ZoneOffset } from '@js-joda/core';
 
 export function getCopyrightNotice(document: LangiumDocument | undefined, prefix: string = ''): string | undefined {
     if (!document) {
@@ -63,10 +62,10 @@ function computeCopyrightNotice(document: LangiumDocument): string | undefined {
 }
 
 function processVariables(input: string): string {
-    const zdt = ZonedDateTime.now(ZoneOffset.UTC);
-    return input.replaceAll('${year}', zdt.year().toString())
+    const now = new Date(Date.now());
+    return input.replaceAll('${year}', now.getUTCFullYear().toString())
         .replaceAll('${user}', process.env.USER ?? 'unknown')
-        .replaceAll('${time}', zdt.toLocalTime().truncatedTo(ChronoUnit.SECONDS).toString())
-        .replaceAll('${date}', zdt.toLocalDate().toString());
+        .replaceAll('${time}', now.toTimeString())
+        .replaceAll('${date}', now.toDateString());
 }
 

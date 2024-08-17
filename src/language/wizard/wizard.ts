@@ -3,7 +3,6 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
-import { Instant } from '@js-joda/core';
 
 const adocToolId = 'adoc',
     esaCdkLegacyProfileId = 'esa-cdk-legacy',
@@ -103,7 +102,7 @@ async function createTemplateProject(projectName: string, dirPath: string,
 
     // Create the catalog file
     const creator = os.userInfo().username,
-        currentDate = Instant.now().toString(),
+        currentDate = new Date(Date.now()).toISOString(),
         catalogueName = projectName.replace(/[.-]/, '_');
 
     await fs.promises.writeFile(path.join(smdlPath, `${projectName}.xsmpcat`), `// Copyright \${year} \${user}. All rights reserved.

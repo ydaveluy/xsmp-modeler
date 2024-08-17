@@ -5,11 +5,13 @@ import type * as Types from './model/types.js';
 import type * as Package from './model/package.js';
 import type * as xlink from './model/xlink.js';
 import * as XsmpUtils from '../../utils/xsmp-utils.js';
+
+import * as Duration from '../../utils/duration.js';
+
 import type { AstNode, JSDocParagraph, Reference, URI } from 'langium';
 import { AstUtils, UriUtils } from 'langium';
 import * as fs from 'fs';
 import * as Solver from '../../utils/solver.js';
-import { Duration, Instant } from '@js-joda/core';
 import type { TaskAcceptor, XsmpGenerator } from '../../generator/generator.js';
 import { create } from 'xmlbuilder2';
 
@@ -233,11 +235,11 @@ export class SmpGenerator implements XsmpGenerator {
     }
     private toDateTime(expression: ast.Expression): string {
         const dateTime = Solver.getValue(expression)?.integralValue('DateTime')?.getValue() ?? BigInt(0);
-        return Instant.ofEpochSecond(Number(dateTime / BigInt(1000000000)), Number(dateTime % BigInt(1000000000))).toString();
+        return new Date(Number(dateTime) / 1_000_000).toISOString();
     }
     private toDuration(expression: ast.Expression): string {
         const duration = Solver.getValue(expression)?.integralValue('Duration')?.getValue() ?? BigInt(0);
-        return Duration.ofSeconds(Number(duration / BigInt(1000000000)), Number(duration % BigInt(1000000000))).toString();
+        return Duration.serialize(duration);
     }
     private toEnumerationValue(expression: ast.Expression): bigint | undefined {
         return Solver.getValue(Solver.getValue(expression)?.enumerationLiteral()?.getValue().value)?.integralValue('Int32')?.getValue();
@@ -451,12 +453,11 @@ export class SmpGenerator implements XsmpGenerator {
         if (!date) {
             return undefined;
         }
-        try {
-            return Instant.parse(date.toString().trim()).toString();
-        }
-        catch {
+        const value = Date.parse(date.toString().trim());
+        if (isNaN(value)) {
             return undefined;
         }
+        return new Date(value).toISOString();
     }
 
     protected async convertCatalogue(catalogue: ast.Catalogue): Promise<Catalogue.Catalogue> {

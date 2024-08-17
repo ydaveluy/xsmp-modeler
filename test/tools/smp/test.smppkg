@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Package:Package xmlns:Elements="http://www.ecss.nl/smp/2019/Core/Elements" xmlns:Types="http://www.ecss.nl/smp/2019/Core/Types" xmlns:Catalogue="http://www.ecss.nl/smp/2019/Smdl/Catalogue" xmlns:Package="http://www.ecss.nl/smp/2019/Smdl/Package" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xlink="http://www.w3.org/1999/xlink" Id="_Test" Name="Test" Title="a title" Date="2022-10-31T09:33:21Z" Creator="creator1, creator2" Version="1.0.0">
+<Package:Package xmlns:Elements="http://www.ecss.nl/smp/2019/Core/Elements" xmlns:Types="http://www.ecss.nl/smp/2019/Core/Types" xmlns:Catalogue="http://www.ecss.nl/smp/2019/Smdl/Catalogue" xmlns:Package="http://www.ecss.nl/smp/2019/Smdl/Package" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xlink="http://www.w3.org/1999/xlink" Id="_Test" Name="Test" Title="a title" Date="2022-10-31T09:33:21.000Z" Creator="creator1, creator2" Version="1.0.0">
   <Description>Catalogue Test</Description>
   <Implementation xlink:href="test.smpcat#ns.Int10" xlink:title="Int10"/>
   <Implementation xlink:href="test.smpcat#ns.SingleAttribute" xlink:title="SingleAttribute"/>
