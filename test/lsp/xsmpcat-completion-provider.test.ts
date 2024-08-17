@@ -79,10 +79,10 @@ describe('Xsmpcat completion provider', () => {
             text,
             index: 2,
             expectedItems: [
-                'namespace', 'struct', 'class', 'exception', 'interface', 'model', 'service', 'array', 'using', 'integer',
-                'float', 'event', 'string', 'native', 'attribute', 'enum', 'namespace', 'private', 'protected', 'public',
-                'struct', 'abstract', 'class', 'exception', 'interface', 'model', 'service', 'array', 'using', 'integer',
-                'float', 'event', 'string', 'primitive', 'native', 'attribute', 'enum',
+                'namespace', 'private', 'protected', 'public', 'struct', 'abstract', 'class', 'exception', 'interface', 'model', 'service', 'array', 'using', 'integer',
+                'float', 'event', 'string', 'primitive', 'native', 'attribute', 'enum', 'namespace',
+                'struct', 'class', 'exception', 'interface', 'model', 'service', 'array', 'using', 'integer',
+                'float', 'event', 'string', 'native', 'attribute', 'enum',
             ]
         });
     });
@@ -104,7 +104,7 @@ describe('Xsmpcat completion provider', () => {
             text,
             index: 4,
             expectedItems: [
-                'Default Value', 'false', 'true', 'nullptr',
+                'false', 'true', 'Default Value', 'nullptr',
             ]
         });
     });
@@ -114,10 +114,9 @@ describe('Xsmpcat completion provider', () => {
             text,
             index: 5,
             expectedItems: [
-                'constant', 'field', 'property', 'def', 'association', 'container', 'reference', 'entrypoint',
-                 'eventsink', 'eventsource', 'private', 'protected', 'public', 'constant', 'input', 'output', 
-                 'transient', 'field', 'readWrite', 'readOnly', 'writeOnly', 'property', 'def', 'association', 
-                 'container', 'reference', 'entrypoint', 'eventsink', 'eventsource',
+                'private', 'protected', 'public', 'constant', 'input', 'output', 'transient', 'field', 'readWrite', 'readOnly', 'writeOnly',
+                'property', 'def', 'association', 'container', 'reference', 'entrypoint', 'eventsink', 'eventsource', 'constant',
+                'field', 'property', 'def', 'association', 'container', 'reference', 'entrypoint', 'eventsink', 'eventsource',
             ]
         });
     });

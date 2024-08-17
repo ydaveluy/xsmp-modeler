@@ -246,36 +246,36 @@ export function getParameterDescription(element: ast.Parameter): string | undefi
 export function getReturnParameterDescription(element: ast.ReturnParameter): string | undefined {
     return getJSDoc(element.$container)?.getTag('return')?.content.toString().trim();
 }
-export function isFailure(element: ast.Field): boolean {
-    return attributeBoolValue(element, 'Attributes.Failure') ?? false;
+export function isFailure(element: ast.Field): boolean | undefined {
+    return attributeBoolValue(element, 'Attributes.Failure');
 }
-export function isForcible(element: ast.Field): boolean {
-    return attributeBoolValue(element, 'Attributes.Forcible') ?? false;
+export function isForcible(element: ast.Field): boolean | undefined {
+    return attributeBoolValue(element, 'Attributes.Forcible');
 }
-export function isStatic(element: ast.Operation | ast.Property | ast.Field | ast.Association): boolean {
-    return attributeBoolValue(element, 'Attributes.Static') ?? false;
+export function isStatic(element: ast.Operation | ast.Property | ast.Field | ast.Association): boolean | undefined {
+    return attributeBoolValue(element, 'Attributes.Static');
 }
-export function isAbstract(element: ast.Operation | ast.Property): boolean {
-    return attributeBoolValue(element, 'Attributes.Abstract') ?? false;
+export function isAbstract(element: ast.Operation | ast.Property): boolean | undefined {
+    return attributeBoolValue(element, 'Attributes.Abstract');
 }
-export function isVirtual(element: ast.Operation | ast.Property): boolean {
-    return attributeBoolValue(element, 'Attributes.Virtual') ?? false;
+export function isVirtual(element: ast.Operation | ast.Property): boolean | undefined {
+    return attributeBoolValue(element, 'Attributes.Virtual');
 }
-export function isMutable(element: ast.Field | ast.Association): boolean {
-    return attributeBoolValue(element, 'Attributes.Mutable') ?? false;
+export function isMutable(element: ast.Field | ast.Association): boolean | undefined {
+    return attributeBoolValue(element, 'Attributes.Mutable');
 }
-export function isConst(element: ast.Parameter | ast.ReturnParameter | ast.Association | ast.Operation | ast.Property): boolean {
-    return attributeBoolValue(element, 'Attributes.Const') ?? false;
+export function isConst(element: ast.Parameter | ast.ReturnParameter | ast.Association | ast.Operation | ast.Property): boolean | undefined {
+    return attributeBoolValue(element, 'Attributes.Const');
 }
-export function isByPointer(element: ast.Parameter | ast.ReturnParameter | ast.Association | ast.Property): boolean {
-    return attributeBoolValue(element, 'Attributes.ByPointer') ?? false;
+export function isByPointer(element: ast.Parameter | ast.ReturnParameter | ast.Association | ast.Property): boolean | undefined {
+    return attributeBoolValue(element, 'Attributes.ByPointer');
 }
-export function isByReference(element: ast.Parameter | ast.ReturnParameter | ast.Property): boolean {
-    return attributeBoolValue(element, 'Attributes.ByReference') ?? false;
+export function isByReference(element: ast.Parameter | ast.ReturnParameter | ast.Property): boolean | undefined {
+    return attributeBoolValue(element, 'Attributes.ByReference');
 }
 
-export function isSimpleArray(element: ast.ArrayType): boolean {
-    return attributeBoolValue(element, 'Attributes.SimpleArray') ?? false;
+export function isSimpleArray(element: ast.ArrayType): boolean | undefined {
+    return attributeBoolValue(element, 'Attributes.SimpleArray')
 }
 
 export function allowMultiple(element: ast.AttributeType): boolean {
@@ -314,7 +314,7 @@ export function getUpper(element: ast.NamedElementWithMultiplicity): bigint | un
 
 export function getAllFields(element: ast.Structure): Stream<ast.Field> {
     // Return non static and public fields from element's base if any and current element
-    const result = stream(element.elements).filter(ast.isField).filter(f => !isStatic(f) && getRealVisibility(f) === 'public');
+    const result = stream(element.elements).filter(ast.isField).filter(f => isStatic(f) !== true && getRealVisibility(f) === 'public');
     if (ast.isClass(element) && ast.isStructure(element.base)) {
         return getAllFields(element.base).concat(result);
     }
@@ -431,7 +431,7 @@ export function getSignature(element: ast.NamedElement): string {
  *          the input Parameter
  * @return the signature of the parameter
  */
-function getParameterSignature(p: ast.Parameter) {
+export function getParameterSignature(p: ast.Parameter) {
     let signature = '';
     if (isConst(p)) {
         signature += 'const ';

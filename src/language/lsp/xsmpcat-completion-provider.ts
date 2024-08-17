@@ -172,7 +172,7 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
             documentation: this.getKeywordDocumentation(keyword),
             kind: this.getKeywordCompletionItemKind(keyword),
             detail: 'Keyword',
-            sortText: '1000'
+            sortText: '0000'
         });
 
         const snippet = this.getSnippet(context, keyword);
@@ -185,7 +185,7 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
                 documentation: this.documentationProvider.getDocumentation(keyword),
                 kind: CompletionItemKind.Snippet,
                 detail: 'Snippet',
-                sortText: '0000'
+                sortText: '1000'
             });
         }
     }

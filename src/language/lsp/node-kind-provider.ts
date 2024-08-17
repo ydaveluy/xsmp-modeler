@@ -5,8 +5,39 @@ import { CompletionItemKind, SymbolKind } from 'vscode-languageserver';
 import * as ast from '../generated/ast.js';
 
 export class XsmpNodeKindProvider implements NodeKindProvider {
-    getCompletionItemKind(_node: AstNode | AstNodeDescription): CompletionItemKind {
-        return CompletionItemKind.Reference;
+    getCompletionItemKind(node: AstNode | AstNodeDescription): CompletionItemKind {
+
+        const type = isAstNodeDescription(node) ? node.type : node.$type;
+        switch (type) {
+            case ast.ArrayType: return CompletionItemKind.Operator;
+            case ast.Constant: return CompletionItemKind.Constant;
+            case ast.Enumeration: return CompletionItemKind.Enum;
+            case ast.EnumerationLiteral: return CompletionItemKind.EnumMember;
+            case ast.EventSink:
+            case ast.EventSource:
+            case ast.EventType:
+                return CompletionItemKind.Event;
+            case ast.Interface: return CompletionItemKind.Interface;
+            case ast.Integer:
+            case ast.PrimitiveType:
+            case ast.Float:
+                return CompletionItemKind.TypeParameter;
+            case ast.Project:
+            case ast.Tool:
+            case ast.Profile:
+            case ast.Catalogue:
+                return CompletionItemKind.File;
+            case ast.StringType: return CompletionItemKind.Text;
+            case ast.Structure: return CompletionItemKind.Struct;
+            case ast.Class:
+            case ast.Exception:
+            case ast.Model:
+            case ast.Service:
+                return CompletionItemKind.Class;
+            case ast.Field:
+            case ast.Property:
+            default: return CompletionItemKind.Field;
+        }
     }
 
     getSymbolKind(node: AstNode | AstNodeDescription): SymbolKind {
@@ -21,7 +52,6 @@ export class XsmpNodeKindProvider implements NodeKindProvider {
             case ast.EventSource:
             case ast.EventType:
                 return SymbolKind.Event;
-            case ast.Association:
             case ast.EntryPoint:
                 return SymbolKind.Object;
             case ast.Operation: return SymbolKind.Method;
@@ -33,7 +63,7 @@ export class XsmpNodeKindProvider implements NodeKindProvider {
             case ast.Tool:
             case ast.Profile:
             case ast.Catalogue:
-                return SymbolKind.File;
+                return SymbolKind.Package;
             case ast.Property: return SymbolKind.Property;
             case ast.Parameter: return SymbolKind.Variable;
             case ast.StringType: return SymbolKind.String;
@@ -44,8 +74,11 @@ export class XsmpNodeKindProvider implements NodeKindProvider {
             case ast.Model:
             case ast.Service:
                 return SymbolKind.Class;
+            case ast.Association:
+            case ast.Field:
             default: return SymbolKind.Field;
         }
 
     }
+
 }

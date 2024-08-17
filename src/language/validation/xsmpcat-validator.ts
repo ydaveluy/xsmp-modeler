@@ -445,7 +445,9 @@ export class XsmpcatValidator {
 
     checkNamedElementWithMultiplicity(element: ast.NamedElementWithMultiplicity, accept: ValidationAcceptor): void {
         const lower = XsmpUtils.getLower(element);
-        if (lower !== undefined && lower < 0) { accept('error', 'Lower bound shall be a positive number or 0.', { node: element.multiplicity!, property: 'lower' }); }
+        if (lower !== undefined && lower < 0) {
+            accept('error', 'Lower bound shall be a positive number or 0.', { node: element.multiplicity!, property: 'lower' });
+        }
 
         const upper = XsmpUtils.getUpper(element);
         if (upper !== undefined && upper !== BigInt(-1) && lower !== undefined && upper < lower) {
@@ -622,7 +624,9 @@ export class XsmpcatValidator {
                     break;
                 case ast.Field:
                     this.checkModifier(element, [ast.isVisibilityModifiers, (elem) => elem === 'input', (elem) => elem === 'output', (elem) => elem === 'transient'], accept);
-                    if (XsmpUtils.isRecursiveType(clazz, element.type.ref)) { accept('error', 'Recursive Field Type.', { node: element, property: 'type' }); }
+                    if (XsmpUtils.isRecursiveType(clazz, element.type.ref)) {
+                        accept('error', 'Recursive Field Type.', { node: element, property: 'type' });
+                    }
                     break;
                 case ast.Property:
                     this.checkModifier(element, [ast.isVisibilityModifiers, ast.isAccessKind], accept);
@@ -630,17 +634,23 @@ export class XsmpcatValidator {
             }
         }
         if (!clazz.modifiers.includes('abstract') &&
-            clazz.elements.some(e => (ast.isOperation(e) || ast.isProperty(e)) && XsmpUtils.isAbstract(e))) { accept('warning', `The ${clazz.$type} shall be abstract.`, { node: clazz, keyword: clazz.$type === ast.Class ? 'class' : 'exception', data: diagnosticData(IssueCodes.MissingAbstract) }); }
+            clazz.elements.some(e => (ast.isOperation(e) || ast.isProperty(e)) && XsmpUtils.isAbstract(e))) {
+            accept('warning', `The ${clazz.$type} shall be abstract.`, { node: clazz, keyword: clazz.$type === ast.Class ? 'class' : 'exception', data: diagnosticData(IssueCodes.MissingAbstract) });
+        }
     }
 
     checkEventType(eventType: ast.EventType, accept: ValidationAcceptor): void {
         this.checkModifier(eventType, [ast.isVisibilityModifiers], accept);
-        if (eventType.eventArgs) { this.checkTypeReference(accept, eventType, eventType.eventArgs, 'eventArgs'); }
+        if (eventType.eventArgs) {
+            this.checkTypeReference(accept, eventType, eventType.eventArgs, 'eventArgs');
+        }
     }
 
     checkNativeType(nativeType: ast.NativeType, accept: ValidationAcceptor): void {
         this.checkModifier(nativeType, [ast.isVisibilityModifiers], accept);
-        if (!XsmpUtils.getNativeType(nativeType)) { accept('error', 'The javadoc \'@type\' tag shall be defined with the C++ type name.', { node: nativeType, property: 'name' }); }
+        if (!XsmpUtils.getNativeType(nativeType)) {
+            accept('error', 'The javadoc \'@type\' tag shall be defined with the C++ type name.', { node: nativeType, property: 'name' });
+        }
     }
 
     checkEventSink(eventSink: ast.EventSink, accept: ValidationAcceptor): void {
@@ -660,33 +670,50 @@ export class XsmpcatValidator {
     checkArrayType(array: ast.ArrayType, accept: ValidationAcceptor): void {
         this.checkModifier(array, [ast.isVisibilityModifiers], accept);
         const size = this.checkExpression('Int64', array.size, accept);
-        if (size === undefined) { accept('error', 'Missing Array size.', { node: array, property: 'size' }); }
-        else if (size as bigint < 0) { accept('error', 'The Array size shall be a positive number.', { node: array, property: 'size' }); }
+        if (size === undefined) {
+            accept('error', 'Missing Array size.', { node: array, property: 'size' });
+        }
+        else if (size as bigint < 0) {
+            accept('error', 'The Array size shall be a positive number.', { node: array, property: 'size' });
+        }
 
         if (this.checkTypeReference(accept, array, array.itemType, 'itemType')) {
             const type = array.itemType.ref as ast.ValueType;
 
-            if (XsmpUtils.isRecursiveType(array, type)) { accept('error', 'Recursive Array Type.', { node: array, property: 'itemType' }); }
+            if (XsmpUtils.isRecursiveType(array, type)) {
+                accept('error', 'Recursive Array Type.', { node: array, property: 'itemType' });
+            }
 
-            if (!ast.isSimpleType(type) && XsmpUtils.isSimpleArray(array)) { accept('error', 'An array annotated with \'@SimpleArray\' requires a SimpleType item type.', { node: array, property: 'itemType', data: diagnosticData(IssueCodes.NonSimpleArray) }); }
+            if (!ast.isSimpleType(type) && XsmpUtils.isSimpleArray(array)) {
+                accept('error', 'An array annotated with \'@SimpleArray\' requires a SimpleType item type.', { node: array, property: 'itemType', data: diagnosticData(IssueCodes.NonSimpleArray) });
+            }
         }
     }
 
     checkAttributeType(attribute: ast.AttributeType, accept: ValidationAcceptor): void {
         this.checkModifier(attribute, [ast.isVisibilityModifiers], accept);
         if (this.checkTypeReference(accept, attribute, attribute.type, 'type')) {
-            if (!attribute.default) { accept('warning', 'Default value is missing.', { node: attribute, property: 'name' }); }
-            else { this.checkExpression(attribute.type.ref, attribute.default, accept); }
+            if (!attribute.default) {
+                accept('warning', 'Default value is missing.', { node: attribute, property: 'name' });
+            }
+            else {
+                this.checkExpression(attribute.type.ref, attribute.default, accept);
+            }
 
-            const usages = XsmpUtils.getUsages(attribute),
-                visited = new Set<string>();
-            if (usages) {
-                for (const usage of usages) {
-                    const str = usage.toString();
-                    if (!validUsages.has(str)) { accept('warning', 'Invalid usage.', { node: attribute, range: usage.range, data: diagnosticData(IssueCodes.InvalidUsage) }); }
-                    if (visited.has(str)) { accept('warning', 'Duplicated usage.', { node: attribute, range: usage.range, data: diagnosticData(IssueCodes.DuplicatedUsage) }); }
-                    visited.add(str);
+            const usages = XsmpUtils.getUsages(attribute);
+
+            if (!usages)
+                return;
+            const visited = new Set<string>();
+            for (const usage of usages) {
+                const str = usage.toString();
+                if (!validUsages.has(str)) {
+                    accept('warning', 'Invalid usage.', { node: attribute, range: usage.range, data: diagnosticData(IssueCodes.InvalidUsage) });
                 }
+                if (visited.has(str)) {
+                    accept('warning', 'Duplicated usage.', { node: attribute, range: usage.range, data: diagnosticData(IssueCodes.DuplicatedUsage) });
+                }
+                visited.add(str);
             }
         }
     }
@@ -766,7 +793,7 @@ export class XsmpcatValidator {
                 accept('error', 'A Property shall not be both Static and Abstract.', { node: isAbstract!, data: diagnosticData(IssueCodes.InvalidAttribute) });
             }
 
-            if (property.attachedField?.ref && !XsmpUtils.isStatic(property.attachedField.ref)) {
+            if (property.attachedField?.ref && XsmpUtils.isStatic(property.attachedField.ref) !== true) {
                 accept('error', 'A Property shall not be Static if the attached field is not Static.', { node: isStatic!, data: diagnosticData(IssueCodes.InvalidAttribute) });
             }
         }

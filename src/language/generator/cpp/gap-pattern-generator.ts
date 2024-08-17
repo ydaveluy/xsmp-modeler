@@ -599,7 +599,7 @@ export class GapPatternCppGenerator extends CppGenerator {
                 ${this.uuid(type.itemType.ref)}, // Item Type UUID
                 sizeof(${this.fqn(type.itemType.ref)}), // Item Type size
                 ${this.expression(type.size)}, // size of the array
-                ${isSimpleArray(type)} // is simple array
+                ${isSimpleArray(type) === true} // is simple array
             );
         }
         ${this.uuidDefinition(type)}
@@ -745,7 +745,7 @@ export class GapPatternCppGenerator extends CppGenerator {
         }
     }
     protected override initializeAssociation(element: ast.Association, gen: boolean = false): string | undefined {
-        if (!isStatic(element))
+        if (isStatic(element) !== true)
             return s`
                 // ${element.name} initialization
                 ${element.name}{ }
