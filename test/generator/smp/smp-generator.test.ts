@@ -6,7 +6,7 @@ import { createXsmpServices } from "../../../src/language/xsmp-module.js";
 import { Catalogue, isCatalogue } from "../../../src/language/generated/ast.js";
 import * as path from 'path';
 import * as fs from 'fs';
-import { SmpGenerator } from "../../../src/language/generator/smp/generator.js";
+import { SmpGenerator } from "../../../src/language/tools/smp/generator.js";
 
 let services: ReturnType<typeof createXsmpServices>;
 let parse: ReturnType<typeof parseHelper<Catalogue>>;

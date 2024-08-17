@@ -16,20 +16,7 @@ export class XsmpDocumentSymbolProvider implements DocumentSymbolProvider {
         this.nodeKindProvider = services.shared.lsp.NodeKindProvider;
     }
     getSymbols(document: LangiumDocument, _params: DocumentSymbolParams, _cancelToken?: Cancellation.CancellationToken): MaybePromise<DocumentSymbol[]> {
-        const astNode = document.parseResult.value;
-        const node = astNode.$cstNode;
-
-        if (node && ast.isNamedElement(astNode)) {
-            return [{
-                kind: this.nodeKindProvider.getSymbolKind(astNode),
-                name: this.getSymbolName(astNode),
-                range: node.range,
-                selectionRange: node.range,
-                tags: this.getSymbolTags(astNode),
-                detail: this.getSymbolDetails(astNode),
-            }, ...this.getChildSymbols(document, astNode) || []];
-        }
-        return this.getChildSymbols(document, astNode) || [];
+        return this.getSymbol(document, document.parseResult.value);
     }
 
     protected getSymbol(document: LangiumDocument, astNode: AstNode): DocumentSymbol[] {

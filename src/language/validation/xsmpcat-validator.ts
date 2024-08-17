@@ -9,6 +9,7 @@ import * as Solver from '../utils/solver.js';
 import { Instant } from '@js-joda/core';
 import { findProjectContainingUri, findVisibleUris } from '../utils/project-utils.js';
 import * as IssueCodes from './xsmpcat-issue-codes.js';
+import { isBuiltinLibrary } from '../builtins.js';
 
 /**
  * Register custom validation checks.
@@ -739,10 +740,11 @@ export class XsmpcatValidator {
                 accept('warning', 'Invalid date format (e.g: 1970-01-01T00:00:00Z).', { node: catalogue, range: date.range });
             }
         }
-        if (this.indexManager.allElements(ast.Catalogue).filter(c => c.name === catalogue.name).count() > 1) {
+        const duplicates = this.indexManager.allElements(ast.Catalogue).filter(c => c.name === catalogue.name);
+        if (duplicates.count() > 1) {
             accept('error', 'Duplicated Catalogue name.', { node: catalogue, property: 'name' });
         }
-        if (catalogue.$document && catalogue.$document?.uri.scheme !== 'builtin') {
+        if (catalogue.$document && !isBuiltinLibrary(catalogue.$document?.uri)) {
             const project = findProjectContainingUri(this.documents, catalogue.$document?.uri);
             if (!project) {
                 accept('warning', 'This Catalogue in not contained in a project.', { node: catalogue, keyword: 'catalogue' });

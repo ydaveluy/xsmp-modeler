@@ -1,4 +1,4 @@
-import { URI, TextDocument } from 'langium';
+import { URI, type TextDocument } from 'langium';
 import { DefaultDocumentUpdateHandler } from 'langium/lsp';
 import type { TextDocumentChangeEvent } from 'vscode-languageserver';
 import type { XsmpSharedServices } from '../xsmp-module.js';

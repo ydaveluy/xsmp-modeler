@@ -28,7 +28,7 @@ export type XsmpprojectServices = LangiumServices & XsmpprojectAddedServices
  */
 export const XsmpprojectModule: Module<XsmpprojectServices, PartialLangiumServices & XsmpprojectAddedServices> = {
     validation: {
-        XsmpprojectValidator: () => new XsmpprojectValidator()
+        XsmpprojectValidator: (services) => new XsmpprojectValidator(services)
     },
     lsp: {
         Formatter: () => new XsmpprojectFormatter(),

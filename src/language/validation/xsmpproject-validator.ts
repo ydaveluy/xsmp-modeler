@@ -1,9 +1,8 @@
-import type { AstNode, Properties, Reference, ValidationAcceptor, ValidationChecks } from 'langium';
-import { UriUtils } from 'langium';
+import { type AstNode, type IndexManager, MultiMap, type Properties, type Reference, type ValidationAcceptor, type ValidationChecks, UriUtils, WorkspaceCache } from 'langium';
 import type { XsmpprojectServices } from '../xsmpproject-module.js';
 import * as fs from 'node:fs';
 import * as ProjectUtils from '../utils/project-utils.js';
-import type * as ast from '../generated/ast.js';
+import * as ast from '../generated/ast.js';
 import * as XsmpUtils from '../utils/xsmp-utils.js';
 
 /**
@@ -22,6 +21,27 @@ export function registerXsmpprojectValidationChecks(services: XsmpprojectService
  * Implementation of custom validations.
  */
 export class XsmpprojectValidator {
+    protected readonly indexManager: IndexManager;
+    protected readonly globalCache: WorkspaceCache<string, MultiMap<string, ast.Project>>;
+
+    constructor(services: XsmpprojectServices) {
+        this.indexManager = services.shared.workspace.IndexManager;
+        this.globalCache = new WorkspaceCache<string, MultiMap<string, ast.Project>>(services.shared);
+    }
+
+    private computeNamesForProjects(): MultiMap<string, ast.Project> {
+        const map = new MultiMap<string, ast.Project>();
+        for (const type of this.indexManager.allElements(ast.Project)) {
+            if (ast.isProject(type.node)) {
+                map.add(type.node.name, type.node);
+            }
+        }
+        return map;
+    }
+
+    private isDuplicatedProject(project: ast.Project): boolean {
+        return this.globalCache.get('projects', () => this.computeNamesForProjects()).get(project.name).length > 1;
+    }
 
     checkTypeReference<N extends AstNode>(accept: ValidationAcceptor, node: N, reference: Reference<ast.NamedElement>, property: Properties<N>, index?: number): boolean {
         if (!reference.ref) {
@@ -35,6 +55,10 @@ export class XsmpprojectValidator {
     }
 
     checkProject(project: ast.Project, accept: ValidationAcceptor): void {
+
+        if (this.isDuplicatedProject(project)) {
+            accept('error', 'Duplicated project name', { node: project, property: 'name' });
+        }
         // Check only one profile (or zero)
         let profile: ast.Profile | undefined;
         project.profile.forEach((p, index) => {

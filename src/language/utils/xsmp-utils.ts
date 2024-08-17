@@ -275,7 +275,7 @@ export function isByReference(element: ast.Parameter | ast.ReturnParameter | ast
 }
 
 export function isSimpleArray(element: ast.ArrayType): boolean | undefined {
-    return attributeBoolValue(element, 'Attributes.SimpleArray')
+    return attributeBoolValue(element, 'Attributes.SimpleArray');
 }
 
 export function allowMultiple(element: ast.AttributeType): boolean {

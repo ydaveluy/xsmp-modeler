@@ -1,5 +1,6 @@
 //@ts-check
 import * as esbuild from 'esbuild';
+import { copy } from 'esbuild-plugin-copy'; // Plugin to handle file copying
 
 const watch = process.argv.includes('--watch');
 const minify = process.argv.includes('--minify');
@@ -15,16 +16,25 @@ function padZeroes(i) {
     return i.toString().padStart(2, '0');
 }
 
-const plugins = [{
-    name: 'watch-plugin',
-    setup(build) {
-        build.onEnd(result => {
-            if (result.errors.length === 0) {
-                console.log(getTime() + success);
-            }
-        });
+const plugins = [
+    {
+        name: 'watch-plugin',
+        setup(build) {
+            build.onEnd(result => {
+                if (result.errors.length === 0) {
+                    console.log(getTime() + success);
+                }
+            });
+        },
     },
-}];
+    copy({
+        assets: {
+            // Copy the 'lib' directory to the 'out' directory
+            from: './src/lib/*',
+            to: './lib/',
+        },
+    }),
+];
 
 const ctx = await esbuild.context({
     // Entry points for the vscode extension and the language server

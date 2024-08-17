@@ -2,7 +2,7 @@ import type { LanguageClientOptions, ServerOptions } from 'vscode-languageclient
 import * as vscode from 'vscode';
 import * as path from 'node:path';
 import { LanguageClient, TransportKind } from 'vscode-languageclient/node.js';
-import { builtins } from '../language/builtins.js';
+import { builtins, builtInScheme } from '../language/builtins.js';
 import { createProjectWizard } from '../language/wizard/wizard.js';
 
 let client: LanguageClient;
@@ -68,9 +68,9 @@ export class BuiltinLibraryFileSystemProvider implements vscode.FileSystemProvid
 
     static register(context: vscode.ExtensionContext) {
         context.subscriptions.push(
-            vscode.workspace.registerFileSystemProvider('builtin', new BuiltinLibraryFileSystemProvider(), {
+            vscode.workspace.registerFileSystemProvider(builtInScheme, new BuiltinLibraryFileSystemProvider(), {
                 isReadonly: true,
-                isCaseSensitive: false
+                isCaseSensitive: true
             }));
     }
 
