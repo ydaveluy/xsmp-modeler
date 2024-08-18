@@ -1,5 +1,5 @@
 import type { AstNode, CstNode, JSDocComment, JSDocParagraph, JSDocTag, Stream } from 'langium';
-import { AstUtils, CstUtils, isJSDoc, parseJSDoc, stream } from 'langium';
+import { AstUtils, CstUtils, isJSDoc, isLeafCstNode, isRootCstNode, parseJSDoc, stream } from 'langium';
 import * as ast from '../generated/ast.js';
 import * as Solver from './solver.js';
 
@@ -130,12 +130,40 @@ export function getPrimitiveTypeKind(type: ast.Type | undefined, defaultKind: Pr
     }
 }
 
-export function getCommentNode(node: AstNode): CstNode | undefined {
-    return CstUtils.findCommentNode(node.$cstNode, ['ML_COMMENT']);
+export function findCommentNode(cstNode: CstNode | undefined): CstNode | undefined {
+    if (cstNode) {
+        let previous = CstUtils.getPreviousNode(cstNode, true);
+        while (previous) {
+            if (isCommentNode(previous)) {
+                return previous;
+            }
+            if (!previous.hidden) {
+                break;
+            }
+            previous = CstUtils.getPreviousNode(previous, true);
+        }
+        if (isRootCstNode(cstNode)) {
+            // Go from the first non-hidden node through all nodes in reverse order
+            // We do this to find the comment node which directly precedes the root node
+            const endIndex = cstNode.content.findIndex(e => !e.hidden);
+            for (let i = endIndex - 1; i >= 0; i--) {
+                const child = cstNode.content[i];
+                if (isCommentNode(child)) {
+                    return child;
+                }
+            }
+        }
+    }
+    return undefined;
 }
 
+function isCommentNode(cstNode: CstNode): boolean {
+    return isLeafCstNode(cstNode) && 'ML_COMMENT' === cstNode.tokenType.name && isJSDoc(cstNode);
+}
+
+
 export function getJSDoc(element: AstNode): JSDocComment | undefined {
-    const comment = getCommentNode(element);
+    const comment = findCommentNode(element.$cstNode);
     if (comment && isJSDoc(comment)) {
         return parseJSDoc(comment);
     }

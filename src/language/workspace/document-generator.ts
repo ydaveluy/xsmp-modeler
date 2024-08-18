@@ -1,4 +1,4 @@
-import { DocumentState, UriUtils } from 'langium';
+import { DocumentState, interruptAndCheck, UriUtils } from 'langium';
 import type { Cancellation, DocumentBuilder, IndexManager, LangiumDocument, LangiumDocuments, ServiceRegistry, URI } from 'langium';
 import * as ast from '../generated/ast.js';
 import { findProjectContainingUri } from '../utils/project-utils.js';
@@ -32,7 +32,7 @@ export class XsmpDocumentGenerator {
         return document.state === DocumentState.Validated && document.parseResult.parserErrors.length === 0 && !document.diagnostics?.some(d => d.severity === DiagnosticSeverity.Error);
     }
 
-    async generate(uri: URI, _cancelToken?: Cancellation.CancellationToken): Promise<void> {
+    async generate(uri: URI, cancelToken: Cancellation.CancellationToken): Promise<void> {
         const document = this.langiumDocuments.getDocument(uri);
         if (!document || !this.isValid(document)) {
             return;
@@ -57,6 +57,8 @@ export class XsmpDocumentGenerator {
                 }
             }
         }
+        
+        await interruptAndCheck(cancelToken);
 
         console.timeEnd(`Collecting tasks ${uri.fsPath}`);
         if (tasks.length > 0) {

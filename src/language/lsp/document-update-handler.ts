@@ -1,4 +1,4 @@
-import { URI, type TextDocument } from 'langium';
+import { DocumentState, URI, type TextDocument } from 'langium';
 import { DefaultDocumentUpdateHandler } from 'langium/lsp';
 import type { TextDocumentChangeEvent } from 'vscode-languageserver';
 import type { XsmpSharedServices } from '../xsmp-module.js';
@@ -10,7 +10,6 @@ export class XsmpDocumentUpdateHandler extends DefaultDocumentUpdateHandler {
     constructor(services: XsmpSharedServices) {
         super(services);
         this.documentGenerator = services.DocumentGenerator;
-
     }
 
     didSaveDocument(event: TextDocumentChangeEvent<TextDocument>): void {
@@ -21,12 +20,12 @@ export class XsmpDocumentUpdateHandler extends DefaultDocumentUpdateHandler {
             // Only fire the document generation when the workspace manager is ready
             // Otherwise, we might miss the initial indexing of the workspace
 
-            this.workspaceManager.ready.then(() => this.workspaceLock.read(() => this.documentGenerator.generate(uri)))
+            this.workspaceManager.ready.then(() => this.workspaceLock.write((token) => this.documentBuilder.waitUntil(DocumentState.Validated, uri, token)
+                .then(() => this.documentGenerator.generate(uri, token))))
                 .catch(err => {
                     // This should never happen, but if it does, we want to know about it
                     console.error('Workspace initialization failed. Could not perform document generation.', err);
                 });
-
         }
     }
 }

@@ -1,4 +1,4 @@
-import type { AstNodeWithComment, LangiumDocument, MaybePromise } from 'langium';
+import type {  LangiumDocument, MaybePromise } from 'langium';
 import { CstUtils, GrammarAST } from 'langium';
 import { MultilineCommentHoverProvider } from 'langium/lsp';
 import type { Hover, HoverParams } from 'vscode-languageserver';
@@ -18,10 +18,7 @@ export class XsmpHoverProvider extends MultilineCommentHoverProvider {
                 }
                 // Add support for documentation on keywords
                 if (GrammarAST.isKeyword(cstNode.grammarSource)) {
-                    if (typeof (cstNode.grammarSource as AstNodeWithComment).$comment === 'string') {
-                        return this.getAstNodeHoverContent(cstNode.grammarSource);
-                    }
-                    return this.getAstNodeHoverContent(cstNode.grammarSource.$container);
+                    return this.getAstNodeHoverContent(cstNode.grammarSource);
                 }
             }
         }

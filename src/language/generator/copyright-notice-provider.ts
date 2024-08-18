@@ -1,6 +1,5 @@
 
 import { CstUtils, isJSDoc, isLeafCstNode, type LangiumDocument } from 'langium';
-import { getCommentNode } from '../utils/xsmp-utils.js';
 
 export function getCopyrightNotice(document: LangiumDocument | undefined, prefix: string = ''): string | undefined {
     if (!document) {
@@ -36,7 +35,7 @@ function computeCopyrightNotice(document: LangiumDocument): string | undefined {
         }
 
         if (node.tokenType.name === 'ML_COMMENT') {
-            const commentNode = getCommentNode(document.parseResult.value);
+            const commentNode = CstUtils.findCommentNode(document.parseResult.value.$cstNode, ['ML_COMMENT']);
             if (commentNode === node && isJSDoc(commentNode)) {
                 return undefined;
             }

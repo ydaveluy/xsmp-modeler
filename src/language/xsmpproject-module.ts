@@ -6,6 +6,7 @@ import { XsmpprojectFormatter } from './lsp/xsmpproject-formatter.js';
 import { XsmpHoverProvider } from './lsp/hover-provider.js';
 import { XsmpDocumentSymbolProvider } from './lsp/document-symbol-provider.js';
 import { XsmpprojectCompletionProvider } from './lsp/xsmpproject-completion-provider.js';
+import { XsmpCommentProvider } from './lsp/comment-provider.js';
 
 /**
  * Declaration of custom services.
@@ -36,4 +37,7 @@ export const XsmpprojectModule: Module<XsmpprojectServices, PartialLangiumServic
         DocumentSymbolProvider: (services) => new XsmpDocumentSymbolProvider(services),
         CompletionProvider: (services) => new XsmpprojectCompletionProvider(services),
     },
+    documentation: {
+        CommentProvider: (services) => new XsmpCommentProvider(services),
+    }
 };
