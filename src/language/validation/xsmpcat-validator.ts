@@ -11,7 +11,7 @@ import { findProjectContainingUri, findVisibleUris } from '../utils/project-util
 import * as IssueCodes from './xsmpcat-issue-codes.js';
 import { isBuiltinLibrary } from '../builtins.js';
 import { isFloatingType, PTK } from '../utils/primitive-type-kind.js';
-import { Location, type Range } from 'vscode-languageserver';
+import { DiagnosticTag, Location, type Range } from 'vscode-languageserver';
 /**
  * Register custom validation checks.
  */
@@ -233,7 +233,7 @@ export class XsmpcatValidator {
         }
         const deprecated = XsmpUtils.getDeprecated(reference.ref);
         if (deprecated) {
-            accept('warning', deprecated.toString().length > 0 ? `Deprecated: ${deprecated.toString()}` : 'Deprecated.', { node, property, index });
+            accept('warning', deprecated.toString().length > 0 ? `Deprecated: ${deprecated.toString()}` : 'Deprecated.', { node, property, index, tags: [DiagnosticTag.Deprecated] });
         }
         return true;
     }
@@ -251,7 +251,7 @@ export class XsmpcatValidator {
 
         const deprecated = XsmpUtils.getDeprecated(field);
         if (deprecated) {
-            accept('warning', deprecated.toString().length > 0 ? `Deprecated: ${deprecated.toString()}` : 'Deprecated.', { node, property, index });
+            accept('warning', deprecated.toString().length > 0 ? `Deprecated: ${deprecated.toString()}` : 'Deprecated.', { node, property, index, tags: [DiagnosticTag.Deprecated] });
         }
         return true;
     }

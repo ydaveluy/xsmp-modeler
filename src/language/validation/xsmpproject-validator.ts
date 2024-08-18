@@ -1,10 +1,10 @@
-import { type AstNode, type IndexManager, MultiMap, type Properties, type Reference, type ValidationAcceptor, type ValidationChecks, UriUtils, WorkspaceCache, AstNodeDescription } from 'langium';
+import { type AstNode, type IndexManager, MultiMap, type Properties, type Reference, type ValidationAcceptor, type ValidationChecks, UriUtils, WorkspaceCache, type AstNodeDescription } from 'langium';
 import type { XsmpprojectServices } from '../xsmpproject-module.js';
 import * as fs from 'node:fs';
 import * as ProjectUtils from '../utils/project-utils.js';
 import * as ast from '../generated/ast.js';
 import * as XsmpUtils from '../utils/xsmp-utils.js';
-import { Location, type Range } from 'vscode-languageserver';
+import { DiagnosticTag, Location, type Range } from 'vscode-languageserver';
 
 /**
  * Register custom validation checks.
@@ -44,13 +44,13 @@ export class XsmpprojectValidator {
         }
         const deprecated = XsmpUtils.getDeprecated(reference.ref);
         if (deprecated) {
-            accept('warning', `Deprecated ${deprecated.toString()}`, { node, property, index });
+            accept('warning', deprecated.toString().length > 0 ? `Deprecated: ${deprecated.toString()}` : 'Deprecated.', { node, property, index, tags: [DiagnosticTag.Deprecated] });
         }
         return true;
     }
 
     checkProject(project: ast.Project, accept: ValidationAcceptor): void {
-        const duplicates = this.globalCache.get('projects', () => this.computeNamesForProjects()).get(project.name)
+        const duplicates = this.globalCache.get('projects', () => this.computeNamesForProjects()).get(project.name);
         if (duplicates.length > 1) {
             accept('error', 'Duplicated project name', {
                 node: project,
