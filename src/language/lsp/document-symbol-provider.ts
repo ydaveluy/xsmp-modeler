@@ -1,4 +1,4 @@
-import type { AstNode, Cancellation, LangiumDocument, MaybePromise } from 'langium';
+import { type DocumentBuilder, DocumentState, type AstNode, type Cancellation, type LangiumDocument, type MaybePromise } from 'langium';
 import type { DocumentSymbolProvider, NodeKindProvider } from 'langium/lsp';
 import type { DocumentSymbol, DocumentSymbolParams } from 'vscode-languageserver';
 import { SymbolTag } from 'vscode-languageserver';
@@ -7,16 +7,20 @@ import * as XsmpUtils from '../utils/xsmp-utils.js';
 import type { XsmpcatServices } from '../xsmpcat-module.js';
 import type { XsmpprojectServices } from '../xsmpproject-module.js';
 import { getValueAs } from '../utils/solver.js';
+import { PTK } from '../utils/primitive-type-kind.js';
 
 export class XsmpDocumentSymbolProvider implements DocumentSymbolProvider {
 
     protected readonly nodeKindProvider: NodeKindProvider;
+    protected readonly documentBuilder: DocumentBuilder;
 
     constructor(services: XsmpcatServices | XsmpprojectServices) {
         this.nodeKindProvider = services.shared.lsp.NodeKindProvider;
+        this.documentBuilder = services.shared.workspace.DocumentBuilder;
     }
-    getSymbols(document: LangiumDocument, _params: DocumentSymbolParams, _cancelToken?: Cancellation.CancellationToken): MaybePromise<DocumentSymbol[]> {
-        return this.getSymbol(document, document.parseResult.value);
+    getSymbols(document: LangiumDocument, _params: DocumentSymbolParams, cancelToken?: Cancellation.CancellationToken): MaybePromise<DocumentSymbol[]> {
+        return this.documentBuilder.waitUntil(DocumentState.ComputedScopes, document.uri, cancelToken)
+            .then(() => this.getSymbol(document, document.parseResult.value));
     }
 
     protected getSymbol(document: LangiumDocument, astNode: AstNode): DocumentSymbol[] {
@@ -65,7 +69,7 @@ export class XsmpDocumentSymbolProvider implements DocumentSymbolProvider {
             case ast.Integer: return (node as ast.Integer).primitiveType ? (node as ast.Integer).primitiveType?.$refText : 'Smp::Int32';
             case ast.Float: return (node as ast.Float).primitiveType ? (node as ast.Float).primitiveType?.$refText : 'Smp::Float64';
             case ast.ValueReference: return (node as ast.ValueReference).type.$refText + '*';
-            case ast.ArrayType: return `${(node as ast.ArrayType).itemType.$refText}[${getValueAs((node as ast.ArrayType).size, 'Int64')?.getValue()}]`;
+            case ast.ArrayType: return `${(node as ast.ArrayType).itemType.$refText}[${getValueAs((node as ast.ArrayType).size, PTK.Int64)?.getValue()}]`;
             case ast.Operation: return (node as ast.Operation).returnParameter ? (node as ast.Operation).returnParameter?.type.$refText : 'void';
             case ast.Property: return (node as ast.Property).type.$refText;
             case ast.Reference_: return (node as ast.Reference_).interface.$refText + this.getMultiplicity(node as ast.NamedElementWithMultiplicity);
@@ -93,16 +97,16 @@ export class XsmpDocumentSymbolProvider implements DocumentSymbolProvider {
  */
     protected getParameterSignature(p: ast.Parameter) {
         let signature = '';
-        if (XsmpUtils.isConst(p)) {
-            signature += 'const ';
-        }
+        /* if (XsmpUtils.isConst(p)) {
+             signature += 'const ';
+         }*/
         signature += p.type.$refText;
-        if (XsmpUtils.isByPointer(p)) {
+        /*if (XsmpUtils.isByPointer(p)) {
             signature += '*';
         }
         if (XsmpUtils.isByReference(p)) {
             signature += '&';
-        }
+        }*/
         return signature;
     }
 

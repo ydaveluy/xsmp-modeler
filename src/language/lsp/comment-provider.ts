@@ -1,5 +1,5 @@
-import { AstNode, DefaultCommentProvider, isAstNodeWithComment, isJSDoc } from "langium";
-import { findCommentNode } from "../utils/xsmp-utils.js";
+import { type AstNode, DefaultCommentProvider, isAstNodeWithComment, isJSDoc } from 'langium';
+import { findCommentNode } from '../utils/xsmp-utils.js';
 
 export class XsmpCommentProvider extends DefaultCommentProvider {
 

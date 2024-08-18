@@ -10,6 +10,7 @@ import { format as ClangFormat } from './clang-format.js';
 import type { XsmpSharedServices } from '../../xsmp-module.js';
 import type { XsmpTypeProvider } from '../../references/type-provider.js';
 import * as Solver from '../../utils/solver.js';
+import { PTK, PTKToString } from '../../utils/primitive-type-kind.js';
 
 export enum CxxStandard { CXX_STD_11 = 0, CXX_STD_14 = 1, CXX_STD_17 = 2 }
 
@@ -152,8 +153,8 @@ export class CppGenerator implements XsmpGenerator {
             case ast.StringLiteral: {
                 const kind = getPrimitiveTypeKind(this.typeProvider.getType(expr));
                 switch (kind) {
-                    case 'Duration':
-                    case 'DateTime': {
+                    case PTK.Duration:
+                    case PTK.DateTime: {
                         const value = Solver.getValue(expr)?.integralValue(kind)?.getValue();
                         if (value) { return `${value}L`; }
                         break;
@@ -212,7 +213,7 @@ export class CppGenerator implements XsmpGenerator {
     }
     protected primitiveTypeKind(type: ast.Type): string {
         const kind = getPrimitiveTypeKind(type);
-        return kind === 'Enum' ? '::Smp::PrimitiveTypeKind::PTK_Int32' : `::Smp::PrimitiveTypeKind::PTK_${kind}`;
+        return kind === PTK.Enum ? '::Smp::PrimitiveTypeKind::PTK_Int32' : `::Smp::PrimitiveTypeKind::PTK_${PTKToString(kind)}`;
     }
 
     protected lower(element: ast.NamedElementWithMultiplicity): string {

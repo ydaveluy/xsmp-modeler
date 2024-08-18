@@ -57,7 +57,6 @@ export class XsmpDocumentGenerator {
                 }
             }
         }
-        
         await interruptAndCheck(cancelToken);
 
         console.timeEnd(`Collecting tasks ${uri.fsPath}`);

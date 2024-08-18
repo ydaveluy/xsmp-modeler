@@ -1,20 +1,20 @@
-import * as XsmpUtils from './xsmp-utils.js';
 import * as ast from '../generated/ast.js';
 import type { ValidationAcceptor } from 'langium';
 import * as Duration from './duration.js';
-
+import { fqn, getPrimitiveTypeKind, isConstantVisibleFrom } from './xsmp-utils.js';
+import { type FloatingPTK, type IntegralPTK, isFloatingType, isIntegralType, PTK, PTKToString } from './primitive-type-kind.js';
 
 abstract class Value<T> {
 
     abstract getValue(): boolean | bigint | number | string | ast.EnumerationLiteral
 
-    abstract primitiveTypeKind(): XsmpUtils.PrimitiveTypeKind
+    abstract primitiveTypeKind(): PTK
 
     //Convertion functions
     boolValue(): BoolValue | undefined { return undefined; }
     enumerationLiteral(): EnumerationLiteralValue | undefined { return undefined; }
-    integralValue(_type: XsmpUtils.IntegralPrimitiveTypeKind): IntegralValue | undefined { return undefined; }
-    floatValue(_type: XsmpUtils.FloatingPrimitiveTypeKind): FloatValue | undefined { return undefined; }
+    integralValue(_type: IntegralPTK): IntegralValue | undefined { return undefined; }
+    floatValue(_type: FloatingPTK): FloatValue | undefined { return undefined; }
     stringValue(): StringValue | undefined { return undefined; }
     charValue(): CharValue | undefined { return undefined; }
 
@@ -65,10 +65,10 @@ export class BoolValue extends Value<BoolValue> {
     }
     override not(): BoolValue { return new BoolValue(!this.value); }
     override getValue(): boolean { return this.value; }
-    override primitiveTypeKind(): XsmpUtils.PrimitiveTypeKind { return 'Bool'; }
+    override primitiveTypeKind(): PTK { return PTK.Bool; }
     override boolValue(): this { return this; }
-    override integralValue(type: XsmpUtils.IntegralPrimitiveTypeKind): IntegralValue { return new IntegralValue(BigInt(this.value), type); }
-    override floatValue(type: XsmpUtils.FloatingPrimitiveTypeKind): FloatValue { return new FloatValue(Number(this.value), type); }
+    override integralValue(type: IntegralPTK): IntegralValue { return new IntegralValue(BigInt(this.value), type); }
+    override floatValue(type: FloatingPTK): FloatValue { return new FloatValue(Number(this.value), type); }
 }
 export class StringValue extends Value<StringValue> {
     readonly value: string;
@@ -77,18 +77,18 @@ export class StringValue extends Value<StringValue> {
         this.value = value;
     }
     override getValue(): string { return this.value; }
-    override primitiveTypeKind(): XsmpUtils.PrimitiveTypeKind { return 'String8'; }
+    override primitiveTypeKind(): PTK { return PTK.String8; }
     override stringValue(): this | undefined { return this; }
 
-    override integralValue(type: XsmpUtils.IntegralPrimitiveTypeKind): IntegralValue | undefined {
-        if (type === 'DateTime') {
-            const instant = Date.parse(this.value)
+    override integralValue(type: IntegralPTK): IntegralValue | undefined {
+        if (type === PTK.DateTime) {
+            const instant = Date.parse(this.value);
             if (isNaN(instant)) {
                 return undefined;
             }
             return new IntegralValue(BigInt(instant) * BigInt(1_000_000), type);
         }
-        else if (type === 'Duration') {
+        else if (type === PTK.Duration) {
             try {
                 return new IntegralValue(Duration.parse(this.value), type);
             }
@@ -107,7 +107,7 @@ export class CharValue extends Value<CharValue> {
         this.value = value;
     }
     override getValue(): string { return this.value; }
-    override primitiveTypeKind(): XsmpUtils.PrimitiveTypeKind { return 'Char8'; }
+    override primitiveTypeKind(): PTK { return PTK.Char8; }
     override charValue(): this | undefined { return this; }
 }
 
@@ -119,63 +119,63 @@ export class EnumerationLiteralValue extends Value<EnumerationLiteralValue> {
     }
     override getValue(): ast.EnumerationLiteral { return this.value; }
     override enumerationLiteral(): this { return this; }
-    override primitiveTypeKind(): XsmpUtils.PrimitiveTypeKind { return 'Enum'; }
+    override primitiveTypeKind(): PTK { return PTK.Enum; }
 
 }
 
 export class IntegralValue extends Value<IntegralValue> {
     readonly value: bigint;
-    readonly type: XsmpUtils.IntegralPrimitiveTypeKind;
+    readonly type: IntegralPTK;
 
     public static of(expr: ast.IntegerLiteral, accept?: ValidationAcceptor): IntegralValue | undefined {
         let text = expr.text.replaceAll("'", ''),
 
-            type: XsmpUtils.IntegralPrimitiveTypeKind = 'Int32';
+            type: IntegralPTK = PTK.Int32;
         if (text.endsWith('u') || text.endsWith('U')) {
-            type = 'UInt32';
+            type = PTK.UInt32;
             text = text.slice(0, -1);
         }
         if (text.endsWith('l') || text.endsWith('L')) {
-            type = type === 'Int32' ? 'Int64' : 'UInt64';
+            type = type === PTK.Int32 ? PTK.Int64 : PTK.UInt64;
             text = text.slice(0, -1);
         }
         if (text.endsWith('u') || text.endsWith('U')) {
-            type = type === 'Int32' ? 'UInt32' : 'UInt64';
+            type = type === PTK.Int32 ? PTK.UInt32 : PTK.UInt64;
             text = text.slice(0, -1);
         }
         const value = BigInt(text),
             result = new IntegralValue(value, type);
         if (result.value !== value) {
             if (accept) {
-                accept('error', `Conversion overflow for type ${type}.`, { node: expr });
+                accept('error', `Conversion overflow for type ${PTKToString(type)}.`, { node: expr });
             }
             return undefined;
         }
         return result;
     }
 
-    constructor(value: bigint, type: XsmpUtils.IntegralPrimitiveTypeKind) {
+    constructor(value: bigint, type: IntegralPTK) {
         super();
         switch (type) {
-            case 'Int8': this.value = BigInt.asIntN(8, value); break;
-            case 'Int16': this.value = BigInt.asIntN(16, value); break;
-            case 'Int32': this.value = BigInt.asIntN(32, value); break;
-            case 'Duration':
-            case 'DateTime':
-            case 'Int64': this.value = BigInt.asIntN(64, value); break;
-            case 'UInt8': this.value = BigInt.asUintN(8, value); break;
-            case 'UInt16': this.value = BigInt.asUintN(16, value); break;
-            case 'UInt32': this.value = BigInt.asUintN(32, value); break;
-            case 'UInt64': this.value = BigInt.asUintN(64, value); break;
+            case PTK.Int8: this.value = BigInt.asIntN(8, value); break;
+            case PTK.Int16: this.value = BigInt.asIntN(16, value); break;
+            case PTK.Int32: this.value = BigInt.asIntN(32, value); break;
+            case PTK.Duration:
+            case PTK.DateTime:
+            case PTK.Int64: this.value = BigInt.asIntN(64, value); break;
+            case PTK.UInt8: this.value = BigInt.asUintN(8, value); break;
+            case PTK.UInt16: this.value = BigInt.asUintN(16, value); break;
+            case PTK.UInt32: this.value = BigInt.asUintN(32, value); break;
+            case PTK.UInt64: this.value = BigInt.asUintN(64, value); break;
         }
 
         this.type = type;
 
     }
     override getValue(): bigint { return this.value; }
-    override primitiveTypeKind(): XsmpUtils.IntegralPrimitiveTypeKind { return this.type; }
+    override primitiveTypeKind(): IntegralPTK { return this.type; }
     override boolValue(): BoolValue { return new BoolValue(this.value !== BigInt(0)); }
-    override integralValue(type: XsmpUtils.IntegralPrimitiveTypeKind): IntegralValue | undefined {
+    override integralValue(type: IntegralPTK): IntegralValue | undefined {
         if (this.type === type) {
             return this;
         }
@@ -185,30 +185,30 @@ export class IntegralValue extends Value<IntegralValue> {
         }
         return result;
     }
-    override floatValue(type: XsmpUtils.FloatingPrimitiveTypeKind): FloatValue { return new FloatValue(Number(this.value), type); }
+    override floatValue(type: FloatingPTK): FloatValue { return new FloatValue(Number(this.value), type); }
     override charValue(): CharValue | undefined { return new CharValue(String.fromCharCode(Number(this.value))); }
 
     override unaryComplement(): IntegralValue { return new IntegralValue(~this.value, this.type); }
     override plus(): this { return this; }
     override negate(): IntegralValue { return new IntegralValue(-this.value, this.type); }
-    promote(type: XsmpUtils.IntegralPrimitiveTypeKind): XsmpUtils.IntegralPrimitiveTypeKind {
+    promote(type: IntegralPTK): IntegralPTK {
 
         switch (this.type) { // Promote correctly Int8
-            case 'Int8':
-            case 'Int16':
-            case 'UInt8':
-            case 'UInt16':
-                return type === 'Int8' || type === 'Int16' || type === 'UInt8' || type === 'UInt16' ? 'Int32' : type;
-            case 'Int32':
+            case PTK.Int8:
+            case PTK.Int16:
+            case PTK.UInt8:
+            case PTK.UInt16:
+                return type === PTK.Int8 || type === PTK.Int16 || type === PTK.UInt8 || type === PTK.UInt16 ? PTK.Int32 : type;
+            case PTK.Int32:
                 return type;
-            case 'UInt32':
-                return type === 'Int32' ? this.type : type;
-            case 'Duration':
-            case 'DateTime':
-            case 'Int64':
-                return type === 'UInt64' ? type : this.type;
-            case 'UInt64':
-                return 'UInt64';
+            case PTK.UInt32:
+                return type === PTK.Int32 ? this.type : type;
+            case PTK.Duration:
+            case PTK.DateTime:
+            case PTK.Int64:
+                return type === PTK.UInt64 ? type : this.type;
+            case PTK.UInt64:
+                return PTK.UInt64;
         }
     }
     override or(val: IntegralValue): IntegralValue { return new IntegralValue(this.value | val.value, this.promote(val.type)); }
@@ -225,34 +225,34 @@ export class IntegralValue extends Value<IntegralValue> {
 
 export class FloatValue extends Value<FloatValue> {
     readonly value: number;
-    readonly type: XsmpUtils.FloatingPrimitiveTypeKind;
-    constructor(value: number, type: XsmpUtils.FloatingPrimitiveTypeKind) {
+    readonly type: FloatingPTK;
+    constructor(value: number, type: FloatingPTK) {
         super();
         switch (type) {
-            case 'Float32': this.value = Math.fround(value); break;
-            case 'Float64': this.value = value; break;
+            case PTK.Float32: this.value = Math.fround(value); break;
+            case PTK.Float64: this.value = value; break;
         }
         this.type = type;
     }
     public static of(expr: ast.FloatingLiteral, _accept?: ValidationAcceptor): FloatValue {
         const text = expr.text.replaceAll("'", '');
         if (text.endsWith('f') || text.endsWith('F')) {
-            return new FloatValue(parseFloat(text.slice(0, -1)), 'Float32');
+            return new FloatValue(parseFloat(text.slice(0, -1)), PTK.Float32);
         }
-        return new FloatValue(parseFloat(text), 'Float64');
+        return new FloatValue(parseFloat(text), PTK.Float64);
     }
 
     override getValue(): number { return this.value; }
-    override primitiveTypeKind(): XsmpUtils.FloatingPrimitiveTypeKind { return this.type; }
+    override primitiveTypeKind(): FloatingPTK { return this.type; }
     override boolValue(): BoolValue { return new BoolValue(this.value !== 0.); }
-    override integralValue(type: XsmpUtils.IntegralPrimitiveTypeKind): IntegralValue | undefined {
+    override integralValue(type: IntegralPTK): IntegralValue | undefined {
         try {
             return new IntegralValue(BigInt(this.value), type);
         } catch {
             return undefined;
         }
     }
-    override floatValue(type: XsmpUtils.FloatingPrimitiveTypeKind): FloatValue {
+    override floatValue(type: FloatingPTK): FloatValue {
         if (this.type === type) {
             return this;
         }
@@ -261,20 +261,20 @@ export class FloatValue extends Value<FloatValue> {
     }
     override plus(): this { return this; }
     override negate(): FloatValue { return new FloatValue(-this.value, this.type); }
-    override add(val: FloatValue): FloatValue { return new FloatValue(this.value + val.value, val.type === 'Float64' || this.type === 'Float64' ? 'Float64' : 'Float32'); }
-    override subtract(val: FloatValue): FloatValue { return new FloatValue(this.value - val.value, val.type === 'Float64' || this.type === 'Float64' ? 'Float64' : 'Float32'); }
-    override divide(val: FloatValue): FloatValue { return new FloatValue(this.value / val.value, val.type === 'Float64' || this.type === 'Float64' ? 'Float64' : 'Float32'); }
-    override multiply(val: FloatValue): FloatValue { return new FloatValue(this.value * val.value, val.type === 'Float64' || this.type === 'Float64' ? 'Float64' : 'Float32'); }
+    override add(val: FloatValue): FloatValue { return new FloatValue(this.value + val.value, val.type === PTK.Float64 || this.type === PTK.Float64 ? PTK.Float64 : PTK.Float32); }
+    override subtract(val: FloatValue): FloatValue { return new FloatValue(this.value - val.value, val.type === PTK.Float64 || this.type === PTK.Float64 ? PTK.Float64 : PTK.Float32); }
+    override divide(val: FloatValue): FloatValue { return new FloatValue(this.value / val.value, val.type === PTK.Float64 || this.type === PTK.Float64 ? PTK.Float64 : PTK.Float32); }
+    override multiply(val: FloatValue): FloatValue { return new FloatValue(this.value * val.value, val.type === PTK.Float64 || this.type === PTK.Float64 ? PTK.Float64 : PTK.Float32); }
 }
 
 function convertBuiltinFunction<T>(func: ast.BuiltInFunction, accept?: ValidationAcceptor): Value<T> | undefined {
     if (func.name.endsWith('f')) {
-        const value = getValueAs(func.argument, 'Float32', accept)?.floatValue('Float32');
-        return value ? new FloatValue(Math[func.name.substring(0, -1) as ast.BuiltInFloat64Functions](value.getValue()), 'Float32') : undefined;
+        const value = getValueAs(func.argument, PTK.Float32, accept)?.floatValue(PTK.Float32);
+        return value ? new FloatValue(Math[func.name.substring(0, -1) as ast.BuiltInFloat64Functions](value.getValue()), PTK.Float32) : undefined;
     }
 
-    const value = getValueAs(func.argument, 'Float64', accept)?.floatValue('Float64');
-    return value ? new FloatValue(Math[func.name as ast.BuiltInFloat64Functions](value.getValue()), 'Float64') : undefined;
+    const value = getValueAs(func.argument, PTK.Float64, accept)?.floatValue(PTK.Float64);
+    return value ? new FloatValue(Math[func.name as ast.BuiltInFloat64Functions](value.getValue()), PTK.Float64) : undefined;
 
 }
 export function getValue<T>(expression: ast.Expression | undefined, accept?: ValidationAcceptor): Value<T> | undefined {
@@ -288,7 +288,7 @@ export function getValue<T>(expression: ast.Expression | undefined, accept?: Val
             case ast.UnaryOperation: return unaryOperation(expression as ast.UnaryOperation, accept);
             case ast.BinaryOperation: return binaryOperation(expression as ast.BinaryOperation, accept);
             case ast.ParenthesizedExpression: return getValue((expression as ast.ParenthesizedExpression).expr, accept);
-            case ast.BuiltInConstant: return new FloatValue(Math[(expression as ast.BuiltInConstant).name], 'Float64');
+            case ast.BuiltInConstant: return new FloatValue(Math[(expression as ast.BuiltInConstant).name], PTK.Float64);
             case ast.BuiltInFunction:
                 if (!(expression as ast.BuiltInFunction).argument && accept) {
                     accept('error', 'Missing argument.', { node: expression, property: 'argument' });
@@ -302,7 +302,7 @@ export function getValue<T>(expression: ast.Expression | undefined, accept?: Val
                     }
                     else if (ast.isConstant(ref.value.ref)) {
                         const cst = ref.value.ref;
-                        if (accept && !XsmpUtils.isConstantVisibleFrom(expression, cst)) {
+                        if (accept && !isConstantVisibleFrom(expression, cst)) {
                             accept('error', 'The Constant is not visible.', { node: expression });
                         }
                         if (cst.type.ref) {
@@ -319,14 +319,14 @@ export function getValue<T>(expression: ast.Expression | undefined, accept?: Val
     }
     return undefined;
 }
-function getTypeName(type: ast.Type | XsmpUtils.PrimitiveTypeKind): string {
-    if (ast.isType(type)) { return XsmpUtils.fqn(type); }
-    return type;
+function getTypeName(type: ast.Type | PTK): string {
+    if (ast.isType(type)) { return fqn(type); }
+    return PTKToString(type);
 }
 
-function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.Type | XsmpUtils.PrimitiveTypeKind, accept?: ValidationAcceptor): Value<T> | undefined {
-    const kind = ast.isType(type) ? XsmpUtils.getPrimitiveTypeKind(type) : type;
-    if (XsmpUtils.isIntegralType(kind)) {
+function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.Type | PTK, accept?: ValidationAcceptor): Value<T> | undefined {
+    const kind = ast.isType(type) ? getPrimitiveTypeKind(type) : type;
+    if (isIntegralType(kind)) {
         const integralValue = value.integralValue(kind);
         if (integralValue && accept && ast.isInteger(type)) {
             const min = getValue(type.minimum)?.integralValue(kind)?.getValue();
@@ -341,7 +341,7 @@ function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.
         }
         return integralValue;
     }
-    else if (XsmpUtils.isFloatingType(kind)) {
+    else if (isFloatingType(kind)) {
         const floatValue = value.floatValue(kind);
         if (floatValue && accept && ast.isFloat(type)) {
             const min = getValue(type.minimum)?.floatValue(kind)?.getValue();
@@ -379,27 +379,27 @@ function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.
             return value;
         }
         else if (value instanceof IntegralValue) {
-            const literal = type.literal.find(l => getValueAs(l.value, 'Int32')?.getValue() === value.getValue());
+            const literal = type.literal.find(l => getValueAs(l.value, PTK.Int32)?.getValue() === value.getValue());
             if (literal) {
                 if (accept) {
-                    accept('warning', `The enumeration literal ${XsmpUtils.fqn(literal)} should be used.`, { node: expression, data: XsmpUtils.fqn(literal) });
+                    accept('warning', `The enumeration literal ${fqn(literal)} should be used.`, { node: expression, data: fqn(literal) });
                 }
                 return new EnumerationLiteralValue(literal);
             }
         }
     }
-    else if (kind === 'Bool') { return value.boolValue(); }
-    else if (kind === 'String8') {
+    else if (kind === PTK.Bool) { return value.boolValue(); }
+    else if (kind === PTK.String8) {
         const stringValue = value.stringValue();
         if (stringValue && accept && ast.isStringType(type)) {
-            const length = getValue(type.length)?.integralValue('Int64')?.getValue();
+            const length = getValue(type.length)?.integralValue(PTK.Int64)?.getValue();
             if (length !== undefined && stringValue.getValue().length > length) {
                 accept('error', `The string length exceeds the allowed length for its type: ${length} character(s).`, { node: expression });
             }
         }
         return stringValue;
     }
-    else if (kind === 'Char8') {
+    else if (kind === PTK.Char8) {
         const charValue = value.charValue();
         if (charValue && accept) {
             if (charValue.getValue().length !== 1) {
@@ -412,7 +412,7 @@ function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.
     return undefined;
 }
 
-export function getValueAs<T>(expression: ast.Expression | undefined, type: ast.Type | XsmpUtils.PrimitiveTypeKind, accept?: ValidationAcceptor): Value<T> | undefined {
+export function getValueAs<T>(expression: ast.Expression | undefined, type: ast.Type | PTK, accept?: ValidationAcceptor): Value<T> | undefined {
     if (!expression) {
         return;
     }
@@ -423,7 +423,7 @@ export function getValueAs<T>(expression: ast.Expression | undefined, type: ast.
 
     const result = doGetValueAs(expression, value, type, accept);
     if (!result && accept) {
-        accept('error', `${value.primitiveTypeKind()} cannot be converted to ${getTypeName(type)}.`, { node: expression });
+        accept('error', `${getTypeName(value.primitiveTypeKind())} cannot be converted to ${getTypeName(type)}.`, { node: expression });
     }
 
     return result;
@@ -498,7 +498,7 @@ function binaryOperation<T>(expression: ast.BinaryOperation, accept?: Validation
             }
         }
         if (accept && result === undefined) {
-            accept('error', `Binary operator '${expression.feature}' is not supported for operands of type '${left.primitiveTypeKind()}' and '${right.primitiveTypeKind()}'.`,
+            accept('error', `Binary operator '${expression.feature}' is not supported for operands of type '${PTKToString(left.primitiveTypeKind())}' and '${PTKToString(right.primitiveTypeKind())}'.`,
                 { node: expression });
         }
     }
@@ -529,7 +529,7 @@ function unaryOperation<T>(expression: ast.UnaryOperation, accept?: ValidationAc
     const result = unaryOperationFunction(operand, expression.feature);
 
     if (accept && result === undefined) {
-        accept('error', `Unary operator '${expression.feature}' is not supported for operand of type '${operand.primitiveTypeKind()}'.`, { node: expression });
+        accept('error', `Unary operator '${expression.feature}' is not supported for operand of type '${PTKToString(operand.primitiveTypeKind())}'.`, { node: expression });
     }
     return result;
 }

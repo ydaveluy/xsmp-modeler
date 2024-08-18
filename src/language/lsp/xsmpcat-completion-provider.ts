@@ -11,6 +11,7 @@ import type { XsmpcatServices } from '../xsmpcat-module.js';
 import type { XsmpTypeProvider } from '../references/type-provider.js';
 import * as Solver from '../utils/solver.js';
 import type { XsmpSharedServices } from '../xsmp-module.js';
+import { PTK } from '../utils/primitive-type-kind.js';
 
 export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
 
@@ -240,7 +241,7 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
         }
 
         if (ast.isArrayType(type)) {
-            const value = Solver.getValueAs(type.size, 'Int64')?.integralValue('Int64')?.getValue();
+            const value = Solver.getValueAs(type.size, PTK.Int64)?.integralValue(PTK.Int64)?.getValue();
             return value ? `{${new Array(Number(value)).fill(this.getDefaultValueForType(type.itemType.ref)).join(', ')}}` : '{}';
         }
         if (ast.isStructure(type)) {
@@ -252,31 +253,31 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
         }
 
         switch (XsmpUtils.getPrimitiveTypeKind(type)) {
-            case 'Bool':
+            case PTK.Bool:
                 return 'false';
-            case 'Float32':
+            case PTK.Float32:
                 return '0.0f';
-            case 'Float64':
+            case PTK.Float64:
                 return '0.0 ';
-            case 'Int8':
-            case 'Int16':
-            case 'Int32':
+            case PTK.Int8:
+            case PTK.Int16:
+            case PTK.Int32:
                 return '0 ';
-            case 'Int64':
+            case PTK.Int64:
                 return '0L ';
-            case 'UInt8':
-            case 'UInt16':
-            case 'UInt32':
+            case PTK.UInt8:
+            case PTK.UInt16:
+            case PTK.UInt32:
                 return '0U ';
-            case 'UInt64':
+            case PTK.UInt64:
                 return '0UL ';
-            case 'Char8':
+            case PTK.Char8:
                 return "'\\0'";
-            case 'String8':
+            case PTK.String8:
                 return '""';
-            case 'DateTime':
+            case PTK.DateTime:
                 return '"1970-01-01T00:00:00Z"';
-            case 'Duration':
+            case PTK.Duration:
                 return '"PT0S"';
         }
         return '';

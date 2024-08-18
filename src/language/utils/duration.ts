@@ -21,7 +21,6 @@ const SECONDS_PER_HOUR = SECONDS_PER_MINUTE * MINUTES_PER_HOUR;
  */
 const SECONDS_PER_DAY = SECONDS_PER_HOUR * HOURS_PER_DAY;
 
-
 /**
  * Nanos per second.
  */
@@ -35,13 +34,13 @@ const NANOS_PER_MINUTE = NANOS_PER_SECOND * SECONDS_PER_MINUTE;
  */
 const NANOS_PER_HOUR = NANOS_PER_MINUTE * MINUTES_PER_HOUR;
 
+/**
+ * The pattern for parsing.
+ */
+const PATTERN = /([-+]?)P(?:([-+]?\d+)D)?(T(?:([-+]?\d+)H)?(?:([-+]?\d+)M)?(?:([-+]?\d+)(?:[.,](\d{0,9}))?S)?)?/i;
 
 export function parse(text: string): bigint {
 
-    /**
-     * The pattern for parsing.
-     */
-    const PATTERN = /([-+]?)P(?:([-+]?\d+)D)?(T(?:([-+]?\d+)H)?(?:([-+]?\d+)M)?(?:([-+]?\d+)(?:[.,](\d{0,9}))?S)?)?/i;
     const matches = PATTERN.exec(text);
     if (matches !== null) {
         // check for letter T but no time sections
@@ -52,7 +51,7 @@ export function parse(text: string): bigint {
             const minuteMatch = matches[5];
             const secondMatch = matches[6];
             const fractionMatch = matches[7];
-            if (dayMatch != null || hourMatch != null || minuteMatch != null || secondMatch != null) {
+            if (dayMatch !== undefined || hourMatch !== undefined || minuteMatch !== undefined || secondMatch !== undefined) {
                 const daysAsSecs = _parseNumber(text, dayMatch, SECONDS_PER_DAY);
                 const hoursAsSecs = _parseNumber(text, hourMatch, SECONDS_PER_HOUR);
                 const minsAsSecs = _parseNumber(text, minuteMatch, SECONDS_PER_MINUTE);
@@ -67,23 +66,20 @@ export function parse(text: string): bigint {
     throw new Error(`Text cannot be parsed to a Duration: ${text}`);
 }
 
-
 function _parseNumber(text: string, parsed: string, multiplier: bigint): bigint {
     // regex limits to [-+]?\d+
-    if (parsed == null) {
+    if (parsed === undefined) {
         return BigInt(0);
     }
-
     if (parsed.startsWith('+')) {
         parsed = parsed.substring(1);
     }
     return BigInt(parseFloat(parsed)) * BigInt(multiplier);
-
 }
 
 function _parseFraction(text: string, parsed: string, negate: number): bigint {
     // regex limits to \d{0,9}
-    if (parsed == null || parsed.length === 0) {
+    if (parsed === undefined || parsed.length === 0) {
         return BigInt(0);
     }
     parsed = (`${parsed}000000000`).substring(0, 9);
@@ -95,7 +91,7 @@ export function serialize(value: bigint) {
         return 'PT0S';
     }
 
-   let nanos = value;
+    let nanos = value;
 
     const hours = nanos / NANOS_PER_HOUR;
     nanos %= NANOS_PER_HOUR;

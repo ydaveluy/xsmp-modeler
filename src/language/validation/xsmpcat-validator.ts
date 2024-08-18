@@ -9,6 +9,7 @@ import * as Solver from '../utils/solver.js';
 import { findProjectContainingUri, findVisibleUris } from '../utils/project-utils.js';
 import * as IssueCodes from './xsmpcat-issue-codes.js';
 import { isBuiltinLibrary } from '../builtins.js';
+import { isFloatingType, PTK } from '../utils/primitive-type-kind.js';
 
 /**
  * Register custom validation checks.
@@ -270,13 +271,13 @@ export class XsmpcatValidator {
         return true;
     }
 
-    checkExpression(type: ast.Type | XsmpUtils.PrimitiveTypeKind | undefined, expression: ast.Expression | undefined, accept: ValidationAcceptor) {
+    checkExpression(type: ast.Type | PTK | undefined, expression: ast.Expression | undefined, accept: ValidationAcceptor) {
 
         if (!expression || !type) { return; }
 
         if (ast.isArrayType(type)) {
             if (ast.isCollectionLiteral(expression)) {
-                const arraySize = Solver.getValue(type.size)?.integralValue('UInt64')?.getValue();
+                const arraySize = Solver.getValue(type.size)?.integralValue(PTK.UInt64)?.getValue();
                 if (arraySize) {
                     const collectionSize = expression.elements.length,
                         size = collectionSize < arraySize ? collectionSize : arraySize;
@@ -355,7 +356,7 @@ export class XsmpcatValidator {
             if (literals.has(literal.name)) { accept('error', 'Duplicated literal name.', { node: literal, property: 'name' }); }
             else { literals.add(literal.name); }
 
-            const value = this.checkExpression('Int32', literal.value, accept);
+            const value = this.checkExpression(PTK.Int32, literal.value, accept);
             if (value !== undefined) {
                 if (values.has(value)) {
                     accept('error', 'Enumeration Literal Values shall be unique within an Enumeration.', { node: literal, property: 'value' });
@@ -366,8 +367,8 @@ export class XsmpcatValidator {
             }
         }
     }
-    private readonly integerTypes = new Set<XsmpUtils.PrimitiveTypeKind>([
-        'Int8', 'Int16', 'UInt8', 'UInt16', 'Int32', 'Int64', 'UInt32', 'UInt64', 'DateTime', 'Duration'
+    private readonly integerTypes = new Set<PTK>([
+        PTK.Int8, PTK.Int16, PTK.UInt8, PTK.UInt16, PTK.Int32, PTK.Int64, PTK.UInt32, PTK.UInt64
     ]);
     checkInteger(integer: ast.Integer, accept: ValidationAcceptor): void {
         this.checkModifier(integer, [ast.isVisibilityModifiers], accept);
@@ -393,7 +394,7 @@ export class XsmpcatValidator {
         if (float.primitiveType) { this.checkTypeReference(accept, float, float.primitiveType, 'primitiveType'); }
 
         const kind = XsmpUtils.getPrimitiveTypeKind(float);
-        if (XsmpUtils.isFloatingType(kind)) {
+        if (isFloatingType(kind)) {
             const min = this.checkExpression(kind, float.minimum, accept),
                 max = this.checkExpression(kind, float.maximum, accept);
 
@@ -662,14 +663,14 @@ export class XsmpcatValidator {
     }
     checkString(string: ast.StringType, accept: ValidationAcceptor): void {
         this.checkModifier(string, [ast.isVisibilityModifiers], accept);
-        const length = this.checkExpression('Int64', string.length, accept);
+        const length = this.checkExpression(PTK.Int64, string.length, accept);
         if (length === undefined) { accept('error', 'Missing String length.', { node: string, property: 'length' }); }
         else if (length as bigint < 0) { accept('error', 'The String length shall be a positive number.', { node: string, property: 'length' }); }
     }
 
     checkArrayType(array: ast.ArrayType, accept: ValidationAcceptor): void {
         this.checkModifier(array, [ast.isVisibilityModifiers], accept);
-        const size = this.checkExpression('Int64', array.size, accept);
+        const size = this.checkExpression(PTK.Int64, array.size, accept);
         if (size === undefined) {
             accept('error', 'Missing Array size.', { node: array, property: 'size' });
         }
@@ -732,9 +733,7 @@ export class XsmpcatValidator {
     checkCatalogue(catalogue: ast.Catalogue, accept: ValidationAcceptor): void {
         const date = XsmpUtils.getDate(catalogue);
         if (date && isNaN(Date.parse(date.toString().trim()) )) {
-  
                 accept('warning', 'Invalid date format (e.g: 1970-01-01T00:00:00Z).', { node: catalogue, range: date.range });
-            
         }
         const duplicates = this.indexManager.allElements(ast.Catalogue).filter(c => c.name === catalogue.name);
         if (duplicates.count() > 1) {
@@ -882,7 +881,7 @@ export class XsmpcatValidator {
 
     checkPrimitiveType(type: ast.PrimitiveType, accept: ValidationAcceptor): void {
         this.checkModifier(type, [ast.isVisibilityModifiers], accept);
-        if (XsmpUtils.getPrimitiveTypeKind(type) === 'None') { accept('error', 'Unsupported Primitive Type.', { node: type, property: 'name' }); }
+        if (XsmpUtils.getPrimitiveTypeKind(type) === PTK.None) { accept('error', 'Unsupported Primitive Type.', { node: type, property: 'name' }); }
     }
 
     checkNamespace(namespace: ast.Namespace, accept: ValidationAcceptor): void {

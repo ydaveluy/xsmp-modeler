@@ -14,6 +14,7 @@ import * as fs from 'fs';
 import * as Solver from '../../utils/solver.js';
 import type { TaskAcceptor, XsmpGenerator } from '../../generator/generator.js';
 import { create } from 'xmlbuilder2';
+import { type FloatingPTK, type IntegralPTK, PTK } from '../../utils/primitive-type-kind.js';
 
 export class SmpGenerator implements XsmpGenerator {
 
@@ -111,7 +112,7 @@ export class SmpGenerator implements XsmpGenerator {
 
         return {
             ...this.convertType(string, 'Types:String'),
-            '@Length': Solver.getValue(string.length)?.integralValue('Int64')?.getValue() ?? BigInt(0),
+            '@Length': Solver.getValue(string.length)?.integralValue(PTK.Int64)?.getValue() ?? BigInt(0),
         };
     }
 
@@ -195,8 +196,8 @@ export class SmpGenerator implements XsmpGenerator {
         return {
             ...this.convertType(float, 'Types:Float'),
             PrimitiveType: float.primitiveType ? this.convertXlink(float.primitiveType, float) : undefined,
-            '@Minimum': Solver.getValue(float.minimum)?.floatValue(XsmpUtils.getPrimitiveTypeKind(float) as XsmpUtils.FloatingPrimitiveTypeKind)?.getValue(),
-            '@Maximum': Solver.getValue(float.maximum)?.floatValue(XsmpUtils.getPrimitiveTypeKind(float) as XsmpUtils.FloatingPrimitiveTypeKind)?.getValue(),
+            '@Minimum': Solver.getValue(float.minimum)?.floatValue(XsmpUtils.getPrimitiveTypeKind(float) as FloatingPTK)?.getValue(),
+            '@Maximum': Solver.getValue(float.maximum)?.floatValue(XsmpUtils.getPrimitiveTypeKind(float) as FloatingPTK)?.getValue(),
             '@MinInclusive': float.range === '...' || float.range === '..<' ? true : range,
             '@MaxInclusive': float.range === '...' || float.range === '<..' ? true : range,
             '@Unit': XsmpUtils.getUnit(float),
@@ -207,8 +208,8 @@ export class SmpGenerator implements XsmpGenerator {
         return {
             ...this.convertType(integer, 'Types:Integer'),
             PrimitiveType: integer.primitiveType ? this.convertXlink(integer.primitiveType, integer) : undefined,
-            '@Minimum': Solver.getValue(integer.minimum)?.integralValue(XsmpUtils.getPrimitiveTypeKind(integer) as XsmpUtils.IntegralPrimitiveTypeKind)?.getValue(),
-            '@Maximum': Solver.getValue(integer.maximum)?.integralValue(XsmpUtils.getPrimitiveTypeKind(integer) as XsmpUtils.IntegralPrimitiveTypeKind)?.getValue(),
+            '@Minimum': Solver.getValue(integer.minimum)?.integralValue(XsmpUtils.getPrimitiveTypeKind(integer) as IntegralPTK)?.getValue(),
+            '@Maximum': Solver.getValue(integer.maximum)?.integralValue(XsmpUtils.getPrimitiveTypeKind(integer) as IntegralPTK)?.getValue(),
             '@Unit': XsmpUtils.getUnit(integer),
         };
     }
@@ -230,19 +231,19 @@ export class SmpGenerator implements XsmpGenerator {
 
         return {
             ...this.convertNamedElement(literal),
-            '@Value': Solver.getValue(literal.value)?.integralValue('Int32')?.getValue() ?? BigInt(0),
+            '@Value': Solver.getValue(literal.value)?.integralValue(PTK.Int32)?.getValue() ?? BigInt(0),
         };
     }
     private toDateTime(expression: ast.Expression): string {
-        const dateTime = Solver.getValue(expression)?.integralValue('DateTime')?.getValue() ?? BigInt(0);
+        const dateTime = Solver.getValue(expression)?.integralValue(PTK.DateTime)?.getValue() ?? BigInt(0);
         return new Date(Number(dateTime) / 1_000_000).toISOString();
     }
     private toDuration(expression: ast.Expression): string {
-        const duration = Solver.getValue(expression)?.integralValue('Duration')?.getValue() ?? BigInt(0);
+        const duration = Solver.getValue(expression)?.integralValue(PTK.Duration)?.getValue() ?? BigInt(0);
         return Duration.serialize(duration);
     }
     private toEnumerationValue(expression: ast.Expression): bigint | undefined {
-        return Solver.getValue(Solver.getValue(expression)?.enumerationLiteral()?.getValue().value)?.integralValue('Int32')?.getValue();
+        return Solver.getValue(Solver.getValue(expression)?.enumerationLiteral()?.getValue().value)?.integralValue(PTK.Int32)?.getValue();
     }
     private toString8(expression: ast.Expression): string {
         return XsmpUtils.escape(Solver.getValue(expression)?.stringValue()?.getValue());
@@ -252,23 +253,23 @@ export class SmpGenerator implements XsmpGenerator {
 
         if (type) {
             switch (XsmpUtils.getPrimitiveTypeKind(type)) {
-                case 'Bool': return { '@xsi:type': 'Types:BoolValue', '@Value': Solver.getValue(expression)?.boolValue()?.getValue() } as Types.BoolValue;
-                case 'Char8': return { '@xsi:type': 'Types:Char8Value', '@Value': XsmpUtils.escape(Solver.getValue(expression)?.charValue()?.getValue()) } as Types.Char8Value;
-                case 'Float32': return { '@xsi:type': 'Types:Float32Value', '@Value': Solver.getValue(expression)?.floatValue('Float32')?.getValue() } as Types.Float32Value;
-                case 'Float64': return { '@xsi:type': 'Types:Float64Value', '@Value': Solver.getValue(expression)?.floatValue('Float64')?.getValue() } as Types.Float64Value;
-                case 'Int8': return { '@xsi:type': 'Types:Int8Value', '@Value': Solver.getValue(expression)?.integralValue('Int8')?.getValue() } as Types.Int8Value;
-                case 'Int16': return { '@xsi:type': 'Types:Int16Value', '@Value': Solver.getValue(expression)?.integralValue('Int16')?.getValue() } as Types.Int16Value;
-                case 'Int32': return { '@xsi:type': 'Types:Int32Value', '@Value': Solver.getValue(expression)?.integralValue('Int32')?.getValue() } as Types.Int32Value;
-                case 'Int64': return { '@xsi:type': 'Types:Int64Value', '@Value': Solver.getValue(expression)?.integralValue('Int64')?.getValue() } as Types.Int64Value;
-                case 'UInt8': return { '@xsi:type': 'Types:UInt8Value', '@Value': Solver.getValue(expression)?.integralValue('UInt8')?.getValue() } as Types.UInt8Value;
-                case 'UInt16': return { '@xsi:type': 'Types:UInt16Value', '@Value': Solver.getValue(expression)?.integralValue('UInt16')?.getValue() } as Types.UInt16Value;
-                case 'UInt32': return { '@xsi:type': 'Types:UInt32Value', '@Value': Solver.getValue(expression)?.integralValue('UInt32')?.getValue() } as Types.UInt32Value;
-                case 'UInt64': return { '@xsi:type': 'Types:UInt64Value', '@Value': Solver.getValue(expression)?.integralValue('UInt64')?.getValue() } as Types.UInt64Value;
-                case 'Enum': return { '@xsi:type': 'Types:EnumerationValue', '@Value': this.toEnumerationValue(expression) } as Types.EnumerationValue;
-                case 'DateTime': return { '@xsi:type': 'Types:DateTimeValue', '@Value': this.toDateTime(expression) } as Types.DateTimeValue;
-                case 'Duration': return { '@xsi:type': 'Types:DurationValue', '@Value': this.toDuration(expression) } as Types.DurationValue;
-                case 'String8': return { '@xsi:type': 'Types:String8Value', '@Value': this.toString8(expression) } as Types.String8Value;
-                case 'None':
+                case PTK.Bool: return { '@xsi:type': 'Types:BoolValue', '@Value': Solver.getValue(expression)?.boolValue()?.getValue() } as Types.BoolValue;
+                case PTK.Char8: return { '@xsi:type': 'Types:Char8Value', '@Value': XsmpUtils.escape(Solver.getValue(expression)?.charValue()?.getValue()) } as Types.Char8Value;
+                case PTK.Float32: return { '@xsi:type': 'Types:Float32Value', '@Value': Solver.getValue(expression)?.floatValue(PTK.Float32)?.getValue() } as Types.Float32Value;
+                case PTK.Float64: return { '@xsi:type': 'Types:Float64Value', '@Value': Solver.getValue(expression)?.floatValue(PTK.Float64)?.getValue() } as Types.Float64Value;
+                case PTK.Int8: return { '@xsi:type': 'Types:Int8Value', '@Value': Solver.getValue(expression)?.integralValue(PTK.Int8)?.getValue() } as Types.Int8Value;
+                case PTK.Int16: return { '@xsi:type': 'Types:Int16Value', '@Value': Solver.getValue(expression)?.integralValue(PTK.Int16)?.getValue() } as Types.Int16Value;
+                case PTK.Int32: return { '@xsi:type': 'Types:Int32Value', '@Value': Solver.getValue(expression)?.integralValue(PTK.Int32)?.getValue() } as Types.Int32Value;
+                case PTK.Int64: return { '@xsi:type': 'Types:Int64Value', '@Value': Solver.getValue(expression)?.integralValue(PTK.Int64)?.getValue() } as Types.Int64Value;
+                case PTK.UInt8: return { '@xsi:type': 'Types:UInt8Value', '@Value': Solver.getValue(expression)?.integralValue(PTK.UInt8)?.getValue() } as Types.UInt8Value;
+                case PTK.UInt16: return { '@xsi:type': 'Types:UInt16Value', '@Value': Solver.getValue(expression)?.integralValue(PTK.UInt16)?.getValue() } as Types.UInt16Value;
+                case PTK.UInt32: return { '@xsi:type': 'Types:UInt32Value', '@Value': Solver.getValue(expression)?.integralValue(PTK.UInt32)?.getValue() } as Types.UInt32Value;
+                case PTK.UInt64: return { '@xsi:type': 'Types:UInt64Value', '@Value': Solver.getValue(expression)?.integralValue(PTK.UInt64)?.getValue() } as Types.UInt64Value;
+                case PTK.Enum: return { '@xsi:type': 'Types:EnumerationValue', '@Value': this.toEnumerationValue(expression) } as Types.EnumerationValue;
+                case PTK.DateTime: return { '@xsi:type': 'Types:DateTimeValue', '@Value': this.toDateTime(expression) } as Types.DateTimeValue;
+                case PTK.Duration: return { '@xsi:type': 'Types:DurationValue', '@Value': this.toDuration(expression) } as Types.DurationValue;
+                case PTK.String8: return { '@xsi:type': 'Types:String8Value', '@Value': this.toString8(expression) } as Types.String8Value;
+                case PTK.None:
                     if (ast.isCollectionLiteral(expression)) {
                         if (ast.isArrayType(type)) {
                             return this.convertArrayValue(type, expression);
@@ -286,22 +287,22 @@ export class SmpGenerator implements XsmpGenerator {
 
         if (type.itemType.ref) {
             switch (XsmpUtils.getPrimitiveTypeKind(type.itemType.ref)) {
-                case 'Bool': return { '@xsi:type': 'Types:BoolArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.boolValue()?.getValue() })) } as Types.BoolArrayValue;
-                case 'Char8': return { '@xsi:type': 'Types:Char8ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': XsmpUtils.escape(Solver.getValue(e)?.charValue()?.getValue()) })) } as Types.Char8ArrayValue;
-                case 'Float32': return { '@xsi:type': 'Types:Float32ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.floatValue('Float32')?.getValue() })) } as Types.Float32ArrayValue;
-                case 'Float64': return { '@xsi:type': 'Types:Float64ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.floatValue('Float64')?.getValue() })) } as Types.Float64ArrayValue;
-                case 'Int8': return { '@xsi:type': 'Types:Int8ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue('Int8')?.getValue() })) } as Types.Int8ArrayValue;
-                case 'Int16': return { '@xsi:type': 'Types:Int16ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue('Int16')?.getValue() })) } as Types.Int16ArrayValue;
-                case 'Int32': return { '@xsi:type': 'Types:Int32ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue('Int32')?.getValue() })) } as Types.Int32ArrayValue;
-                case 'Int64': return { '@xsi:type': 'Types:Int64ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue('Int64')?.getValue() })) } as Types.Int64ArrayValue;
-                case 'UInt8': return { '@xsi:type': 'Types:UInt8ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue('UInt8')?.getValue() })) } as Types.UInt8ArrayValue;
-                case 'UInt16': return { '@xsi:type': 'Types:UInt16ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue('UInt16')?.getValue() })) } as Types.UInt16ArrayValue;
-                case 'UInt32': return { '@xsi:type': 'Types:UInt32ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue('UInt32')?.getValue() })) } as Types.UInt32ArrayValue;
-                case 'UInt64': return { '@xsi:type': 'Types:UInt64ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue('UInt64')?.getValue() })) } as Types.UInt64ArrayValue;
-                case 'Enum': return { '@xsi:type': 'Types:EnumerationArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': this.toEnumerationValue(e) })) } as Types.EnumerationArrayValue;
-                case 'DateTime': return { '@xsi:type': 'Types:DateTimeArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': this.toDateTime(e) })) } as Types.DateTimeArrayValue;
-                case 'Duration': return { '@xsi:type': 'Types:DurationArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': this.toDuration(e) })) } as Types.DurationArrayValue;
-                case 'String8': return { '@xsi:type': 'Types:String8ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': this.toString8(e) })) } as Types.String8ArrayValue;
+                case PTK.Bool: return { '@xsi:type': 'Types:BoolArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.boolValue()?.getValue() })) } as Types.BoolArrayValue;
+                case PTK.Char8: return { '@xsi:type': 'Types:Char8ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': XsmpUtils.escape(Solver.getValue(e)?.charValue()?.getValue()) })) } as Types.Char8ArrayValue;
+                case PTK.Float32: return { '@xsi:type': 'Types:Float32ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.floatValue(PTK.Float32)?.getValue() })) } as Types.Float32ArrayValue;
+                case PTK.Float64: return { '@xsi:type': 'Types:Float64ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.floatValue(PTK.Float64)?.getValue() })) } as Types.Float64ArrayValue;
+                case PTK.Int8: return { '@xsi:type': 'Types:Int8ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue(PTK.Int8)?.getValue() })) } as Types.Int8ArrayValue;
+                case PTK.Int16: return { '@xsi:type': 'Types:Int16ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue(PTK.Int16)?.getValue() })) } as Types.Int16ArrayValue;
+                case PTK.Int32: return { '@xsi:type': 'Types:Int32ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue(PTK.Int32)?.getValue() })) } as Types.Int32ArrayValue;
+                case PTK.Int64: return { '@xsi:type': 'Types:Int64ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue(PTK.Int64)?.getValue() })) } as Types.Int64ArrayValue;
+                case PTK.UInt8: return { '@xsi:type': 'Types:UInt8ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue(PTK.UInt8)?.getValue() })) } as Types.UInt8ArrayValue;
+                case PTK.UInt16: return { '@xsi:type': 'Types:UInt16ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue(PTK.UInt16)?.getValue() })) } as Types.UInt16ArrayValue;
+                case PTK.UInt32: return { '@xsi:type': 'Types:UInt32ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue(PTK.UInt32)?.getValue() })) } as Types.UInt32ArrayValue;
+                case PTK.UInt64: return { '@xsi:type': 'Types:UInt64ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue(PTK.UInt64)?.getValue() })) } as Types.UInt64ArrayValue;
+                case PTK.Enum: return { '@xsi:type': 'Types:EnumerationArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': this.toEnumerationValue(e) })) } as Types.EnumerationArrayValue;
+                case PTK.DateTime: return { '@xsi:type': 'Types:DateTimeArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': this.toDateTime(e) })) } as Types.DateTimeArrayValue;
+                case PTK.Duration: return { '@xsi:type': 'Types:DurationArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': this.toDuration(e) })) } as Types.DurationArrayValue;
+                case PTK.String8: return { '@xsi:type': 'Types:String8ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': this.toString8(e) })) } as Types.String8ArrayValue;
             }
         }
         return { '@xsi:type': 'Types:ArrayValue', ItemValue: expression.elements.map(e => this.convertValue(type.itemType.ref, e), this) } as Types.ArrayValue;
@@ -327,7 +328,7 @@ export class SmpGenerator implements XsmpGenerator {
         return {
             ...this.convertType(arrayType, 'Types:Array'),
             ItemType: this.convertXlink(arrayType.itemType, arrayType),
-            '@Size': Solver.getValue(arrayType.size)?.integralValue('Int64')?.getValue() ?? BigInt(0),
+            '@Size': Solver.getValue(arrayType.size)?.integralValue(PTK.Int64)?.getValue() ?? BigInt(0),
         };
     }
     protected convertStructure(structure: ast.Structure): Types.Structure {

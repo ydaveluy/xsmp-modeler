@@ -2,26 +2,7 @@ import type { AstNode, CstNode, JSDocComment, JSDocParagraph, JSDocTag, Stream }
 import { AstUtils, CstUtils, isJSDoc, isLeafCstNode, isRootCstNode, parseJSDoc, stream } from 'langium';
 import * as ast from '../generated/ast.js';
 import * as Solver from './solver.js';
-
-export type IntegralPrimitiveTypeKind = 'Int8' | 'Int16' | 'UInt8' | 'UInt16' | 'Int32' | 'Int64' | 'UInt32' | 'UInt64' | 'DateTime' | 'Duration';
-
-const integralTypes = new Set<PrimitiveTypeKind>([
-    'Int8', 'Int16', 'UInt8', 'UInt16', 'Int32', 'Int64', 'UInt32', 'UInt64', 'DateTime', 'Duration'
-]);
-
-export function isIntegralType(type: PrimitiveTypeKind): type is IntegralPrimitiveTypeKind {
-    return integralTypes.has(type);
-}
-export type FloatingPrimitiveTypeKind = 'Float32' | 'Float64';
-
-const floatingTypes = new Set<PrimitiveTypeKind>([
-    'Float32', 'Float64'
-]);
-
-export function isFloatingType(type: PrimitiveTypeKind): type is FloatingPrimitiveTypeKind {
-    return floatingTypes.has(type);
-}
-export type PrimitiveTypeKind = 'Bool' | 'Char8' | FloatingPrimitiveTypeKind | IntegralPrimitiveTypeKind | 'String8' | 'None' | 'Enum';
+import { PTK } from './primitive-type-kind.js';
 
 export type Attributes = 'Attributes.Static'
     | 'Attributes.Const' | 'Attributes.Mutable'
@@ -100,33 +81,33 @@ export function isState(node: ast.VisibilityElement): boolean {
     return !node.modifiers.includes('transient');
 }
 
-export function getPrimitiveTypeKind(type: ast.Type | undefined, defaultKind: PrimitiveTypeKind = 'None'): PrimitiveTypeKind {
+export function getPrimitiveTypeKind(type: ast.Type | undefined, defaultKind: PTK = PTK.None): PTK {
     if (!type) { return defaultKind; }
     switch (type.$type) {
         case ast.PrimitiveType:
             switch (fqn(type)) {
-                case 'Smp.Bool': return 'Bool';
-                case 'Smp.Char8': return 'Char8';
-                case 'Smp.DateTime': return 'DateTime';
-                case 'Smp.Duration': return 'Duration';
-                case 'Smp.Float32': return 'Float32';
-                case 'Smp.Float64': return 'Float64';
-                case 'Smp.Int8': return 'Int8';
-                case 'Smp.Int16': return 'Int16';
-                case 'Smp.Int32': return 'Int32';
-                case 'Smp.Int64': return 'Int64';
-                case 'Smp.UInt8': return 'UInt8';
-                case 'Smp.UInt16': return 'UInt16';
-                case 'Smp.UInt32': return 'UInt32';
-                case 'Smp.UInt64': return 'UInt64';
-                case 'Smp.String8': return 'String8';
-                default: return 'None';
+                case 'Smp.Bool': return PTK.Bool;
+                case 'Smp.Char8': return PTK.Char8;
+                case 'Smp.DateTime': return PTK.DateTime;
+                case 'Smp.Duration': return PTK.Duration;
+                case 'Smp.Float32': return PTK.Float32;
+                case 'Smp.Float64': return PTK.Float64;
+                case 'Smp.Int8': return PTK.Int8;
+                case 'Smp.Int16': return PTK.Int16;
+                case 'Smp.Int32': return PTK.Int32;
+                case 'Smp.Int64': return PTK.Int64;
+                case 'Smp.UInt8': return PTK.UInt8;
+                case 'Smp.UInt16': return PTK.UInt16;
+                case 'Smp.UInt32': return PTK.UInt32;
+                case 'Smp.UInt64': return PTK.UInt64;
+                case 'Smp.String8': return PTK.String8;
+                default: return PTK.None;
             }
-        case ast.Float: return getPrimitiveTypeKind((type as ast.Float).primitiveType?.ref, 'Float64');
-        case ast.Integer: return getPrimitiveTypeKind((type as ast.Integer).primitiveType?.ref, 'Int32');
-        case ast.StringType: return 'String8';
-        case ast.Enumeration: return 'Enum';
-        default: return 'None';
+        case ast.Float: return getPrimitiveTypeKind((type as ast.Float).primitiveType?.ref, PTK.Float64);
+        case ast.Integer: return getPrimitiveTypeKind((type as ast.Integer).primitiveType?.ref, PTK.Int32);
+        case ast.StringType: return PTK.String8;
+        case ast.Enumeration: return PTK.Enum;
+        default: return PTK.None;
     }
 }
 
@@ -160,7 +141,6 @@ export function findCommentNode(cstNode: CstNode | undefined): CstNode | undefin
 function isCommentNode(cstNode: CstNode): boolean {
     return isLeafCstNode(cstNode) && 'ML_COMMENT' === cstNode.tokenType.name && isJSDoc(cstNode);
 }
-
 
 export function getJSDoc(element: AstNode): JSDocComment | undefined {
     const comment = findCommentNode(element.$cstNode);
@@ -324,7 +304,7 @@ export function getLower(element: ast.NamedElementWithMultiplicity): bigint | un
     if (element.multiplicity.lower === undefined && element.multiplicity.upper === undefined) {
         return BigInt(element.multiplicity.aux ? 1 : 0);
     }
-    return Solver.getValue(element.multiplicity.lower)?.integralValue('Int64')?.getValue();
+    return Solver.getValue(element.multiplicity.lower)?.integralValue(PTK.Int64)?.getValue();
 }
 
 export function getUpper(element: ast.NamedElementWithMultiplicity): bigint | undefined {
@@ -335,9 +315,9 @@ export function getUpper(element: ast.NamedElementWithMultiplicity): bigint | un
         return BigInt(-1);
     }
     if (element.multiplicity.upper === undefined) {
-        return element.multiplicity.aux ? BigInt(-1) : Solver.getValue(element.multiplicity.lower)?.integralValue('Int64')?.getValue() ?? BigInt(0);
+        return element.multiplicity.aux ? BigInt(-1) : Solver.getValue(element.multiplicity.lower)?.integralValue(PTK.Int64)?.getValue() ?? BigInt(0);
     }
-    return Solver.getValue(element.multiplicity.upper)?.integralValue('Int64')?.getValue();
+    return Solver.getValue(element.multiplicity.upper)?.integralValue(PTK.Int64)?.getValue();
 }
 
 export function getAllFields(element: ast.Structure): Stream<ast.Field> {
