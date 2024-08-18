@@ -1,6 +1,7 @@
 import {
     AstUtils, MultiMap, type ValidationAcceptor, type ValidationChecks, WorkspaceCache, diagnosticData,
-    type AstNode, type IndexManager, type LangiumDocuments, type Properties, type Reference, type URI
+    type AstNode, type IndexManager, type LangiumDocuments, type Properties, type Reference, type URI,
+    type AstNodeDescription
 } from 'langium';
 import * as ast from '../generated/ast.js';
 import type { XsmpcatServices } from '../xsmpcat-module.js';
@@ -10,7 +11,7 @@ import { findProjectContainingUri, findVisibleUris } from '../utils/project-util
 import * as IssueCodes from './xsmpcat-issue-codes.js';
 import { isBuiltinLibrary } from '../builtins.js';
 import { isFloatingType, PTK } from '../utils/primitive-type-kind.js';
-
+import { Location, type Range } from 'vscode-languageserver';
 /**
  * Register custom validation checks.
  */
@@ -87,63 +88,49 @@ export class XsmpcatValidator {
     protected readonly indexManager: IndexManager;
     protected documents: LangiumDocuments;
 
-    protected readonly globalCache: WorkspaceCache<string, MultiMap<string, ast.Type>>;
-    protected readonly visibleCache: WorkspaceCache<URI, MultiMap<string, ast.NamedElement>>;
+    protected readonly globalCache: WorkspaceCache<string, MultiMap<string, AstNodeDescription>>;
+    protected readonly visibleCache: WorkspaceCache<URI, MultiMap<string, AstNodeDescription>>;
 
     constructor(services: XsmpcatServices) {
         this.indexManager = services.shared.workspace.IndexManager;
         this.documents = services.shared.workspace.LangiumDocuments;
-        this.globalCache = new WorkspaceCache<string, MultiMap<string, ast.Type>>(services.shared);
-        this.visibleCache = new WorkspaceCache<URI, MultiMap<string, ast.NamedElement>>(services.shared);
+        this.globalCache = new WorkspaceCache<string, MultiMap<string, AstNodeDescription>>(services.shared);
+        this.visibleCache = new WorkspaceCache<URI, MultiMap<string, AstNodeDescription>>(services.shared);
     }
 
-    private computeUuidsForTypes(): MultiMap<string, ast.Type> {
-        const map = new MultiMap<string, ast.Type>();
+    private computeUuidsForTypes(): MultiMap<string, AstNodeDescription> {
+        const map = new MultiMap<string, AstNodeDescription>();
         for (const type of this.indexManager.allElements(ast.Type)) {
             if (type.node) {
                 const uuid = XsmpUtils.getUuid(type.node as ast.Type)?.toString();
                 if (uuid) {
-                    map.add(uuid, type.node as ast.Type);
+                    map.add(uuid, type);
                 }
             }
         }
         return map;
     }
 
-    private isDuplicatedUuid(type: ast.Type, uuid: string): boolean {
-        return this.globalCache.get('uuids', () => this.computeUuidsForTypes()).get(uuid).length > 1;
-    }
-
-    private computeServiceNames(): MultiMap<string, ast.Service> {
-        const map = new MultiMap<string, ast.Service>();
+    private computeServiceNames(): MultiMap<string, AstNodeDescription> {
+        const map = new MultiMap<string, AstNodeDescription>();
         for (const type of this.indexManager.allElements(ast.Service)) {
-            if (type.node) { map.add((type.node as ast.Service).name, type.node as ast.Service); }
+            if (type.node) { map.add((type.node as ast.Service).name, type); }
         }
         return map;
     }
-    private isDuplicatedServiceName(service: ast.Service): boolean {
-        return this.globalCache.get('services', () => this.computeServiceNames()).get(service.name).length > 1;
-    }
 
-    private computeVisibleNames(uri: URI): MultiMap<string, ast.NamedElement> {
-        const map = new MultiMap<string, ast.NamedElement>();
+    private computeVisibleNames(uri: URI): MultiMap<string, AstNodeDescription> {
+        const map = new MultiMap<string, AstNodeDescription>();
         for (const element of this.indexManager.allElements(ast.NamedElement, findVisibleUris(this.documents, uri)?.add(uri.toString()))) {
             if (element.node) {
-                map.add(element.name, element.node as ast.NamedElement);
+                map.add(element.name, element);
             }
         }
         return map;
     }
-    private getDuplicatedName(element: ast.Type | ast.Namespace): readonly ast.NamedElement[] {
+    private getDuplicatedName(element: ast.Type | ast.Namespace): readonly AstNodeDescription[] {
         const { uri } = AstUtils.getDocument(element);
         return this.visibleCache.get(uri, () => this.computeVisibleNames(uri)).get(XsmpUtils.fqn(element));
-    }
-    private isDuplicatedTypeName(element: ast.Type): boolean {
-        return this.getDuplicatedName(element).length > 1;
-    }
-    private isDuplicatedNamespaceName(element: ast.Namespace): boolean {
-        const duplicates = this.getDuplicatedName(element);
-        return duplicates.length > 1 && (duplicates.some(ast.isType) || duplicates.filter(e => !ast.isCatalogue(e) && AstUtils.getDocument(element) === AstUtils.getDocument(e)).length > 1);
     }
 
     checkNamedElement(element: ast.NamedElement, accept: ValidationAcceptor): void {
@@ -172,11 +159,9 @@ export class XsmpcatValidator {
                     accept('warning', 'Duplicated annotation of a non-repeatable type. Only annotation types marked with \'@allowMultiple\' can be used multiple times on a single target.',
                         { node: attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
                 }
-
                 visited.add(type);
             }
         }
-
     }
 
     public static getReferenceType(type: string, property: string): string {
@@ -422,12 +407,25 @@ export class XsmpcatValidator {
         else if (!uuidRegex.test(uuid.toString())) {
             accept('error', 'The UUID is invalid.', { node: type, range: uuid.range, data: diagnosticData(IssueCodes.InvalidUuid) });
         }
-        else if (this.isDuplicatedUuid(type, uuid.toString())) {
-            accept('error', 'Duplicated UUID.', { node: type, range: uuid.range, data: diagnosticData(IssueCodes.DuplicatedUuid) });
+        else {
+            const duplicates = this.globalCache.get('uuids', () => this.computeUuidsForTypes()).get(uuid.toString());
+            if (duplicates.length > 1) {
+                accept('error', 'Duplicated UUID.', {
+                    node: type,
+                    range: uuid.range,
+                    data: diagnosticData(IssueCodes.DuplicatedUuid),
+                    relatedInformation: duplicates.filter(d => d.node !== type).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment?.range as Range), message: d.name }))
+                });
+            }
         }
-
-        if (this.isDuplicatedTypeName(type)) {
-            accept('error', 'Duplicated Type name.', { node: type, property: 'name' });
+        const duplicates = this.getDuplicatedName(type);
+        if (duplicates.length > 1) {
+            accept('error', 'Duplicated Type name.', {
+                node: type,
+                property: 'name',
+                data: diagnosticData(IssueCodes.DuplicatedUuid),
+                relatedInformation: duplicates.filter(d => d.node !== type).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment?.range as Range), message: d.name }))
+            });
         }
     }
 
@@ -728,16 +726,30 @@ export class XsmpcatValidator {
         });
     }
     checkService(service: ast.Service, accept: ValidationAcceptor): void {
-        if (this.isDuplicatedServiceName(service)) { accept('error', 'Duplicated Service name.', { node: service, property: 'name' }); }
+
+        const duplicates = this.globalCache.get('services', () => this.computeServiceNames()).get(service.name);
+
+        if (duplicates.length > 1) {
+            accept('error', 'Duplicated Service name.', {
+                node: service,
+                property: 'name',
+                relatedInformation: duplicates.filter(d => d.node !== service).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment?.range as Range), message: d.name }))
+            });
+        }
     }
+
     checkCatalogue(catalogue: ast.Catalogue, accept: ValidationAcceptor): void {
         const date = XsmpUtils.getDate(catalogue);
-        if (date && isNaN(Date.parse(date.toString().trim()) )) {
-                accept('warning', 'Invalid date format (e.g: 1970-01-01T00:00:00Z).', { node: catalogue, range: date.range });
+        if (date && isNaN(Date.parse(date.toString().trim()))) {
+            accept('warning', 'Invalid date format (e.g: 1970-01-01T00:00:00Z).', { node: catalogue, range: date.range });
         }
         const duplicates = this.indexManager.allElements(ast.Catalogue).filter(c => c.name === catalogue.name);
         if (duplicates.count() > 1) {
-            accept('error', 'Duplicated Catalogue name.', { node: catalogue, property: 'name' });
+            accept('error', 'Duplicated Catalogue name.', {
+                node: catalogue,
+                property: 'name',
+                relatedInformation: duplicates.filter(d => d.node !== catalogue).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment?.range as Range), message: d.name })).toArray()
+            });
         }
         if (catalogue.$document && !isBuiltinLibrary(catalogue.$document?.uri)) {
             const project = findProjectContainingUri(this.documents, catalogue.$document?.uri);
@@ -885,8 +897,16 @@ export class XsmpcatValidator {
     }
 
     checkNamespace(namespace: ast.Namespace, accept: ValidationAcceptor): void {
-        if (this.isDuplicatedNamespaceName(namespace)) {
-            accept('error', 'Duplicated name.', { node: namespace, property: 'name' });
+
+        const duplicates = this.getDuplicatedName(namespace);
+        if (duplicates.length > 1 && (duplicates.some(ast.isType) || duplicates.filter(e => !ast.isCatalogue(e) && AstUtils.getDocument(namespace).uri === e.documentUri).length > 1)) {
+
+            accept('error', 'Duplicated name.', {
+                node: namespace,
+                property: 'name',
+                relatedInformation: duplicates.filter(d => d.node !== namespace && !ast.isCatalogue(d) && AstUtils.getDocument(namespace).uri === d.documentUri).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment?.range as Range), message: d.name }))
+            });
         }
+
     }
 }

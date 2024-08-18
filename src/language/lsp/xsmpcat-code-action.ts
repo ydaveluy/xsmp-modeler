@@ -2,18 +2,11 @@
 import { type AstReflection, type Cancellation, type DiagnosticData, type IndexManager, type LangiumDocument, type MaybePromise } from 'langium';
 
 import type { CodeActionProvider, LangiumServices } from 'langium/lsp';
-import { CodeActionKind, type Diagnostic } from 'vscode-languageserver';
+import { CodeActionKind, TextEdit, type Diagnostic } from 'vscode-languageserver';
 import type { CodeActionParams } from 'vscode-languageserver-protocol';
 import type { CodeAction, Command } from 'vscode-languageserver-types';
 import * as  IssueCodes from '../validation/xsmpcat-issue-codes.js';
 import { randomUUID } from 'crypto';
-
-function isDiagnosticData(obj: unknown): obj is DiagnosticData {
-    return typeof obj === 'object' &&
-        obj !== null &&
-        typeof (obj as DiagnosticData).code === 'string';
-}
-
 export class XsmpcatCodeActionProvider implements CodeActionProvider {
 
     protected readonly reflection: AstReflection;
@@ -31,8 +24,8 @@ export class XsmpcatCodeActionProvider implements CodeActionProvider {
      * @throws `ResponseError` if an error is detected that should be sent as response to the client
      */
     getCodeActions(document: LangiumDocument, params: CodeActionParams, _cancelToken?: Cancellation.CancellationToken): MaybePromise<Array<Command | CodeAction>> {
-        const result: CodeAction[] = [],
-            acceptor = (ca: CodeAction | undefined) => ca && result.push(ca);
+        const result: CodeAction[] = [];
+        const acceptor = (ca: CodeAction | undefined) => ca && result.push(ca);
         for (const diagnostic of params.context.diagnostics) {
             this.createCodeActions(diagnostic, document, acceptor);
         }
@@ -40,27 +33,24 @@ export class XsmpcatCodeActionProvider implements CodeActionProvider {
     }
 
     private createCodeActions(diagnostic: Diagnostic, document: LangiumDocument, accept: (ca: CodeAction | undefined) => void): void {
-        if (isDiagnosticData(diagnostic.data)) {
-            switch (diagnostic.data.code) {
-                case IssueCodes.InvalidUuid:
-                case IssueCodes.DuplicatedUuid:
-                    accept(this.replaceUuid(diagnostic, document));
-                    break;
-                case IssueCodes.IllegalModifier:
-                case IssueCodes.InvalidModifier:
-                case IssueCodes.InvalidAttribute:
-                case IssueCodes.InvalidUsage:
-                case IssueCodes.DuplicatedUsage:
-                    accept(this.removeRegion(diagnostic, document));
-                    break;
-                case IssueCodes.MissingAbstract:
-                    accept(this.addAbstract(diagnostic, document));
-                    break;
-                case IssueCodes.MissingUuid:
-                    accept(this.generateUuid(diagnostic, document));
-                    break;
-
-            }
+        switch ((diagnostic.data as DiagnosticData)?.code) {
+            case IssueCodes.InvalidUuid:
+            case IssueCodes.DuplicatedUuid:
+                accept(this.replaceUuid(diagnostic, document));
+                break;
+            case IssueCodes.IllegalModifier:
+            case IssueCodes.InvalidModifier:
+            case IssueCodes.InvalidAttribute:
+            case IssueCodes.InvalidUsage:
+            case IssueCodes.DuplicatedUsage:
+                accept(this.removeRegion(diagnostic, document));
+                break;
+            case IssueCodes.MissingAbstract:
+                accept(this.addAbstract(diagnostic, document));
+                break;
+            case IssueCodes.MissingUuid:
+                accept(this.generateUuid(diagnostic, document));
+                break;
         }
     }
 
@@ -70,7 +60,7 @@ export class XsmpcatCodeActionProvider implements CodeActionProvider {
             kind: CodeActionKind.QuickFix,
             diagnostics: [diagnostic],
             isPreferred: true,
-            edit: { changes: { [document.textDocument.uri]: [{ range: diagnostic.range, newText: randomUUID().toString() }] } }
+            edit: { changes: { [document.textDocument.uri]: [TextEdit.replace(diagnostic.range, randomUUID().toString())] } }
         };
     }
 
@@ -92,7 +82,7 @@ export class XsmpcatCodeActionProvider implements CodeActionProvider {
                 kind: CodeActionKind.QuickFix,
                 diagnostics: [diagnostic],
                 isPreferred: true,
-                edit: { changes: { [document.textDocument.uri]: [{ range: { start: data.actionRange.end, end: data.actionRange.end }, newText }] } }
+                edit: { changes: { [document.textDocument.uri]: [TextEdit.insert(data.actionRange.end, newText)] } }
             };
         }
         return undefined;
@@ -104,7 +94,7 @@ export class XsmpcatCodeActionProvider implements CodeActionProvider {
             kind: CodeActionKind.QuickFix,
             diagnostics: [diagnostic],
             isPreferred: true,
-            edit: { changes: { [document.textDocument.uri]: [{ range: diagnostic.range, newText: '' }] } }
+            edit: { changes: { [document.textDocument.uri]: [TextEdit.del(diagnostic.range)] } }
         };
     }
 
@@ -114,7 +104,7 @@ export class XsmpcatCodeActionProvider implements CodeActionProvider {
             kind: CodeActionKind.QuickFix,
             diagnostics: [diagnostic],
             isPreferred: true,
-            edit: { changes: { [document.textDocument.uri]: [{ range: { start: diagnostic.range.start, end: diagnostic.range.start }, newText: 'abstract ' }] } }
+            edit: { changes: { [document.textDocument.uri]: [TextEdit.insert(diagnostic.range.start, 'abstract ')] } }
         };
     }
 }
