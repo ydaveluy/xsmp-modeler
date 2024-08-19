@@ -1,12 +1,11 @@
-
 import { type AstReflection, type Cancellation, type DiagnosticData, type IndexManager, type LangiumDocument, type MaybePromise } from 'langium';
-
 import type { CodeActionProvider, LangiumServices } from 'langium/lsp';
 import { CodeActionKind, TextEdit, type Diagnostic } from 'vscode-languageserver';
 import type { CodeActionParams } from 'vscode-languageserver-protocol';
 import type { CodeAction, Command } from 'vscode-languageserver-types';
 import * as  IssueCodes from '../validation/xsmpcat-issue-codes.js';
 import { randomUUID } from 'crypto';
+
 export class XsmpcatCodeActionProvider implements CodeActionProvider {
 
     protected readonly reflection: AstReflection;
@@ -51,7 +50,23 @@ export class XsmpcatCodeActionProvider implements CodeActionProvider {
             case IssueCodes.MissingUuid:
                 accept(this.generateUuid(diagnostic, document));
                 break;
+            case IssueCodes.EnumLiteralExpected:
+                accept(this.replaceByEnumLiteral(diagnostic, document));
+                break;
         }
+    }
+    private replaceByEnumLiteral(diagnostic: Diagnostic, document: LangiumDocument): CodeAction | undefined {
+        const msg = diagnostic.relatedInformation?.at(0)?.message;
+        if (!msg) {
+            return undefined;
+        }
+        return {
+            title: 'Replace by Enumeration literal.',
+            kind: CodeActionKind.QuickFix,
+            diagnostics: [diagnostic],
+            isPreferred: true,
+            edit: { changes: { [document.textDocument.uri]: [TextEdit.replace(diagnostic.range, msg)] } }
+        };
     }
 
     private replaceUuid(diagnostic: Diagnostic, document: LangiumDocument): CodeAction {

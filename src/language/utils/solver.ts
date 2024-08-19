@@ -1,8 +1,11 @@
 import * as ast from '../generated/ast.js';
-import type { ValidationAcceptor } from 'langium';
+import { AstUtils, diagnosticData, type ValidationAcceptor } from 'langium';
 import * as Duration from './duration.js';
 import { fqn, getPrimitiveTypeKind, isConstantVisibleFrom } from './xsmp-utils.js';
 import { type FloatingPTK, type IntegralPTK, isFloatingType, isIntegralType, PTK, PTKToString } from './primitive-type-kind.js';
+
+import { Location, type Range } from 'vscode-languageserver';
+import * as IssueCodes from '../validation//xsmpcat-issue-codes.js';
 
 abstract class Value<T> {
 
@@ -382,7 +385,11 @@ function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.
             const literal = type.literal.find(l => getValueAs(l.value, PTK.Int32)?.getValue() === value.getValue());
             if (literal) {
                 if (accept) {
-                    accept('warning', `The enumeration literal ${fqn(literal)} should be used.`, { node: expression, data: fqn(literal) });
+                    accept('warning', 'An enumeration literal is expected.', {
+                        node: expression,
+                        relatedInformation: [{ location: Location.create(AstUtils.getDocument(literal).uri.toString(), literal.$cstNode?.range as Range), message: fqn(literal) }],
+                        data: diagnosticData(IssueCodes.EnumLiteralExpected)
+                    });
                 }
                 return new EnumerationLiteralValue(literal);
             }

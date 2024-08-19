@@ -19,3 +19,4 @@ export const DuplicatedUsage = 'duplicated-usage';
 export const NonSimpleArray = 'non-simple-array';
 export const InvalidAttribute = 'invalid-attribute';
 export const DuplicatedException = 'duplicated-exception';
+export const EnumLiteralExpected = 'not-enum-literal';
