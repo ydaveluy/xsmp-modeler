@@ -7,6 +7,11 @@
     "repository": "https://github.com/ydaveluy/xsmp-modeler",
     "type": "module",
     "license": "MIT",
+    "icon": "icons/logo.png",
+    "bugs": "https://github.com/ydaveluy/xsmp-modeler/issues",
+    "sponsor": {
+        "url": "https://github.com/sponsors/ydaveluy"
+    },
     "scripts": {
         "clean": "shx rm -rf bin/ out/",
         "build": "tsc -b tsconfig.src.json && node esbuild.mjs",
@@ -132,7 +137,8 @@
     },
     "activationEvents": [
         "onLanguage:xsmpproject",
-        "onLanguage:xsmpcat"
+        "onLanguage:xsmpcat",
+		"onStartupFinished"
     ],
     "main": "./out/extension/main.cjs",
     "bin": {

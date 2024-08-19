@@ -18,8 +18,7 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "rootDir": ".",
-        "noEmit": true,
-        "removeComments": true
+        "noEmit": true
     },
     "include": [
         "src/**/*.ts",

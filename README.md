@@ -23,8 +23,6 @@ Features status:
 - [ ] esa-cdk Profile - generator
 - [ ] Command Line Interface
 
-
-
 # XSMP Modeler
 
 [![CI](https://github.com/ydaveluy/xsmp-modeler/actions/workflows/action.yml/badge.svg)](https://github.com/ydaveluy/xsmp-modeler/actions/workflows/action.yml)
@@ -34,14 +32,21 @@ Features status:
 
 XSMP Modeler is a framework for the development of SMDL (Simulation Model Definition Language) as defined in the [ECSS SMP standard](https://ecss.nl/standard/ecss-e-st-40-07c-simulation-modelling-platform-2-march-2020/).
 
-Supported IDEs:
-- Visual Studio Code: available in [Marketplace](https://marketplace.visualstudio.com/items?itemName=ydaveluy.xsmp-modeler&ssr=false#overview).
-- Eclipse: see project [xsmp-modeler-eclipse](https://github.com/ydaveluy/xsmp-modeler-eclipse)).
 
 It includes:
 - An integrated text editor with syntax highlighting, error checking, auto-completion, formatting, hover information, outline, quick fixes, and more.
 - Specific profiles for each framework.
 - Additional tools for extended capabilities.
+
+## Installation
+
+### Visual Studio Code
+
+From [Visuel Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=ydaveluy.xsmp-modeler&ssr=false#overview)
+
+### Eclipse
+
+See [xsmp-modeler-eclipse](https://github.com/ydaveluy/xsmp-modeler-eclipse/tree/gh-pages)
 
 ## Profiles
 
@@ -56,7 +61,6 @@ XSMP Modeler provides additional tools to extend its functionality:
 
 - **SMP Tool**: Generates SMP modeling files (smpcat, smppkg) from XSMP textual modeling files.
 - **AsciiDoc Tool**: Generates AsciiDoc documentation from XSMP modeling files.
-
 
 
 ## License
