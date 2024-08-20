@@ -23,8 +23,3 @@ const floatingTypes = new Set<PTK>([
 export function isFloatingType(type: PTK): type is FloatingPTK {
     return floatingTypes.has(type);
 }
-
-export function PTKToString(value: number): string {
-    const enumName = PTK[value];
-    return typeof enumName === 'string' ? enumName : value.toString();
-}

@@ -1,4 +1,4 @@
-import type {  LangiumDocument, MaybePromise } from 'langium';
+import type { LangiumDocument, MaybePromise } from 'langium';
 import { CstUtils, GrammarAST } from 'langium';
 import { MultilineCommentHoverProvider } from 'langium/lsp';
 import type { Hover, HoverParams } from 'vscode-languageserver';

@@ -10,7 +10,7 @@ import { format as ClangFormat } from './clang-format.js';
 import type { XsmpSharedServices } from '../../xsmp-module.js';
 import type { XsmpTypeProvider } from '../../references/type-provider.js';
 import * as Solver from '../../utils/solver.js';
-import { PTK, PTKToString } from '../../utils/primitive-type-kind.js';
+import { PTK } from '../../utils/primitive-type-kind.js';
 
 export enum CxxStandard { CXX_STD_11 = 0, CXX_STD_14 = 1, CXX_STD_17 = 2 }
 
@@ -28,7 +28,7 @@ export class CppGenerator implements XsmpGenerator {
         this.typeProvider = services.TypeProvider;
     }
 
-    clean(projectUri: URI) {
+    clean(_projectUri: URI) {
         // ignore
     }
 
@@ -40,7 +40,7 @@ export class CppGenerator implements XsmpGenerator {
         }
     }
 
-    public generatePackage(catalogue: ast.Catalogue, projectUri: URI, notice: string | undefined, acceptTask: TaskAcceptor) {
+    public generatePackage(_catalogue: ast.Catalogue, _projectUri: URI, _notice: string | undefined, _acceptTask: TaskAcceptor) {
         //TODO
     }
 
@@ -53,7 +53,7 @@ export class CppGenerator implements XsmpGenerator {
         }
     }
 
-    protected generateType(type: ast.Type, projectUri: URI, notice: string | undefined, acceptTask: TaskAcceptor) {
+    protected generateType(_type: ast.Type, _projectUri: URI, _notice: string | undefined, _acceptTask: TaskAcceptor) {
         //TODO
     }
     protected async format(path: string, content: string): Promise<string> {
@@ -208,12 +208,12 @@ export class CppGenerator implements XsmpGenerator {
         ${this.cxxStandard >= CxxStandard.CXX_STD_17 ? 'inline ' : ''}constexpr ::Smp::Uuid Uuid_${type.name} { ${getUuid(type)?.toString().trim().split('-').map(u => `0x${u}U`).join(', ')} };
     `;
     }
-    protected uuidDefinition(type: ast.Type): string | undefined {
+    protected uuidDefinition(_type: ast.Type): string | undefined {
         return undefined;
     }
     protected primitiveTypeKind(type: ast.Type): string {
         const kind = getPrimitiveTypeKind(type);
-        return kind === PTK.Enum ? '::Smp::PrimitiveTypeKind::PTK_Int32' : `::Smp::PrimitiveTypeKind::PTK_${PTKToString(kind)}`;
+        return kind === PTK.Enum ? '::Smp::PrimitiveTypeKind::PTK_Int32' : `::Smp::PrimitiveTypeKind::PTK_${PTK[kind]}`;
     }
 
     protected lower(element: ast.NamedElementWithMultiplicity): string {
@@ -306,133 +306,133 @@ export class CppGenerator implements XsmpGenerator {
             default: return undefined;
         }
     }
-    protected declareAssociation(element: ast.Association): string | undefined {
+    protected declareAssociation(_element: ast.Association): string | undefined {
         return undefined;
     }
-    protected defineAssociation(element: ast.Association): string | undefined {
+    protected defineAssociation(_element: ast.Association): string | undefined {
         return undefined;
     }
-    protected initializeAssociation(element: ast.Association): string | undefined {
+    protected initializeAssociation(_element: ast.Association): string | undefined {
         return undefined;
     }
-    protected finalizeAssociation(element: ast.Association): string | undefined {
-        return undefined;
-    }
-
-    protected declareConstant(element: ast.Constant): string | undefined {
-        return undefined;
-    }
-    protected defineConstant(element: ast.Constant): string | undefined {
-        return undefined;
-    }
-    protected initializeConstant(element: ast.Constant): string | undefined {
-        return undefined;
-    }
-    protected finalizeConstant(element: ast.Constant): string | undefined {
+    protected finalizeAssociation(_element: ast.Association): string | undefined {
         return undefined;
     }
 
-    protected declareContainer(element: ast.Container): string | undefined {
+    protected declareConstant(_element: ast.Constant): string | undefined {
         return undefined;
     }
-    protected defineContainer(element: ast.Container): string | undefined {
+    protected defineConstant(_element: ast.Constant): string | undefined {
         return undefined;
     }
-    protected initializeContainer(element: ast.Container): string | undefined {
+    protected initializeConstant(_element: ast.Constant): string | undefined {
         return undefined;
     }
-    protected finalizeContainer(element: ast.Container): string | undefined {
-        return undefined;
-    }
-
-    protected declareEntryPoint(element: ast.EntryPoint): string | undefined {
-        return undefined;
-    }
-    protected defineEntryPoint(element: ast.EntryPoint): string | undefined {
-        return undefined;
-    }
-    protected initializeEntryPoint(element: ast.EntryPoint): string | undefined {
-        return undefined;
-    }
-    protected finalizeEntryPoint(element: ast.EntryPoint): string | undefined {
+    protected finalizeConstant(_element: ast.Constant): string | undefined {
         return undefined;
     }
 
-    protected declareEventSink(element: ast.EventSink): string | undefined {
+    protected declareContainer(_element: ast.Container): string | undefined {
         return undefined;
     }
-    protected defineEventSink(element: ast.EventSink): string | undefined {
+    protected defineContainer(_element: ast.Container): string | undefined {
         return undefined;
     }
-    protected initializeEventSink(element: ast.EventSink): string | undefined {
+    protected initializeContainer(_element: ast.Container): string | undefined {
         return undefined;
     }
-    protected finalizeEventSink(element: ast.EventSink): string | undefined {
-        return undefined;
-    }
-
-    protected declareEventSource(element: ast.EventSource): string | undefined {
-        return undefined;
-    }
-    protected defineEventSource(element: ast.EventSource): string | undefined {
-        return undefined;
-    }
-    protected initializeEventSource(element: ast.EventSource): string | undefined {
-        return undefined;
-    }
-    protected finalizeEventSource(element: ast.EventSource): string | undefined {
+    protected finalizeContainer(_element: ast.Container): string | undefined {
         return undefined;
     }
 
-    protected declareField(element: ast.Field): string | undefined {
+    protected declareEntryPoint(_element: ast.EntryPoint): string | undefined {
         return undefined;
     }
-    protected defineField(element: ast.Field): string | undefined {
+    protected defineEntryPoint(_element: ast.EntryPoint): string | undefined {
         return undefined;
     }
-    protected initializeField(element: ast.Field): string | undefined {
+    protected initializeEntryPoint(_element: ast.EntryPoint): string | undefined {
         return undefined;
     }
-    protected finalizeField(element: ast.Field): string | undefined {
-        return undefined;
-    }
-
-    protected declareOperation(element: ast.Operation): string | undefined {
-        return undefined;
-    }
-    protected defineOperation(element: ast.Operation): string | undefined {
-        return undefined;
-    }
-    protected initializeOperation(element: ast.Operation): string | undefined {
-        return undefined;
-    }
-    protected finalizeOperation(element: ast.Operation): string | undefined {
+    protected finalizeEntryPoint(_element: ast.EntryPoint): string | undefined {
         return undefined;
     }
 
-    protected declareProperty(element: ast.Property): string | undefined {
+    protected declareEventSink(_element: ast.EventSink): string | undefined {
         return undefined;
     }
-    protected defineProperty(element: ast.Property): string | undefined {
+    protected defineEventSink(_element: ast.EventSink): string | undefined {
         return undefined;
     }
-    protected initializeProperty(element: ast.Property): string | undefined {
+    protected initializeEventSink(_element: ast.EventSink): string | undefined {
         return undefined;
     }
-    protected finalizeProperty(element: ast.Property): string | undefined {
+    protected finalizeEventSink(_element: ast.EventSink): string | undefined {
         return undefined;
     }
 
-    protected declareReference(element: ast.Reference_): string | undefined {
+    protected declareEventSource(_element: ast.EventSource): string | undefined {
         return undefined;
     }
-    protected defineReference(element: ast.Reference_): string | undefined {
+    protected defineEventSource(_element: ast.EventSource): string | undefined {
         return undefined;
     }
-    protected initializeReference(element: ast.Reference_): string | undefined {
+    protected initializeEventSource(_element: ast.EventSource): string | undefined {
         return undefined;
     }
-    protected finalizeReference(element: ast.Reference_): string | undefined {
+    protected finalizeEventSource(_element: ast.EventSource): string | undefined {
+        return undefined;
+    }
+
+    protected declareField(_element: ast.Field): string | undefined {
+        return undefined;
+    }
+    protected defineField(_element: ast.Field): string | undefined {
+        return undefined;
+    }
+    protected initializeField(_element: ast.Field): string | undefined {
+        return undefined;
+    }
+    protected finalizeField(_element: ast.Field): string | undefined {
+        return undefined;
+    }
+
+    protected declareOperation(_element: ast.Operation): string | undefined {
+        return undefined;
+    }
+    protected defineOperation(_element: ast.Operation): string | undefined {
+        return undefined;
+    }
+    protected initializeOperation(_element: ast.Operation): string | undefined {
+        return undefined;
+    }
+    protected finalizeOperation(_element: ast.Operation): string | undefined {
+        return undefined;
+    }
+
+    protected declareProperty(_element: ast.Property): string | undefined {
+        return undefined;
+    }
+    protected defineProperty(_element: ast.Property): string | undefined {
+        return undefined;
+    }
+    protected initializeProperty(_element: ast.Property): string | undefined {
+        return undefined;
+    }
+    protected finalizeProperty(_element: ast.Property): string | undefined {
+        return undefined;
+    }
+
+    protected declareReference(_element: ast.Reference_): string | undefined {
+        return undefined;
+    }
+    protected defineReference(_element: ast.Reference_): string | undefined {
+        return undefined;
+    }
+    protected initializeReference(_element: ast.Reference_): string | undefined {
+        return undefined;
+    }
+    protected finalizeReference(_element: ast.Reference_): string | undefined {
         return undefined;
     }
 }

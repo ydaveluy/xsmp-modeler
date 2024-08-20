@@ -478,7 +478,6 @@ export class GapPatternCppGenerator extends CppGenerator {
         `;
     }
 
-
     async generateFloatSourceGen(type: ast.Float, gen: boolean): Promise<string | undefined> {
         return s`
         void _Register_${type.name}(::Smp::Publication::ITypeRegistry* registry) {
@@ -584,7 +583,7 @@ export class GapPatternCppGenerator extends CppGenerator {
         ${this.uuidDeclaration(type)}
         
         void _Register_${type.name}(::Smp::Publication::ITypeRegistry* registry);
-        `
+        `;
     }
     async generateArraySource(type: ast.ArrayType): Promise<string | undefined> {
         return undefined;
@@ -851,7 +850,6 @@ export class GapPatternCppGenerator extends CppGenerator {
         return undefined;
     }
 
-
     protected declareContainerGen(element: ast.Container, gen: boolean): string | undefined {
         return s`
         ${this.comment(element)}
@@ -866,7 +864,7 @@ export class GapPatternCppGenerator extends CppGenerator {
     }
 
     protected override declareEntryPoint(element: ast.EntryPoint): string | undefined {
-        return `void _${element.name}() override;`
+        return `void _${element.name}() override;`;
     }
     protected override defineEntryPoint(element: ast.EntryPoint): string | undefined {
         return s`
@@ -895,7 +893,6 @@ export class GapPatternCppGenerator extends CppGenerator {
     protected override finalizeEntryPoint(element: ast.EntryPoint): string | undefined {
         return this.finalizePointer(element);
     }
-
 
     protected override declareEventSink(element: ast.EventSink): string | undefined {
         const eventType = this.eventType(element);
@@ -939,7 +936,6 @@ export class GapPatternCppGenerator extends CppGenerator {
     protected override finalizeEventSource(element: ast.EventSource): string | undefined {
         return this.finalizePointer(element);
     }
-
 
     protected declareFieldGen(element: ast.Field, gen: boolean): string | undefined {
         return undefined;

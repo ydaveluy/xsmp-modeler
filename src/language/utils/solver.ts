@@ -2,7 +2,7 @@ import * as ast from '../generated/ast.js';
 import { AstUtils, diagnosticData, type ValidationAcceptor } from 'langium';
 import * as Duration from './duration.js';
 import { fqn, getPrimitiveTypeKind, isConstantVisibleFrom } from './xsmp-utils.js';
-import { type FloatingPTK, type IntegralPTK, isFloatingType, isIntegralType, PTK, PTKToString } from './primitive-type-kind.js';
+import { type FloatingPTK, type IntegralPTK, isFloatingType, isIntegralType, PTK } from './primitive-type-kind.js';
 
 import { Location, type Range } from 'vscode-languageserver';
 import * as IssueCodes from '../validation//xsmpcat-issue-codes.js';
@@ -150,7 +150,7 @@ export class IntegralValue extends Value<IntegralValue> {
             result = new IntegralValue(value, type);
         if (result.value !== value) {
             if (accept) {
-                accept('error', `Conversion overflow for type ${PTKToString(type)}.`, { node: expr });
+                accept('error', `Conversion overflow for type ${PTK[type]}.`, { node: expr });
             }
             return undefined;
         }
@@ -324,7 +324,7 @@ export function getValue<T>(expression: ast.Expression | undefined, accept?: Val
 }
 function getTypeName(type: ast.Type | PTK): string {
     if (ast.isType(type)) { return fqn(type); }
-    return PTKToString(type);
+    return PTK[type];
 }
 
 function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.Type | PTK, accept?: ValidationAcceptor): Value<T> | undefined {
@@ -526,7 +526,7 @@ function binaryOperation<T>(expression: ast.BinaryOperation, accept?: Validation
             }
         }
         if (accept && result === undefined) {
-            accept('error', `Binary operator '${expression.feature}' is not supported for operands of type '${PTKToString(left.primitiveTypeKind())}' and '${PTKToString(right.primitiveTypeKind())}'.`,
+            accept('error', `Binary operator '${expression.feature}' is not supported for operands of type '${PTK[left.primitiveTypeKind()]}' and '${PTK[right.primitiveTypeKind()]}'.`,
                 { node: expression });
         }
     }
@@ -557,7 +557,7 @@ function unaryOperation<T>(expression: ast.UnaryOperation, accept?: ValidationAc
     const result = unaryOperationFunction(operand, expression.feature);
 
     if (accept && result === undefined) {
-        accept('error', `Unary operator '${expression.feature}' is not supported for operand of type '${PTKToString(operand.primitiveTypeKind())}'.`, { node: expression });
+        accept('error', `Unary operator '${expression.feature}' is not supported for operand of type '${PTK[operand.primitiveTypeKind()]}'.`, { node: expression });
     }
     return result;
 }
