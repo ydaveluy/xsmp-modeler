@@ -451,6 +451,7 @@ export function getParameterSignature(p: ast.Parameter) {
     if (isByReference(p)) {
         signature += '&';
     }
+    //TODO handle in/out/inout
     return signature;
 }
 export function getNodeType(node: AstNode): string {

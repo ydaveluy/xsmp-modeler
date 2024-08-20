@@ -334,12 +334,18 @@ function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.
         if (integralValue && accept && ast.isInteger(type)) {
             const min = getValue(type.minimum)?.integralValue(kind)?.getValue();
             if (min !== undefined && integralValue.getValue() < min) {
-                accept('error', `Integral value shall be greater than or equal to ${min}.`, { node: expression });
+                accept('error', `Integral value shall be greater than or equal to ${min}.`, {
+                    node: expression,
+                    relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.minimum?.$cstNode?.range as Range), message: min.toString() }],
+                });
             }
 
             const max = getValue(type.maximum)?.integralValue(kind)?.getValue();
             if (max !== undefined && integralValue.getValue() > max) {
-                accept('error', `Integral value shall be less than or equal to ${min}.`, { node: expression });
+                accept('error', `Integral value shall be less than or equal to ${max}.`, {
+                    node: expression,
+                    relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.maximum?.$cstNode?.range as Range), message: max.toString() }],
+                });
             }
         }
         return integralValue;
@@ -351,10 +357,16 @@ function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.
             if (min !== undefined) {
                 if (floatValue.getValue() < min || floatValue.getValue() === min && (type.range === '<..' || type.range === '<.<')) {
                     if (type.range === '<..' || type.range === '<.<') {
-                        accept('error', `Float value shall be greater than ${min}.`, { node: expression });
+                        accept('error', `Float value shall be greater than ${min}.`, {
+                            node: expression,
+                            relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.minimum?.$cstNode?.range as Range), message: min.toString() }],
+                        });
                     }
                     else {
-                        accept('error', `Float value shall be greater than or equal to ${min}.`, { node: expression });
+                        accept('error', `Float value shall be greater than or equal to ${min}.`, {
+                            node: expression,
+                            relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.minimum?.$cstNode?.range as Range), message: min.toString() }],
+                        });
                     }
                 }
             }
@@ -363,10 +375,16 @@ function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.
             if (max !== undefined) {
                 if (floatValue.getValue() > max || floatValue.getValue() === max && (type.range === '<..' || type.range === '<.<')) {
                     if (type.range === '..<' || type.range === '<.<') {
-                        accept('error', `Float value shall be less than ${max}.`, { node: expression });
+                        accept('error', `Float value shall be less than ${max}.`, {
+                            node: expression,
+                            relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.maximum?.$cstNode?.range as Range), message: max.toString() }],
+                        });
                     }
                     else {
-                        accept('error', `Float value shall be less than or equal to ${max}.`, { node: expression });
+                        accept('error', `Float value shall be less than or equal to ${max}.`, {
+                            node: expression,
+                            relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.maximum?.$cstNode?.range as Range), message: max.toString() }],
+                        });
                     }
                 }
             }
@@ -401,7 +419,10 @@ function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.
         if (stringValue && accept && ast.isStringType(type)) {
             const length = getValue(type.length)?.integralValue(PTK.Int64)?.getValue();
             if (length !== undefined && stringValue.getValue().length > length) {
-                accept('error', `The string length exceeds the allowed length for its type: ${length} character(s).`, { node: expression });
+                accept('error', 'The string length exceeds the allowed length for its type.', {
+                    node: expression,
+                    relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.$cstNode?.range as Range), message: length.toString() }],
+                });
             }
         }
         return stringValue;

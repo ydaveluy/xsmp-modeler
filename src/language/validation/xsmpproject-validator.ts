@@ -33,7 +33,7 @@ export class XsmpprojectValidator {
     private computeNamesForProjects(): MultiMap<string, AstNodeDescription> {
         const map = new MultiMap<string, AstNodeDescription>();
         for (const type of this.indexManager.allElements(ast.Project)) {
-            map.add((type.node as ast.Project).name, type);
+            map.add(type.name, type);
         }
         return map;
     }

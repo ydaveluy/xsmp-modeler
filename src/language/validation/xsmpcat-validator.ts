@@ -114,7 +114,9 @@ export class XsmpcatValidator {
     private computeServiceNames(): MultiMap<string, AstNodeDescription> {
         const map = new MultiMap<string, AstNodeDescription>();
         for (const type of this.indexManager.allElements(ast.Service)) {
-            if (type.node) { map.add((type.node as ast.Service).name, type); }
+            if (type.node) {
+                map.add((type.node as ast.Service).name, type);
+            }
         }
         return map;
     }
@@ -122,9 +124,7 @@ export class XsmpcatValidator {
     private computeVisibleNames(uri: URI): MultiMap<string, AstNodeDescription> {
         const map = new MultiMap<string, AstNodeDescription>();
         for (const element of this.indexManager.allElements(ast.NamedElement, findVisibleUris(this.documents, uri)?.add(uri.toString()))) {
-            if (element.node) {
-                map.add(element.name, element);
-            }
+            map.add(element.name, element);
         }
         return map;
     }
@@ -743,19 +743,16 @@ export class XsmpcatValidator {
         if (date && isNaN(Date.parse(date.toString().trim()))) {
             accept('warning', 'Invalid date format (e.g: 1970-01-01T00:00:00Z).', { node: catalogue, range: date.range });
         }
-        const duplicates = this.indexManager.allElements(ast.Catalogue).filter(c => c.name === catalogue.name);
-        if (duplicates.count() > 1) {
+        const duplicates = this.indexManager.allElements(ast.Catalogue).filter(c => c.name === catalogue.name).toArray();
+        if (duplicates.length > 1) {
             accept('error', 'Duplicated Catalogue name.', {
                 node: catalogue,
                 property: 'name',
-                relatedInformation: duplicates.filter(d => d.node !== catalogue).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment?.range as Range), message: d.name })).toArray()
+                relatedInformation: duplicates.filter(d => d.node !== catalogue).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment?.range as Range), message: d.name }))
             });
         }
-        if (catalogue.$document && !isBuiltinLibrary(catalogue.$document?.uri)) {
-            const project = findProjectContainingUri(this.documents, catalogue.$document?.uri);
-            if (!project) {
-                accept('warning', 'This Catalogue in not contained in a project.', { node: catalogue, keyword: 'catalogue' });
-            }
+        if (catalogue.$document && !isBuiltinLibrary(catalogue.$document.uri) && !findProjectContainingUri(this.documents, catalogue.$document.uri)) {
+            accept('warning', 'This Catalogue in not contained in a project.', { node: catalogue, keyword: 'catalogue' });
         }
     }
 

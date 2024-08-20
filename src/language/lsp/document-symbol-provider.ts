@@ -84,30 +84,9 @@ export class XsmpDocumentSymbolProvider implements DocumentSymbolProvider {
     }
     protected getSymbolName(node: ast.NamedElement): string {
         if (node.$type === ast.Operation) {
-            return `${node.name}(${(node as ast.Operation).parameter.map(this.getParameterSignature, this).join(', ')})`;
+            return `${node.name}(${(node as ast.Operation).parameter.map(XsmpUtils.getParameterSignature).join(', ')})`;
         }
         return node.name;
-    }
-    /**
- * Get the signature of a parameter
- *
- * @param p
- *          the input Parameter
- * @return the signature of the parameter
- */
-    protected getParameterSignature(p: ast.Parameter) {
-        let signature = '';
-        /* if (XsmpUtils.isConst(p)) {
-             signature += 'const ';
-         }*/
-        signature += p.type.$refText;
-        /*if (XsmpUtils.isByPointer(p)) {
-            signature += '*';
-        }
-        if (XsmpUtils.isByReference(p)) {
-            signature += '&';
-        }*/
-        return signature;
     }
 
     protected getMultiplicity(node: ast.NamedElementWithMultiplicity): string {
