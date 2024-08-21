@@ -29,35 +29,33 @@ export function deactivate(): Thenable<void> | undefined {
 
 function startLanguageClient(context: vscode.ExtensionContext): LanguageClient {
     const serverModule = context.asAbsolutePath(path.join('out', 'language', 'main.cjs')),
-    // The debug options for the server
-    // --inspect=6009: runs the server in Node's Inspector mode so VS Code can attach to the server for debugging.
-    // By setting `process.env.DEBUG_BREAK` to a truthy value, the language server will wait until a debugger is attached.
-     debugOptions = { execArgv: ['--nolazy', `--inspect${process.env.DEBUG_BREAK ? '-brk' : ''}=${process.env.DEBUG_SOCKET ?? '6009'}`] },
+        // The debug options for the server
+        // --inspect=6009: runs the server in Node's Inspector mode so VS Code can attach to the server for debugging.
+        // By setting `process.env.DEBUG_BREAK` to a truthy value, the language server will wait until a debugger is attached.
+        debugOptions = { execArgv: ['--nolazy', `--inspect${process.env.DEBUG_BREAK ? '-brk' : ''}=${process.env.DEBUG_SOCKET ?? '6009'}`] },
 
-    // If the extension is launched in debug mode then the debug server options are used
-    // Otherwise the run options are used
-     serverOptions: ServerOptions = {
-        run: { module: serverModule, transport: TransportKind.ipc },
-        debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
-    },
+        // If the extension is launched in debug mode then the debug server options are used
+        // Otherwise the run options are used
+        serverOptions: ServerOptions = {
+            run: { module: serverModule, transport: TransportKind.ipc },
+            debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
+        },
 
-    // Options to control the language client
-     clientOptions: LanguageClientOptions = {
-        documentSelector: [{ scheme: 'file', language: 'xsmpproject' }, { scheme: 'file', language: 'xsmpcat' }]
-        ,
-        markdown: {
-            isTrusted: true, supportHtml: true
-        }
+        // Options to control the language client
+        clientOptions: LanguageClientOptions = {
+            documentSelector: [{ scheme: 'file', language: 'xsmpproject' }, { scheme: 'file', language: 'xsmpcat' }],
+            markdown: {
+                isTrusted: true, supportHtml: true
+            },
+        },
 
-    },
-
-    // Create the language client and start the client.
-     client = new LanguageClient(
-        'xsmp',
-        'Xsmp',
-        serverOptions,
-        clientOptions
-    );
+        // Create the language client and start the client.
+        client = new LanguageClient(
+            'xsmp',
+            'Xsmp',
+            serverOptions,
+            clientOptions
+        );
 
     // Start the client. This will also launch the server
     client.start();
@@ -76,14 +74,15 @@ export class BuiltinLibraryFileSystemProvider implements vscode.FileSystemProvid
 
     stat(uri: vscode.Uri): vscode.FileStat {
         const date = Date.now(),
-         value = builtins.get(uri.toString());
-        if (value)
-            {return {
+            value = builtins.get(uri.toString());
+        if (value) {
+            return {
                 ctime: date,
                 mtime: date,
                 size: Buffer.from(value).length,
                 type: vscode.FileType.File
-            };}
+            };
+        }
 
         return {
             ctime: date,
@@ -96,8 +95,7 @@ export class BuiltinLibraryFileSystemProvider implements vscode.FileSystemProvid
     readFile(uri: vscode.Uri): Uint8Array {
 
         const value = builtins.get(uri.toString());
-        if (value)
-            {return new Uint8Array(Buffer.from(value));}
+        if (value) { return new Uint8Array(Buffer.from(value)); }
 
         return new Uint8Array();
     }

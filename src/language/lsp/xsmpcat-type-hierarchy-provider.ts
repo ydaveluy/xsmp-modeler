@@ -32,6 +32,10 @@ export class XsmpcatTypeHierarchyProvider extends AbstractTypeHierarchyProvider 
             case ast.Class:
             case ast.Exception:
                 return (node as ast.Class).base?.ref ? [this.getXsmpTypeHierarchyItem((node as ast.Class).base!.ref!)] : undefined;
+            case ast.Integer:
+                return (node as ast.Integer).primitiveType?.ref ? [this.getXsmpTypeHierarchyItem((node as ast.Integer).primitiveType!.ref!)] : undefined;
+            case ast.Float:
+                return (node as ast.Float).primitiveType?.ref ? [this.getXsmpTypeHierarchyItem((node as ast.Float).primitiveType!.ref!)] : undefined;
         }
         return undefined;
     }
@@ -50,7 +54,7 @@ export class XsmpcatTypeHierarchyProvider extends AbstractTypeHierarchyProvider 
 
     }
     protected override getSubtypes(node: AstNode): MaybePromise<TypeHierarchyItem[] | undefined> {
-        if (!ast.isType(node)) {
+        if (!ast.isLanguageType(node)) {
             return undefined;
         }
         const items = this.references
@@ -72,7 +76,7 @@ export class XsmpcatTypeHierarchyProvider extends AbstractTypeHierarchyProvider 
                 }
 
                 const refNode = refCstNode.astNode;
-                if (!ast.isType(refNode)) {
+                if (!ast.isLanguageType(refNode)) {
                     return [];
                 }
 
