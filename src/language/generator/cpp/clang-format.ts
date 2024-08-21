@@ -1,15 +1,15 @@
 import { spawn, spawnSync } from 'child_process';
 const clangFormatCommand = process.platform.startsWith('win') ? 'clang-format.exe' : 'clang-format';
-const isClangFormatAvailable = computeIsClangFormatAvailable(clangFormatCommand);
+const isClangFormatAvailable = computeIsClangFormatAvailable();
 
 /**
  * Check if clang-format is executable.
  *
  * @return True if clang-format is found and executable, otherwise false.
  */
-function computeIsClangFormatAvailable(command: string): boolean {
+function computeIsClangFormatAvailable(): boolean {
     try {
-        spawnSync(command, ['--version'], { stdio: 'ignore', shell: false });
+        spawnSync(clangFormatCommand, ['--version'], { stdio: 'ignore', shell: false });
         return true;
     } catch {
         console.warn('clang-format is not available. Formatting will be skipped.');

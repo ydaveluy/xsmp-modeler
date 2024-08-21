@@ -11,7 +11,7 @@ import { findProjectContainingUri, findVisibleUris } from '../utils/project-util
 import * as IssueCodes from './xsmpcat-issue-codes.js';
 import { isBuiltinLibrary } from '../builtins.js';
 import { isFloatingType, PTK } from '../utils/primitive-type-kind.js';
-import { DiagnosticTag, Location, type Range } from 'vscode-languageserver';
+import { DiagnosticTag, Location } from 'vscode-languageserver';
 /**
  * Register custom validation checks.
  */
@@ -414,7 +414,7 @@ export class XsmpcatValidator {
                     node: type,
                     range: uuid.range,
                     data: diagnosticData(IssueCodes.DuplicatedUuid),
-                    relatedInformation: duplicates.filter(d => d.node !== type).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment?.range as Range), message: d.name }))
+                    relatedInformation: duplicates.filter(d => d.node !== type).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment!.range), message: d.name }))
                 });
             }
         }
@@ -424,7 +424,7 @@ export class XsmpcatValidator {
                 node: type,
                 property: 'name',
                 data: diagnosticData(IssueCodes.DuplicatedUuid),
-                relatedInformation: duplicates.filter(d => d.node !== type).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment?.range as Range), message: d.name }))
+                relatedInformation: duplicates.filter(d => d.node !== type).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment!.range), message: d.name }))
             });
         }
     }
@@ -733,7 +733,7 @@ export class XsmpcatValidator {
             accept('error', 'Duplicated Service name.', {
                 node: service,
                 property: 'name',
-                relatedInformation: duplicates.filter(d => d.node !== service).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment?.range as Range), message: d.name }))
+                relatedInformation: duplicates.filter(d => d.node !== service).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment!.range), message: d.name }))
             });
         }
     }
@@ -748,7 +748,7 @@ export class XsmpcatValidator {
             accept('error', 'Duplicated Catalogue name.', {
                 node: catalogue,
                 property: 'name',
-                relatedInformation: duplicates.filter(d => d.node !== catalogue).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment?.range as Range), message: d.name }))
+                relatedInformation: duplicates.filter(d => d.node !== catalogue).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment!.range), message: d.name }))
             });
         }
         if (catalogue.$document && !isBuiltinLibrary(catalogue.$document.uri) && !findProjectContainingUri(this.documents, catalogue.$document.uri)) {
@@ -901,7 +901,7 @@ export class XsmpcatValidator {
             accept('error', 'Duplicated name.', {
                 node: namespace,
                 property: 'name',
-                relatedInformation: duplicates.filter(d => d.node !== namespace && !ast.isCatalogue(d) && AstUtils.getDocument(namespace).uri === d.documentUri).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment?.range as Range), message: d.name }))
+                relatedInformation: duplicates.filter(d => d.node !== namespace && !ast.isCatalogue(d) && AstUtils.getDocument(namespace).uri === d.documentUri).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment!.range), message: d.name }))
             });
         }
 

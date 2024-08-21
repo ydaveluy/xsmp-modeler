@@ -1,0 +1,71 @@
+import type { AstNode } from 'langium';
+import { SymbolTag } from 'vscode-languageserver';
+import * as XsmpUtils from '../utils/xsmp-utils.js';
+import * as ast from '../generated/ast.js';
+import { PTK } from '../utils/primitive-type-kind.js';
+import { getValueAs } from '../utils/solver.js';
+
+export class XsmpNodeInfoProvider {
+
+    getDetails(node: AstNode): string | undefined {
+        switch (node.$type) {
+            case ast.Association: return (node as ast.Association).type.$refText + '*'; //TODO add * if by pointer
+            case ast.Constant: return (node as ast.Constant).type.$refText;
+            case ast.Container: return (node as ast.Container).type.$refText + this.getMultiplicity(node as ast.NamedElementWithMultiplicity);
+            case ast.EventSink: return `EventSink<${(node as ast.EventSink).type.$refText}>`;
+            case ast.EventSource: return `EventSource<${(node as ast.EventSource).type.$refText}>`;
+            case ast.Field: return (node as ast.Field).type.$refText;
+            case ast.AttributeType: return (node as ast.AttributeType).type.$refText;
+            case ast.EventType: return (node as ast.EventType).eventArgs ? (node as ast.EventType).eventArgs?.$refText : 'void';
+            case ast.Integer: return (node as ast.Integer).primitiveType ? (node as ast.Integer).primitiveType?.$refText : 'Smp::Int32';
+            case ast.Float: return (node as ast.Float).primitiveType ? (node as ast.Float).primitiveType?.$refText : 'Smp::Float64';
+            case ast.ValueReference: return (node as ast.ValueReference).type.$refText + '*';
+            case ast.ArrayType: return `${(node as ast.ArrayType).itemType.$refText}[${getValueAs((node as ast.ArrayType).size, PTK.Int64)?.getValue()}]`;
+            case ast.Operation: return (node as ast.Operation).returnParameter ? (node as ast.Operation).returnParameter?.type.$refText : 'void';
+            case ast.Property: return (node as ast.Property).type.$refText;
+            case ast.Reference_: return (node as ast.Reference_).interface.$refText + this.getMultiplicity(node as ast.NamedElementWithMultiplicity);
+            case ast.Model:
+            case ast.Service:
+            case ast.Class:
+            case ast.Exception:
+            case ast.EntryPoint:
+                return node.$type;
+            default: return undefined;
+        }
+    }
+
+    protected getMultiplicity(node: ast.NamedElementWithMultiplicity): string {
+        const lower = XsmpUtils.getLower(node) ?? BigInt(1);
+        const upper = XsmpUtils.getUpper(node) ?? BigInt(1);
+        if (lower === BigInt(0) && upper === BigInt(1)) {
+            return '?';
+        }
+        else if (lower === BigInt(1) && upper === BigInt(1)) {
+            return '';
+        }
+        else if (lower === upper) {
+            return `[${lower}]`;
+        }
+        else if (upper < BigInt(0)) {
+            if (lower === BigInt(0)) {
+                return '*';
+            }
+            else if (lower === BigInt(1)) {
+                return '+';
+            }
+            else {
+                return `[${lower} ... *]`;
+            }
+        }
+        else {
+            return `[${lower} ... ${upper}]`;
+        }
+
+    }
+    getTags(node: AstNode): SymbolTag[] | undefined {
+        if (ast.isNamedElement(node) && XsmpUtils.IsDeprecated(node)) {
+            return [SymbolTag.Deprecated];
+        }
+        return undefined;
+    }
+}

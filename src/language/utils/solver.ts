@@ -4,7 +4,7 @@ import * as Duration from './duration.js';
 import { fqn, getPrimitiveTypeKind, isConstantVisibleFrom } from './xsmp-utils.js';
 import { type FloatingPTK, type IntegralPTK, isFloatingType, isIntegralType, PTK } from './primitive-type-kind.js';
 
-import { Location, type Range } from 'vscode-languageserver';
+import { Location } from 'vscode-languageserver';
 import * as IssueCodes from '../validation//xsmpcat-issue-codes.js';
 
 abstract class Value<T> {
@@ -336,7 +336,7 @@ function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.
             if (min !== undefined && integralValue.getValue() < min) {
                 accept('error', `Integral value shall be greater than or equal to ${min}.`, {
                     node: expression,
-                    relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.minimum?.$cstNode?.range as Range), message: min.toString() }],
+                    relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.minimum!.$cstNode!.range), message: min.toString() }],
                 });
             }
 
@@ -344,7 +344,7 @@ function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.
             if (max !== undefined && integralValue.getValue() > max) {
                 accept('error', `Integral value shall be less than or equal to ${max}.`, {
                     node: expression,
-                    relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.maximum?.$cstNode?.range as Range), message: max.toString() }],
+                    relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.maximum!.$cstNode!.range), message: max.toString() }],
                 });
             }
         }
@@ -359,13 +359,13 @@ function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.
                     if (type.range === '<..' || type.range === '<.<') {
                         accept('error', `Float value shall be greater than ${min}.`, {
                             node: expression,
-                            relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.minimum?.$cstNode?.range as Range), message: min.toString() }],
+                            relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.minimum!.$cstNode!.range), message: min.toString() }],
                         });
                     }
                     else {
                         accept('error', `Float value shall be greater than or equal to ${min}.`, {
                             node: expression,
-                            relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.minimum?.$cstNode?.range as Range), message: min.toString() }],
+                            relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.minimum!.$cstNode!.range), message: min.toString() }],
                         });
                     }
                 }
@@ -377,13 +377,13 @@ function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.
                     if (type.range === '..<' || type.range === '<.<') {
                         accept('error', `Float value shall be less than ${max}.`, {
                             node: expression,
-                            relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.maximum?.$cstNode?.range as Range), message: max.toString() }],
+                            relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.maximum!.$cstNode!.range), message: max.toString() }],
                         });
                     }
                     else {
                         accept('error', `Float value shall be less than or equal to ${max}.`, {
                             node: expression,
-                            relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.maximum?.$cstNode?.range as Range), message: max.toString() }],
+                            relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.maximum!.$cstNode!.range), message: max.toString() }],
                         });
                     }
                 }
@@ -405,7 +405,7 @@ function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.
                 if (accept) {
                     accept('warning', 'An enumeration literal is expected.', {
                         node: expression,
-                        relatedInformation: [{ location: Location.create(AstUtils.getDocument(literal).uri.toString(), literal.$cstNode?.range as Range), message: fqn(literal) }],
+                        relatedInformation: [{ location: Location.create(AstUtils.getDocument(literal).uri.toString(), literal.$cstNode!.range), message: fqn(literal) }],
                         data: diagnosticData(IssueCodes.EnumLiteralExpected)
                     });
                 }
@@ -421,7 +421,7 @@ function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.
             if (length !== undefined && stringValue.getValue().length > length) {
                 accept('error', 'The string length exceeds the allowed length for its type.', {
                     node: expression,
-                    relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.$cstNode?.range as Range), message: length.toString() }],
+                    relatedInformation: [{ location: Location.create(AstUtils.getDocument(type).uri.toString(), type.$cstNode!.range), message: length.toString() }],
                 });
             }
         }

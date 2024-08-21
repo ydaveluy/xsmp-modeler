@@ -6,7 +6,6 @@ import { AstUtils, Cancellation, DocumentCache, EMPTY_SCOPE, MultiMap, Workspace
 import * as ProjectUtils from '../utils/project-utils.js';
 import type { XsmpTypeProvider } from './type-provider.js';
 import * as XsmpUtils from '../utils/xsmp-utils.js';
-import type { XsmpSharedServices } from '../xsmp-module.js';
 
 export class XsmpcatScopeComputation implements ScopeComputation {
 
@@ -169,7 +168,7 @@ export class XsmpcatScopeProvider implements ScopeProvider {
         this.visibleUris = new WorkspaceCache<URI, Set<string> | undefined>(services.shared);
         this.reflection = services.shared.AstReflection;
         this.indexManager = services.shared.workspace.IndexManager;
-        this.typeProvider = (services.shared as XsmpSharedServices).TypeProvider;
+        this.typeProvider = services.shared.TypeProvider;
         this.globalScopeCache = new WorkspaceCache<URI, Scope>(services.shared);
         this.precomputedCache = new DocumentCache<AstNode, Map<string, AstNodeDescription>>(services.shared);
     }

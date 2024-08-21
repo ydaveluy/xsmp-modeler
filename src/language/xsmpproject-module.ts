@@ -7,6 +7,7 @@ import { XsmpHoverProvider } from './lsp/hover-provider.js';
 import { XsmpDocumentSymbolProvider } from './lsp/document-symbol-provider.js';
 import { XsmpprojectCompletionProvider } from './lsp/xsmpproject-completion-provider.js';
 import { XsmpCommentProvider } from './lsp/comment-provider.js';
+import type { XsmpSharedServices } from './xsmp-module.js';
 
 /**
  * Declaration of custom services.
@@ -20,7 +21,7 @@ export interface XsmpprojectAddedServices {
 /**
  * Union of Langium default services and your custom services.
  */
-export type XsmpprojectServices = LangiumServices & XsmpprojectAddedServices
+export type XsmpprojectServices = LangiumServices & XsmpprojectAddedServices & { shared: XsmpSharedServices; }
 
 /**
  * Dependency injection module that overrides Langium default services and contributes the

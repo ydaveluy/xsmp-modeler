@@ -16,38 +16,38 @@ export class XsmpTypeProvider {
     }
 
     /** Get the type of the expression on undefined if no type can be found */
-    public getType(expression: AstNode): ast.Type | undefined {
-        return this.typeCache.get(expression, () => this.doGetType(expression));
+    public getType(node: AstNode): ast.Type | undefined {
+        return this.typeCache.get(node, () => this.doGetType(node));
     }
 
-    private doGetType(expression: AstNode): ast.Type | undefined {
-        if (ast.isField(expression.$container)) {
-            return expression.$container.type.ref;
+    private doGetType(node: AstNode): ast.Type | undefined {
+        if (ast.isField(node.$container)) {
+            return node.$container.type.ref;
         }
-        else if (ast.isConstant(expression.$container)) {
-            return expression.$container.type.ref;
+        else if (ast.isConstant(node.$container)) {
+            return node.$container.type.ref;
         }
-        else if (ast.isCollectionLiteral(expression.$container)) {
-            const type = this.getType(expression.$container);
+        else if (ast.isCollectionLiteral(node.$container)) {
+            const type = this.getType(node.$container);
             if (ast.isStructure(type)) {
-                const field = XsmpUtils.getAllFields(type).toArray().at(expression.$containerIndex!);
+                const field = XsmpUtils.getAllFields(type).toArray().at(node.$containerIndex!);
                 if (field) { return field.type.ref; }
             }
             else if (ast.isArrayType(type)) {
                 return type.itemType.ref;
             }
         }
-        else if (ast.isExpression(expression.$container)) {
-            return this.getType(expression.$container);
+        else if (ast.isExpression(node.$container)) {
+            return this.getType(node.$container);
         }
-        else if (ast.isAttribute(expression.$container)) {
-            const attributeType = expression.$container.type.ref;
+        else if (ast.isAttribute(node.$container)) {
+            const attributeType = node.$container.type.ref;
             if (ast.isAttributeType(attributeType)) {
                 return attributeType.type.ref;
             }
         }
-        else if (ast.isAttributeType(expression.$container)) {
-            return expression.$container.type.ref;
+        else if (ast.isAttributeType(node.$container)) {
+            return node.$container.type.ref;
         }
         return undefined;
     }

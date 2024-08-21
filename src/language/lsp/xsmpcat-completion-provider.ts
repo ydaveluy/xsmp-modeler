@@ -10,7 +10,6 @@ import * as XsmpUtils from '../utils/xsmp-utils.js';
 import type { XsmpcatServices } from '../xsmpcat-module.js';
 import type { XsmpTypeProvider } from '../references/type-provider.js';
 import * as Solver from '../utils/solver.js';
-import type { XsmpSharedServices } from '../xsmp-module.js';
 import { PTK } from '../utils/primitive-type-kind.js';
 
 export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
@@ -18,7 +17,7 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
     protected readonly typeProvider: XsmpTypeProvider;
     constructor(services: XsmpcatServices) {
         super(services);
-        this.typeProvider = (services.shared as XsmpSharedServices).TypeProvider;
+        this.typeProvider = services.shared.TypeProvider;
     }
 
     private isValidAttributeType(desc: AstNodeDescription, attribute: ast.Attribute): boolean {

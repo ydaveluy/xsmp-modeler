@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 import * as ProjectUtils from '../utils/project-utils.js';
 import * as ast from '../generated/ast.js';
 import * as XsmpUtils from '../utils/xsmp-utils.js';
-import { DiagnosticTag, Location, type Range } from 'vscode-languageserver';
+import { DiagnosticTag, Location } from 'vscode-languageserver';
 
 /**
  * Register custom validation checks.
@@ -55,7 +55,7 @@ export class XsmpprojectValidator {
             accept('error', 'Duplicated project name', {
                 node: project,
                 property: 'name',
-                relatedInformation: duplicates.filter(d => d.node !== project).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment?.range as Range), message: d.name }))
+                relatedInformation: duplicates.filter(d => d.node !== project).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment!.range), message: d.name }))
             });
         }
         // Check only one profile (or zero)
