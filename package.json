@@ -42,7 +42,7 @@
         "concurrently": "~8.2.1",
         "esbuild": "~0.23.0",
         "esbuild-plugin-copy": "^2.1.1",
-        "eslint": "~9.9.0",
+        "eslint": "~9.9.1",
         "langium-cli": "~3.1.1",
         "shx": "~0.3.4",
         "typescript": "~5.5.4",
