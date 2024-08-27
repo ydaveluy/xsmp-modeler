@@ -234,7 +234,7 @@ interface BinaryOperation extends Expression {
 	feature: OpBinary
 }
 
-type OpBinary = OpOr| OpAnd| OpBitwiseOr | OpBitwiseXor| OpBitwiseAnd | OpEquality | OpCompare| OpBitwise| OpAdd| OpMulti;
+type OpBinary = OpOr | OpAnd | OpBitwiseOr | OpBitwiseXor | OpBitwiseAnd | OpEquality | OpCompare | OpBitwise | OpAdd | OpMulti;
 type OpOr = '||';
 type OpAnd = '&&';
 type OpBitwiseOr = '|';

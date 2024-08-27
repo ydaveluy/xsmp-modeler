@@ -38,7 +38,7 @@ Project returns Project:
         /**
          * `source "<path>"`
          * 
-         * The **Source<** directive defines the location of modeling files.
+         * The **Source** directive defines the location of modeling files.
          * The path can be either a folder or a filename relative to the project root.
          */
         'source' sourcePaths+=STRING |

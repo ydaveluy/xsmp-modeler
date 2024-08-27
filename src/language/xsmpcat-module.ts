@@ -13,6 +13,7 @@ import { XsmpCommentProvider } from './lsp/comment-provider.js';
 import { XsmpcatTypeDefinitionProvider } from './lsp/xsmpcat-type-provider.js';
 import { XsmpcatTypeHierarchyProvider } from './lsp/xsmpcat-type-hierarchy-provider.js';
 import type { XsmpSharedServices } from './xsmp-module.js';
+import { XsmpDocumentationProvider } from './lsp/documentation-provider.js';
 
 /**
  * Declaration of Xsmp services.
@@ -56,6 +57,7 @@ export const XsmpcatModule: Module<XsmpcatServices, PartialLangiumServices & Xsm
     },
     documentation: {
         CommentProvider: (services) => new XsmpCommentProvider(services),
+        DocumentationProvider: (services) => new XsmpDocumentationProvider(services),
     },
 };
 

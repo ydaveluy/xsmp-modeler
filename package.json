@@ -137,8 +137,7 @@
     },
     "activationEvents": [
         "onLanguage:xsmpproject",
-        "onLanguage:xsmpcat",
-		"onStartupFinished"
+        "onLanguage:xsmpcat"
     ],
     "main": "./out/extension/main.cjs",
     "bin": {

@@ -81,7 +81,7 @@ export function isState(node: ast.VisibilityElement): boolean {
     return !node.modifiers.includes('transient');
 }
 
-export function getPrimitiveTypeKind(type: ast.Type | undefined, defaultKind: PTK = PTK.None): PTK {
+export function getPTK(type: ast.Type | undefined, defaultKind: PTK = PTK.None): PTK {
     if (!type) { return defaultKind; }
     switch (type.$type) {
         case ast.PrimitiveType:
@@ -103,8 +103,8 @@ export function getPrimitiveTypeKind(type: ast.Type | undefined, defaultKind: PT
                 case 'Smp.String8': return PTK.String8;
                 default: return PTK.None;
             }
-        case ast.Float: return getPrimitiveTypeKind((type as ast.Float).primitiveType?.ref, PTK.Float64);
-        case ast.Integer: return getPrimitiveTypeKind((type as ast.Integer).primitiveType?.ref, PTK.Int32);
+        case ast.Float: return getPTK((type as ast.Float).primitiveType?.ref, PTK.Float64);
+        case ast.Integer: return getPTK((type as ast.Integer).primitiveType?.ref, PTK.Int32);
         case ast.StringType: return PTK.String8;
         case ast.Enumeration: return PTK.Enum;
         default: return PTK.None;

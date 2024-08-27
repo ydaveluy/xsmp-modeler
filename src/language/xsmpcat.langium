@@ -208,7 +208,7 @@ Model returns Model:
 	 * In addition, a **Model** may have **Association** elements to express associations to other models or fields of other models.
      */
     'model' name=ValidID (/** A single base model to extends from */'extends' base=[Component:QualifiedName ] )? 
-        (/** Interface(s) to inherit from */'implements' ^interface+=[Interface:QualifiedName ] (',' ^interface+=[Interface:QualifiedName ] )* )?
+        (/** Interface(s) to inherit from */'implements' interface+=[Interface:QualifiedName ] (',' interface+=[Interface:QualifiedName ] )* )?
     '{' 
         elements+=(Constant|Field|Property|Operation|Association|Container|Reference|EntryPoint|EventSink|EventSource)* 
     '}' 
@@ -225,7 +225,7 @@ Service returns Service:
 	 * A Service can reference one or more interfaces via the **Interface** links (inherited from Component), where at least one of them must be derived from Smp::IService, which qualifies it as a service interface.
      */
     'service' name=ValidID (/** A single base service to extends from */'extends' base=[Component:QualifiedName ] )? 
-        (/** Interface(s) to inherit from */'implements' ^interface+=[Interface:QualifiedName ] (',' ^interface+=[Interface:QualifiedName ] )* )?
+        (/** Interface(s) to inherit from */'implements' interface+=[Interface:QualifiedName ] (',' interface+=[Interface:QualifiedName ] )* )?
     '{' 
         elements+=(Constant|Field|Property|Operation|Association|Container|Reference|EntryPoint|EventSink|EventSource)* 
     '}' 
@@ -256,7 +256,7 @@ ValueReference returns ValueReference:
      * 
 	 * A **ValueReference** is a type that references a specific value type. It is the "missing link" between value types and reference types.
      */
-    'using' name=ValidID  '=' ^type=[ValueType:QualifiedName ] '*' 
+    'using' name=ValidID  '=' type=[ValueType:QualifiedName ] '*' 
 ;
 Integer returns Integer:
     attributes+=Attribute*  
@@ -370,7 +370,7 @@ AttributeType returns AttributeType:
 	 * The AllowMultiple attribute specifies if a corresponding Attribute may be attached more than once to a language element, while the Usage element defines to which language elements attributes of this type can be attached. 
 	 * An attribute type always references a value type, and can optionally specify a Default value.
      */
-    'attribute' ^type=[ValueType:QualifiedName ] name=ValidID  ('=' default=Expression  )? 
+    'attribute' type=[ValueType:QualifiedName ] name=ValidID  ('=' default=Expression  )? 
 ;
 
 Enumeration returns Enumeration:
@@ -403,7 +403,7 @@ Constant returns Constant:
      * 
 	 * A **Constant** is a feature that is typed by a simple type and that must have a Value.
      */
-    'constant' ^type=[SimpleType:QualifiedName ] name=ValidID  ('=' value=Expression  )?  
+    'constant' type=[SimpleType:QualifiedName ] name=ValidID  ('=' value=Expression  )?  
 ;
 Field returns Field:
     attributes+=Attribute*  
@@ -421,7 +421,7 @@ Field returns Field:
 	 * The Input and Output attributes define whether the field value is an input for internal calculations (i.e. needed in order to perform these calculations), or an output of internal calculations (i.e. modified when performing these calculations). 
 	 * These flags default to false, but can be changed from their default value to support dataflow-based design.
      */
-    'field' ^type=[ValueType:QualifiedName ] name=ValidID  ('=' default=Expression  )?  
+    'field' type=[ValueType:QualifiedName ] name=ValidID  ('=' default=Expression  )?  
 ;
 
 Property returns Property:
@@ -441,7 +441,7 @@ Property returns Property:
 	 * Remark : The category can be used in applications as ordering or filtering criterion, for example in a property grid. The term "property" used here closely corresponds in its semantics to the same term in the Java Beans specification and in the Microsoft .NET framework. 
 	 * That is, a property formally represents a "getter" or a "setter" operation or both which allow accessing state or configuration information (or derived information thereof) in a controlled way and which can also be exposed via interfaces (in contrast to fields).
      */
-    'property' ^type=[ValueType:QualifiedName ] name=ValidID  
+    'property' type=[ValueType:QualifiedName ] name=ValidID  
     ('get' 'throws' getRaises+=[Exception:QualifiedName ] (',' getRaises+=[Exception:QualifiedName ] )* )? 
     ('set' 'throws' setRaises+=[Exception:QualifiedName ] (',' setRaises+=[Exception:QualifiedName ] )* )? 
     ('->' attachedField=[Field:QualifiedName ] )?  
@@ -466,17 +466,17 @@ Operation returns Operation:
 
 ReturnParameter returns ReturnParameter:
     attributes+=Attribute*  
-    ^type=[LanguageType:QualifiedName]
+    type=[LanguageType:QualifiedName]
 ;
 
 ReturnParameterWithName returns ReturnParameter:
     attributes+=Attribute*  
-    ^type=[LanguageType:QualifiedName] name=ValidID
+    type=[LanguageType:QualifiedName] name=ValidID
 ;
 
 Parameter returns Parameter:
     attributes+=Attribute*  
-    direction=ParameterDirectionKind? ^type=[LanguageType:QualifiedName ] name=ValidID  ('=' default=Expression  )?  
+    direction=ParameterDirectionKind? type=[LanguageType:QualifiedName ] name=ValidID  ('=' default=Expression  )?  
 ;
 ParameterDirectionKind returns ParameterDirectionKind:
     /** The parameter is read-only to the operation, i.e. its value must be specified on call, and cannot be changed inside the operation. */
@@ -498,7 +498,7 @@ Association returns Association:
 	 * An **Association** is a feature that is typed by a language type (Type link). An association always expresses a reference to an instance of the referenced language type. 
 	 * This reference is either another model (if the Type link refers to a **Model** or **Interface**), or it is a field contained in another model (if the Type link refers to a ValueType).
      */
-    'association' ^type=[LanguageType:QualifiedName ] name=ValidID  //('=' default=Expression  )?  
+    'association' type=[LanguageType:QualifiedName ] name=ValidID  //('=' default=Expression  )?  
 ;
 
 
@@ -522,7 +522,7 @@ Container returns Container:
 	 * Furthermore, a container may specify a default implementation of the container type via the DefaultComponentl link.
 	 * Remark : SMDL support tools may use this during instantiation (i.e. during model integration) to select an initial implementation for newly created contained components. 
      */
-    'container' ^type=[ReferenceType:QualifiedName ] MultiplicityDeclaration name=ValidID  ('=' defaultComponent=[Component:QualifiedName ] )?  
+    'container' type=[ReferenceType:QualifiedName ] MultiplicityDeclaration name=ValidID  ('=' defaultComponent=[Component:QualifiedName ] )?  
 ;
 
 Reference returns Reference_:
@@ -544,7 +544,7 @@ Reference returns Reference_:
 	 * The Lower and Upper attributes specify the multiplicity, i.e. the number of possibly held references to components implementing this interface. 
 	 * Therein the upper bound may be unlimited, which is represented by Upper=-1.
      */
-    'reference' ^interface=[Interface:QualifiedName ] MultiplicityDeclaration name=ValidID   
+    'reference' interface=[Interface:QualifiedName ] MultiplicityDeclaration name=ValidID   
 ;
 fragment MultiplicityDeclaration*:
     optional?='?'  | multiplicity=Multiplicity ? 
@@ -577,7 +577,7 @@ EventSink returns EventSink:
      * 
      * An **EventSink** is used to specify that a **Component** can receive a specific event using a given name. An **EventSink** can be connected to any number of **EventSource** instances.	
      */
-    'eventsink' ^type=[EventType:QualifiedName ] name=ValidID   
+    'eventsink' type=[EventType:QualifiedName ] name=ValidID   
 ;
 
 EventSource returns EventSource:
@@ -591,7 +591,7 @@ EventSource returns EventSource:
 	 * The Multicast attribute can be used to specify whether any number of sinks can connect to the source (the default), or only a single sink can connect (**Multicast=false**).
 	 * Remark: A tool for model integration can use the **Multicast** attribute to configure the user interface accordingly to ease the specification of event links. 
 	 */
-    'eventsource' ^type=[EventType:QualifiedName ] name=ValidID   
+    'eventsource' type=[EventType:QualifiedName ] name=ValidID   
 ;
 
 
@@ -601,7 +601,7 @@ Expression returns Expression:
 ;
 
 Attribute returns Attribute:
-    '@'(^type=[AttributeType:QualifiedName]  ('(' value=Expression ? ')')?)?
+    '@'(type=[AttributeType:QualifiedName]  ('(' value=Expression ? ')')?)?
 ;
 
 QualifiedName returns string:
@@ -612,7 +612,7 @@ OrExpression returns Expression:
     AndExpression ({BinaryOperation.leftOperand=current} feature=OpOr    rightOperand=AndExpression  )*  
 ;
 
-OpOr returns OpOr:
+OpOr returns OpBinary:
     '||' 
 ;
 
@@ -620,7 +620,7 @@ AndExpression returns Expression:
     BitwiseOrExpression ({BinaryOperation.leftOperand=current} feature=OpAnd    rightOperand=BitwiseOrExpression  )*  
 ;
 
-OpAnd returns OpAnd:
+OpAnd returns OpBinary:
     '&&' 
 ;
 
@@ -628,7 +628,7 @@ BitwiseOrExpression returns Expression:
     BitwiseXorExpression ({BinaryOperation.leftOperand=current} feature=OpBitwiseOr    rightOperand=BitwiseXorExpression  )*  
 ;
 
-OpBitwiseOr returns OpBitwiseOr:
+OpBitwiseOr returns OpBinary:
     '|' 
 ;
 
@@ -636,7 +636,7 @@ BitwiseXorExpression returns Expression:
     BitwiseAndExpression ({BinaryOperation.leftOperand=current} feature=OpBitwiseXor    rightOperand=BitwiseAndExpression  )*  
 ;
 
-OpBitwiseXor returns OpBitwiseXor:
+OpBitwiseXor returns OpBinary:
     '^' 
 ;
 
@@ -644,7 +644,7 @@ BitwiseAndExpression returns Expression:
     EqualityExpression ({BinaryOperation.leftOperand=current} feature=OpBitwiseAnd    rightOperand=EqualityExpression  )*  
 ;
 
-OpBitwiseAnd returns OpBitwiseAnd:
+OpBitwiseAnd returns OpBinary:
     '&' 
 ;
 
@@ -652,7 +652,7 @@ EqualityExpression returns Expression:
     RelationalExpression ({BinaryOperation.leftOperand=current} feature=OpEquality    rightOperand=RelationalExpression  )*  
 ;
 
-OpEquality returns OpEquality:
+OpEquality returns OpBinary:
     '==' | '!=' 
 ;
 
@@ -660,7 +660,7 @@ RelationalExpression returns Expression:
     BitwiseExpression ({BinaryOperation.leftOperand=current} feature=OpCompare    rightOperand=BitwiseExpression  )*  
 ;
 
-OpCompare returns OpCompare:
+OpCompare returns OpBinary:
     '>=' | '<=' | '>' | '<' 
 ;
 
@@ -668,7 +668,7 @@ BitwiseExpression returns Expression:
     AdditiveExpression ({BinaryOperation.leftOperand=current} feature=OpBitwise    rightOperand=AdditiveExpression  )*  
 ;
 
-OpBitwise returns OpBitwise:
+OpBitwise returns OpBinary:
     '<<' | '>>' 
 ;
 
@@ -676,7 +676,7 @@ AdditiveExpression returns Expression:
     MultiplicativeExpression ({BinaryOperation.leftOperand=current} feature=OpAdd    rightOperand=MultiplicativeExpression  )*  
 ;
 
-OpAdd returns OpAdd:
+OpAdd returns OpBinary:
     '+' | '-' 
 ;
 
@@ -684,7 +684,7 @@ MultiplicativeExpression returns Expression:
     UnaryOperation ({BinaryOperation.leftOperand=current} feature=OpMulti    rightOperand=UnaryOperation  )*  
 ;
 
-OpMulti returns OpMulti:
+OpMulti returns OpBinary:
     '*' | '/' | '%' 
 ;
 

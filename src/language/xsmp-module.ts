@@ -35,20 +35,20 @@ import { XsmpNodeInfoProvider } from './lsp/node-info-provider.js';
  */
 export function createXsmpServices(context: DefaultSharedModuleContext): {
     shared: XsmpSharedServices,
-    xsmpproject: XsmpprojectServices,
     xsmpcat: XsmpcatServices,
+    xsmpproject: XsmpprojectServices,
 } {
     const shared = inject(
         createDefaultSharedModule(context),
         XsmpGeneratedSharedModule,
         XsmpSharedModule,
-    ),
-        // XSMP Project
-        xsmpproject = inject(
-            createDefaultModule({ shared }),
-            XsmpprojectGeneratedModule,
-            XsmpprojectModule
-        );
+    );
+    // XSMP Project
+    const xsmpproject = inject(
+        createDefaultModule({ shared }),
+        XsmpprojectGeneratedModule,
+        XsmpprojectModule
+    );
     shared.ServiceRegistry.register(xsmpproject);
     registerXsmpprojectValidationChecks(xsmpproject);
 
@@ -66,7 +66,7 @@ export function createXsmpServices(context: DefaultSharedModuleContext): {
         // Therefore, initialize the configuration provider instantly
         shared.workspace.ConfigurationProvider.initialized({});
     }
-    return { shared, xsmpproject, xsmpcat };
+    return { shared, xsmpcat, xsmpproject, };
 }
 /**
  * Declaration of custom shared services
@@ -82,20 +82,20 @@ export interface XsmpAddedSharedServices {
 /**
  * Union of Langium default shared services and Xsmp custom shared services
  */
-export type XsmpSharedServices = LangiumSharedServices & XsmpAddedSharedServices
+export type XsmpSharedServices = LangiumSharedServices & XsmpAddedSharedServices;
 
 export const XsmpSharedModule: Module<XsmpSharedServices, DeepPartial<XsmpSharedServices>> = {
-    workspace: {
-        DocumentBuilder: (services) => new XsmpDocumentBuilder(services),
-        WorkspaceManager: (services) => new XsmpWorkspaceManager(services),
-        IndexManager: (services) => new XsmpIndexManager(services),
-        LangiumDocuments: (services) => new XsmpLangiumDocuments(services),
-    },
-    lsp: {
-        NodeKindProvider: () => new XsmpNodeKindProvider(),
-        DocumentUpdateHandler: (services) => new XsmpDocumentUpdateHandler(services),
-        NodeInfoProvider: () => new XsmpNodeInfoProvider(),
-    },
     DocumentGenerator: (services) => new XsmpDocumentGenerator(services),
     TypeProvider: (services) => new XsmpTypeProvider(services),
+    lsp: {
+        DocumentUpdateHandler: (services) => new XsmpDocumentUpdateHandler(services),
+        NodeInfoProvider: () => new XsmpNodeInfoProvider(),
+        NodeKindProvider: () => new XsmpNodeKindProvider(),
+    },
+    workspace: {
+        DocumentBuilder: (services) => new XsmpDocumentBuilder(services),
+        IndexManager: (services) => new XsmpIndexManager(services),
+        LangiumDocuments: (services) => new XsmpLangiumDocuments(services),
+        WorkspaceManager: (services) => new XsmpWorkspaceManager(services),
+    },
 };

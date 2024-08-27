@@ -2,7 +2,7 @@ import * as ast from '../../generated/ast.js';
 import { type AstNode, AstUtils, type JSDocElement, type JSDocTag, type URI } from 'langium';
 import * as fs from 'fs';
 import type { TaskAcceptor, XsmpGenerator } from '../generator.js';
-import { escape, fqn, getDescription, getJSDoc, getPrimitiveTypeKind, getUuid, getViewKind } from '../../utils/xsmp-utils.js';
+import { escape, fqn, getDescription, getJSDoc, getNativeLocation, getNativeNamespace, getNativeType, getPTK, getUuid, getViewKind } from '../../utils/xsmp-utils.js';
 import * as CopyrightNoticeProvider from '../copyright-notice-provider.js';
 import { expandToString as s } from 'langium/generate';
 import * as Path from 'path';
@@ -11,8 +11,23 @@ import type { XsmpSharedServices } from '../../xsmp-module.js';
 import type { XsmpTypeProvider } from '../../references/type-provider.js';
 import * as Solver from '../../utils/solver.js';
 import { PTK } from '../../utils/primitive-type-kind.js';
+import { xsmpVersion } from '../../version.js';
 
 export enum CxxStandard { CXX_STD_11 = 0, CXX_STD_14 = 1, CXX_STD_17 = 2 }
+
+export interface ForwardedType {
+    type: ast.Type;
+}
+export namespace ForwardedType {
+    export function create(type: ast.Type): ForwardedType {
+        return { type };
+    }
+
+    export function is(value: unknown): value is ForwardedType {
+        return typeof value === 'object' && value !== null && 'type' in value && ast.isType((value as ForwardedType).type);
+    }
+}
+export type Include = string | ast.Type | ForwardedType;
 
 export class CppGenerator implements XsmpGenerator {
     protected static readonly defaultIncludeFolder = 'src';
@@ -95,11 +110,16 @@ export class CppGenerator implements XsmpGenerator {
         if (!reference) {
             return defaultFqn ?? '';
         }
+        if (ast.isNativeType(reference)) {
+            const type = getNativeType(reference);
+            const namespace = getNativeNamespace(reference);
+            return namespace ? `${namespace}::${type}` : type ?? '';
+        }
         return `::${fqn(reference, '::')}`;
     }
 
     // list of types with uuids defined in namespace ::Smp::Uuids
-    protected static smpUuids = new Set<string>(['Smp.Uuid', 'Smp.Char8', 'Smp.Bool', 'Smp.Int8', 'Smp.UInt8', 'Smp.Int16', 'Smp.UInt16', 'Smp.Int32',
+    protected static smpPrimitiveTypes = new Set<string>(['Smp.Uuid', 'Smp.Char8', 'Smp.Bool', 'Smp.Int8', 'Smp.UInt8', 'Smp.Int16', 'Smp.UInt16', 'Smp.Int32',
         'Smp.UInt32', 'Smp.Int64', 'Smp.UInt64', 'Smp.Float32', 'Smp.Float64', 'Smp.Duration', 'Smp.DateTime', 'Smp.String8', 'Smp.PrimitiveTypeKind',
         'Smp.EventId', 'Smp.LogMessageKind', 'Smp.TimeKind', 'Smp.ViewKind', 'Smp.ParameterDirectionKind', 'Smp.ComponentStateKind', 'Smp.AccessKind',
         'Smp.SimulatorStateKind'
@@ -108,7 +128,7 @@ export class CppGenerator implements XsmpGenerator {
         if (!type) {
             return '::Smp::Uuids::Uuid_Void';
         }
-        if (CppGenerator.smpUuids.has(fqn(type))) {
+        if (CppGenerator.smpPrimitiveTypes.has(fqn(type))) {
             return `::Smp::Uuids::Uuid_${type.name}`;
         }
         return `${this.fqn(type.$container as ast.NamedElement)}::Uuid_${type.name}`;
@@ -124,6 +144,9 @@ export class CppGenerator implements XsmpGenerator {
             return this.expression(vk);
         }
         return '::Smp::ViewKind::VK_All';
+    }
+    protected guard(type: ast.Type): string {
+        return `${fqn(type, '_').toUpperCase()}_H_`;
     }
 
     protected expression(expr: ast.Expression | undefined): string {
@@ -151,7 +174,7 @@ export class CppGenerator implements XsmpGenerator {
             }
             case ast.FloatingLiteral: return (expr as ast.FloatingLiteral).text.replaceAll("'", '');
             case ast.StringLiteral: {
-                const kind = getPrimitiveTypeKind(this.typeProvider.getType(expr));
+                const kind = getPTK(this.typeProvider.getType(expr));
                 switch (kind) {
                     case PTK.Duration:
                     case PTK.DateTime: {
@@ -212,7 +235,7 @@ export class CppGenerator implements XsmpGenerator {
         return undefined;
     }
     protected primitiveTypeKind(type: ast.Type): string {
-        const kind = getPrimitiveTypeKind(type);
+        const kind = getPTK(type);
         return kind === PTK.Enum ? '::Smp::PrimitiveTypeKind::PTK_Int32' : `::Smp::PrimitiveTypeKind::PTK_${PTK[kind]}`;
     }
 
@@ -246,6 +269,223 @@ export class CppGenerator implements XsmpGenerator {
         return ast.isEventType(element.type.ref) ? element.type.ref.eventArgs?.ref : undefined;
     }
 
+    protected generatedBy() {
+        return `XSMP-${xsmpVersion}`;
+    }
+
+    protected includes(type: ast.Type, includes: Include[], isHeader: boolean): string | undefined {
+        if (includes.length === 0) {
+            return undefined;
+        }
+        const includeDeclarations = new Set<string>();
+        for (const include of includes) {
+            if (typeof include === 'string') {
+                includeDeclarations.add(include);
+            }
+            else if (ast.isType(include)) {
+                includeDeclarations.add(CppGenerator.smpPrimitiveTypes.has(fqn(include)) ? 'Smp/PrimitiveTypes.h' : fqn(include, '/') + '.h');
+            }
+            //TODO else forward
+        }
+        if (isHeader){
+            includeDeclarations.delete(fqn(type, '/') + '.h');
+        }
+        return `
+// ----------------------------------------------------------------------------
+// --------------------------- Include Header Files ---------------------------
+// ----------------------------------------------------------------------------
+
+${Array.from(includeDeclarations).toSorted((a, b) => a.localeCompare(b)).map(i => `#include <${i}>`).join('\n')}
+`;
+    }
+
+    protected headerIncludes(element: ast.NamedElement): Include[] {
+        switch (element.$type) {
+            case ast.Class: return this.headerIncludesClass(element as ast.Class);
+            case ast.Exception: return this.headerIncludesException(element as ast.Exception);
+            case ast.Structure: return this.headerIncludesStructure(element as ast.Structure);
+            case ast.Integer: return this.headerIncludesInteger(element as ast.Integer);
+            case ast.Float: return this.headerIncludesFloat(element as ast.Float);
+            case ast.Model: return this.headerIncludesModel(element as ast.Model);
+            case ast.Service: return this.headerIncludesService(element as ast.Service);
+            case ast.Interface: return this.headerIncludesInterface(element as ast.Interface);
+            case ast.ArrayType: return this.headerIncludesArray(element as ast.ArrayType);
+            case ast.Enumeration: return this.headerIncludesEnumeration(element as ast.Enumeration);
+            case ast.StringType: return this.headerIncludesString(element as ast.StringType);
+            case ast.NativeType: return this.headerIncludesNativeType(element as ast.NativeType);
+            case ast.Association: return this.headerIncludesAssociation(element as ast.Association);
+            case ast.Constant: return this.headerIncludesConstant(element as ast.Constant);
+            case ast.Container: return this.headerIncludesContainer(element as ast.Container);
+            case ast.EntryPoint: return this.headerIncludesEntryPoint(element as ast.EntryPoint);
+            case ast.EventSink: return this.headerIncludesEventSink(element as ast.EventSink);
+            case ast.EventSource: return this.headerIncludesEventSource(element as ast.EventSource);
+            case ast.Field: return this.headerIncludesField(element as ast.Field);
+            case ast.Operation: return this.headerIncludesOperation(element as ast.Operation);
+            case ast.Property: return this.headerIncludesProperty(element as ast.Property);
+            case ast.Reference_: return this.headerIncludesReference(element as ast.Reference_);
+            default: return [];
+        }
+    }
+    headerIncludesAssociation(_element: ast.Association): Include[] {
+        return [];
+    }
+    headerIncludesConstant(_element: ast.Constant): Include[] {
+        return [];
+    }
+    headerIncludesContainer(_element: ast.Container): Include[] {
+        return [];
+    }
+    headerIncludesEntryPoint(_element: ast.EntryPoint): Include[] {
+        return [];
+    }
+    headerIncludesEventSink(_element: ast.EventSink): Include[] {
+        return [];
+    }
+    headerIncludesEventSource(_element: ast.EventSource): Include[] {
+        return [];
+    }
+    headerIncludesField(_element: ast.Field): Include[] {
+        return [];
+    }
+    headerIncludesOperation(_element: ast.Operation): Include[] {
+        return [];
+    }
+    headerIncludesProperty(_element: ast.Property): Include[] {
+        return [];
+    }
+    headerIncludesReference(_element: ast.Reference_): Include[] {
+        return [];
+    }
+    headerIncludesClass(_type: ast.Class): Include[] {
+        return ['Smp/Publication/ITypeRegistry.h'];
+    }
+    headerIncludesException(_type: ast.Exception): Include[] {
+        return ['Smp/Publication/ITypeRegistry.h'];
+    }
+    headerIncludesStructure(_type: ast.Structure): Include[] {
+        return ['Smp/Publication/ITypeRegistry.h'];
+    }
+    headerIncludesInteger(_type: ast.Integer): Include[] {
+        return ['Smp/Publication/ITypeRegistry.h', 'Smp/PrimitiveTypes.h'];
+    }
+    headerIncludesFloat(_type: ast.Float): Include[] {
+        return ['Smp/Publication/ITypeRegistry.h', 'Smp/PrimitiveTypes.h'];
+    }
+    headerIncludesModel(_type: ast.Model): Include[] {
+        return ['Smp/Publication/ITypeRegistry.h'];
+    }
+    headerIncludesService(_type: ast.Service): Include[] {
+        return ['Smp/Publication/ITypeRegistry.h'];
+    }
+    headerIncludesInterface(_type: ast.Interface): Include[] {
+        return [];
+    }
+    headerIncludesArray(type: ast.ArrayType): Include[] {
+        return ['Smp/Publication/ITypeRegistry.h', type.itemType.ref!];
+    }
+    headerIncludesEnumeration(_type: ast.Enumeration): Include[] {
+        return ['Smp/Publication/ITypeRegistry.h', 'Smp/PrimitiveTypes.h'];
+    }
+    headerIncludesString(_type: ast.StringType): Include[] {
+        return ['Smp/Publication/ITypeRegistry.h'];
+    }
+    headerIncludesNativeType(type: ast.NativeType): Include[] {
+        const location = getNativeLocation(type);
+        return location ? ['Smp/Publication/ITypeRegistry.h', location] : ['Smp/Publication/ITypeRegistry.h'];
+    }
+    protected sourceIncludes(element: ast.NamedElement): Include[] {
+        switch (element.$type) {
+            case ast.Class: return this.sourceIncludesClass(element as ast.Class);
+            case ast.Exception: return this.sourceIncludesException(element as ast.Exception);
+            case ast.Structure: return this.sourceIncludesStructure(element as ast.Structure);
+            case ast.Integer: return this.sourceIncludesInteger(element as ast.Integer);
+            case ast.Float: return this.sourceIncludesFloat(element as ast.Float);
+            case ast.Model: return this.sourceIncludesModel(element as ast.Model);
+            case ast.Service: return this.sourceIncludesService(element as ast.Service);
+            case ast.Interface: return this.sourceIncludesInterface(element as ast.Interface);
+            case ast.ArrayType: return this.sourceIncludesArray(element as ast.ArrayType);
+            case ast.Enumeration: return this.sourceIncludesEnumeration(element as ast.Enumeration);
+            case ast.StringType: return this.sourceIncludesString(element as ast.StringType);
+            case ast.NativeType: return this.sourceIncludesNativeType(element as ast.NativeType);
+            case ast.Association: return this.sourceIncludesAssociation(element as ast.Association);
+            case ast.Constant: return this.sourceIncludesConstant(element as ast.Constant);
+            case ast.Container: return this.sourceIncludesContainer(element as ast.Container);
+            case ast.EntryPoint: return this.sourceIncludesEntryPoint(element as ast.EntryPoint);
+            case ast.EventSink: return this.sourceIncludesEventSink(element as ast.EventSink);
+            case ast.EventSource: return this.sourceIncludesEventSource(element as ast.EventSource);
+            case ast.Field: return this.sourceIncludesField(element as ast.Field);
+            case ast.Operation: return this.sourceIncludesOperation(element as ast.Operation);
+            case ast.Property: return this.sourceIncludesProperty(element as ast.Property);
+            case ast.Reference_: return this.sourceIncludesReference(element as ast.Reference_);
+            default: return [];
+        }
+    }
+    sourceIncludesAssociation(_element: ast.Association): Include[] {
+        return [];
+    }
+    sourceIncludesConstant(_element: ast.Constant): Include[] {
+        return [];
+    }
+    sourceIncludesContainer(_element: ast.Container): Include[] {
+        return [];
+    }
+    sourceIncludesEntryPoint(_element: ast.EntryPoint): Include[] {
+        return [];
+    }
+    sourceIncludesEventSink(_element: ast.EventSink): Include[] {
+        return [];
+    }
+    sourceIncludesEventSource(_element: ast.EventSource): Include[] {
+        return [];
+    }
+    sourceIncludesField(_element: ast.Field): Include[] {
+        return [];
+    }
+    sourceIncludesOperation(_element: ast.Operation): Include[] {
+        return [];
+    }
+    sourceIncludesProperty(_element: ast.Property): Include[] {
+        return [];
+    }
+    sourceIncludesReference(_element: ast.Reference_): Include[] {
+        return [];
+    }
+    sourceIncludesClass(_type: ast.Class): Include[] {
+        return [];
+    }
+    sourceIncludesException(_type: ast.Exception): Include[] {
+        return [];
+    }
+    sourceIncludesStructure(_type: ast.Structure): Include[] {
+        return [];
+    }
+    sourceIncludesInteger(_type: ast.Integer): Include[] {
+        return [];
+    }
+    sourceIncludesFloat(_type: ast.Float): Include[] {
+        return [];
+    }
+    sourceIncludesModel(_type: ast.Model): Include[] {
+        return [];
+    }
+    sourceIncludesService(_type: ast.Service): Include[] {
+        return [];
+    }
+    sourceIncludesInterface(_type: ast.Interface): Include[] {
+        return [];
+    }
+    sourceIncludesArray(_type: ast.ArrayType): Include[] {
+        return [];
+    }
+    sourceIncludesEnumeration(_type: ast.Enumeration): Include[] {
+        return [];
+    }
+    sourceIncludesString(_type: ast.StringType): Include[] {
+        return [];
+    }
+    sourceIncludesNativeType(_type: ast.NativeType): Include[] {
+        return [];
+    }
     protected declare(element: ast.NamedElement): string | undefined {
         switch (element.$type) {
             case ast.Association: return this.declareAssociation(element as ast.Association);

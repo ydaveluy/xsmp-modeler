@@ -360,7 +360,7 @@ export class XsmpcatValidator {
 
         if (integer.primitiveType) { this.checkTypeReference(accept, integer, integer.primitiveType, 'primitiveType'); }
 
-        const kind = XsmpUtils.getPrimitiveTypeKind(integer);
+        const kind = XsmpUtils.getPTK(integer);
         if (this.integerTypes.has(kind)) {
             const min = this.checkExpression(kind, integer.minimum, accept),
                 max = this.checkExpression(kind, integer.maximum, accept);
@@ -378,7 +378,7 @@ export class XsmpcatValidator {
 
         if (float.primitiveType) { this.checkTypeReference(accept, float, float.primitiveType, 'primitiveType'); }
 
-        const kind = XsmpUtils.getPrimitiveTypeKind(float);
+        const kind = XsmpUtils.getPTK(float);
         if (isFloatingType(kind)) {
             const min = this.checkExpression(kind, float.minimum, accept),
                 max = this.checkExpression(kind, float.maximum, accept);
@@ -890,7 +890,7 @@ export class XsmpcatValidator {
 
     checkPrimitiveType(type: ast.PrimitiveType, accept: ValidationAcceptor): void {
         this.checkModifier(type, [ast.isVisibilityModifiers], accept);
-        if (XsmpUtils.getPrimitiveTypeKind(type) === PTK.None) { accept('error', 'Unsupported Primitive Type.', { node: type, property: 'name' }); }
+        if (XsmpUtils.getPTK(type) === PTK.None) { accept('error', 'Unsupported Primitive Type.', { node: type, property: 'name' }); }
     }
 
     checkNamespace(namespace: ast.Namespace, accept: ValidationAcceptor): void {

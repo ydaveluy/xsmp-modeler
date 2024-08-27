@@ -251,7 +251,7 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
             return type.literal.length > 0 ? XsmpUtils.fqn(type.literal[0]) : '0';
         }
 
-        switch (XsmpUtils.getPrimitiveTypeKind(type)) {
+        switch (XsmpUtils.getPTK(type)) {
             case PTK.Bool:
                 return 'false';
             case PTK.Float32:

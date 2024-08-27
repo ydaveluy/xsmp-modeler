@@ -1,38 +1,12 @@
-
-/**
- * Hours per day.
- */
-const HOURS_PER_DAY = BigInt(24);
-/**
- * Minutes per hour.
- */
-const MINUTES_PER_HOUR = BigInt(60);
-
-/**
- * Seconds per minute.
- */
-const SECONDS_PER_MINUTE = BigInt(60);
-/**
- * Seconds per hour.
- */
+const HOURS_PER_DAY = 24;
+const MINUTES_PER_HOUR = 60;
+const SECONDS_PER_MINUTE = 60;
 const SECONDS_PER_HOUR = SECONDS_PER_MINUTE * MINUTES_PER_HOUR;
-/**
- * Seconds per day.
- */
 const SECONDS_PER_DAY = SECONDS_PER_HOUR * HOURS_PER_DAY;
-
-/**
- * Nanos per second.
- */
 const NANOS_PER_SECOND = BigInt(1000000000);
-/**
- * Nanos per minute.
- */
-const NANOS_PER_MINUTE = NANOS_PER_SECOND * SECONDS_PER_MINUTE;
-/**
- * Nanos per hour.
- */
-const NANOS_PER_HOUR = NANOS_PER_MINUTE * MINUTES_PER_HOUR;
+const NANOS_PER_MINUTE = NANOS_PER_SECOND * BigInt(SECONDS_PER_MINUTE);
+const NANOS_PER_HOUR = NANOS_PER_MINUTE * BigInt(MINUTES_PER_HOUR);
+const ZERO = BigInt(0);
 
 /**
  * The pattern for parsing.
@@ -52,12 +26,12 @@ export function parse(text: string): bigint {
             const secondMatch = matches[6];
             const fractionMatch = matches[7];
             if (dayMatch !== undefined || hourMatch !== undefined || minuteMatch !== undefined || secondMatch !== undefined) {
-                const daysAsSecs = _parseNumber(text, dayMatch, SECONDS_PER_DAY);
-                const hoursAsSecs = _parseNumber(text, hourMatch, SECONDS_PER_HOUR);
-                const minsAsSecs = _parseNumber(text, minuteMatch, SECONDS_PER_MINUTE);
-                const seconds = _parseNumber(text, secondMatch, BigInt(1));
+                const daysAsSecs = _parseNumber(dayMatch, SECONDS_PER_DAY);
+                const hoursAsSecs = _parseNumber(hourMatch, SECONDS_PER_HOUR);
+                const minsAsSecs = _parseNumber(minuteMatch, SECONDS_PER_MINUTE);
+                const seconds = _parseNumber(secondMatch, 1);
                 const negativeSecs = secondMatch?.startsWith('-');
-                const nanos = _parseFraction(text, fractionMatch, negativeSecs ? -1 : 1) + BigInt(NANOS_PER_SECOND) * (daysAsSecs + hoursAsSecs + minsAsSecs + seconds);
+                const nanos = _parseFraction(fractionMatch, negativeSecs ? -1 : 1) + NANOS_PER_SECOND * (daysAsSecs + hoursAsSecs + minsAsSecs + seconds);
 
                 return negate ? -nanos : nanos;
             }
@@ -66,28 +40,28 @@ export function parse(text: string): bigint {
     throw new Error(`Text cannot be parsed to a Duration: ${text}`);
 }
 
-function _parseNumber(text: string, parsed: string, multiplier: bigint): bigint {
+function _parseNumber(parsed: string, multiplier: number): bigint {
     // regex limits to [-+]?\d+
     if (parsed === undefined) {
-        return BigInt(0);
+        return ZERO;
     }
     if (parsed.startsWith('+')) {
         parsed = parsed.substring(1);
     }
-    return BigInt(parseFloat(parsed)) * BigInt(multiplier);
+    return BigInt(parseFloat(parsed) * multiplier);
 }
 
-function _parseFraction(text: string, parsed: string, negate: number): bigint {
+function _parseFraction(parsed: string, negate: number): bigint {
     // regex limits to \d{0,9}
     if (parsed === undefined || parsed.length === 0) {
-        return BigInt(0);
+        return ZERO;
     }
     parsed = (`${parsed}000000000`).substring(0, 9);
-    return BigInt(parseFloat(parsed)) * BigInt(negate);
+    return BigInt(parseFloat(parsed) * negate);
 }
 
 export function serialize(value: bigint) {
-    if (value === BigInt(0)) {
+    if (value === ZERO) {
         return 'PT0S';
     }
 
@@ -103,16 +77,16 @@ export function serialize(value: bigint) {
     nanos %= NANOS_PER_SECOND;
 
     let rval = 'PT';
-    if (hours !== BigInt(0)) {
+    if (hours !== ZERO) {
         rval += `${hours}H`;
     }
-    if (minutes !== BigInt(0)) {
+    if (minutes !== ZERO) {
         rval += `${minutes}M`;
     }
-    if (secs === BigInt(0) && nanos === BigInt(0) && rval.length > 2) {
+    if (secs === ZERO && nanos === ZERO && rval.length > 2) {
         return rval;
     }
-    if (secs < 0 && nanos > BigInt(0)) {
+    if (secs < 0 && nanos > ZERO) {
         if (secs === BigInt(-1)) {
             rval += '-0';
         } else {
@@ -121,10 +95,10 @@ export function serialize(value: bigint) {
     } else {
         rval += secs;
     }
-    if (nanos > BigInt(0)) {
+    if (nanos > ZERO) {
         rval += '.';
         let nanoString;
-        if (secs < BigInt(0)) {
+        if (secs < ZERO) {
             nanoString = `${BigInt(2) * NANOS_PER_SECOND - nanos}`;
         } else {
             nanoString = `${NANOS_PER_SECOND + nanos}`;

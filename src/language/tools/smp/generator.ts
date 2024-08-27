@@ -196,8 +196,8 @@ export class SmpGenerator implements XsmpGenerator {
         return {
             ...this.convertType(float, 'Types:Float'),
             PrimitiveType: float.primitiveType ? this.convertXlink(float.primitiveType, float) : undefined,
-            '@Minimum': Solver.getValue(float.minimum)?.floatValue(XsmpUtils.getPrimitiveTypeKind(float) as FloatingPTK)?.getValue(),
-            '@Maximum': Solver.getValue(float.maximum)?.floatValue(XsmpUtils.getPrimitiveTypeKind(float) as FloatingPTK)?.getValue(),
+            '@Minimum': Solver.getValue(float.minimum)?.floatValue(XsmpUtils.getPTK(float) as FloatingPTK)?.getValue(),
+            '@Maximum': Solver.getValue(float.maximum)?.floatValue(XsmpUtils.getPTK(float) as FloatingPTK)?.getValue(),
             '@MinInclusive': float.range === '...' || float.range === '..<' ? true : range,
             '@MaxInclusive': float.range === '...' || float.range === '<..' ? true : range,
             '@Unit': XsmpUtils.getUnit(float),
@@ -208,8 +208,8 @@ export class SmpGenerator implements XsmpGenerator {
         return {
             ...this.convertType(integer, 'Types:Integer'),
             PrimitiveType: integer.primitiveType ? this.convertXlink(integer.primitiveType, integer) : undefined,
-            '@Minimum': Solver.getValue(integer.minimum)?.integralValue(XsmpUtils.getPrimitiveTypeKind(integer) as IntegralPTK)?.getValue(),
-            '@Maximum': Solver.getValue(integer.maximum)?.integralValue(XsmpUtils.getPrimitiveTypeKind(integer) as IntegralPTK)?.getValue(),
+            '@Minimum': Solver.getValue(integer.minimum)?.integralValue(XsmpUtils.getPTK(integer) as IntegralPTK)?.getValue(),
+            '@Maximum': Solver.getValue(integer.maximum)?.integralValue(XsmpUtils.getPTK(integer) as IntegralPTK)?.getValue(),
             '@Unit': XsmpUtils.getUnit(integer),
         };
     }
@@ -252,7 +252,7 @@ export class SmpGenerator implements XsmpGenerator {
     protected convertValue(type: ast.Type | undefined, expression: ast.Expression): Types.Value {
 
         if (type) {
-            switch (XsmpUtils.getPrimitiveTypeKind(type)) {
+            switch (XsmpUtils.getPTK(type)) {
                 case PTK.Bool: return { '@xsi:type': 'Types:BoolValue', '@Value': Solver.getValue(expression)?.boolValue()?.getValue() } as Types.BoolValue;
                 case PTK.Char8: return { '@xsi:type': 'Types:Char8Value', '@Value': XsmpUtils.escape(Solver.getValue(expression)?.charValue()?.getValue()) } as Types.Char8Value;
                 case PTK.Float32: return { '@xsi:type': 'Types:Float32Value', '@Value': Solver.getValue(expression)?.floatValue(PTK.Float32)?.getValue() } as Types.Float32Value;
@@ -286,7 +286,7 @@ export class SmpGenerator implements XsmpGenerator {
     protected convertArrayValue(type: ast.ArrayType, expression: ast.CollectionLiteral): Types.Value {
 
         if (type.itemType.ref) {
-            switch (XsmpUtils.getPrimitiveTypeKind(type.itemType.ref)) {
+            switch (XsmpUtils.getPTK(type.itemType.ref)) {
                 case PTK.Bool: return { '@xsi:type': 'Types:BoolArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.boolValue()?.getValue() })) } as Types.BoolArrayValue;
                 case PTK.Char8: return { '@xsi:type': 'Types:Char8ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': XsmpUtils.escape(Solver.getValue(e)?.charValue()?.getValue()) })) } as Types.Char8ArrayValue;
                 case PTK.Float32: return { '@xsi:type': 'Types:Float32ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.floatValue(PTK.Float32)?.getValue() })) } as Types.Float32ArrayValue;

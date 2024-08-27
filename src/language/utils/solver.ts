@@ -1,7 +1,7 @@
 import * as ast from '../generated/ast.js';
 import { AstUtils, diagnosticData, type ValidationAcceptor } from 'langium';
 import * as Duration from './duration.js';
-import { fqn, getPrimitiveTypeKind, isConstantVisibleFrom } from './xsmp-utils.js';
+import { fqn, getPTK, isConstantVisibleFrom } from './xsmp-utils.js';
 import { type FloatingPTK, type IntegralPTK, isFloatingType, isIntegralType, PTK } from './primitive-type-kind.js';
 
 import { Location } from 'vscode-languageserver';
@@ -328,7 +328,7 @@ function getTypeName(type: ast.Type | PTK): string {
 }
 
 function doGetValueAs<T>(expression: ast.Expression, value: Value<T>, type: ast.Type | PTK, accept?: ValidationAcceptor): Value<T> | undefined {
-    const kind = ast.isType(type) ? getPrimitiveTypeKind(type) : type;
+    const kind = ast.isType(type) ? getPTK(type) : type;
     if (isIntegralType(kind)) {
         const integralValue = value.integralValue(kind);
         if (integralValue && accept && ast.isInteger(type)) {

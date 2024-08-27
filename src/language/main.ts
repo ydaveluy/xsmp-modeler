@@ -4,10 +4,10 @@ import { ProposedFeatures, createConnection } from 'vscode-languageserver/node.j
 import { createXsmpServices } from './xsmp-module.js';
 
 // Create a connection to the client
-const connection = createConnection(ProposedFeatures.all),
+const connection = createConnection(ProposedFeatures.all);
 
-    // Inject the shared services and language-specific services
-    { shared } = createXsmpServices({ connection, ...NodeFileSystem });
+// Inject the shared services and language-specific services
+const { shared } = createXsmpServices({ connection, ...NodeFileSystem });
 
 // Start the language server with the shared services
 startLanguageServer(shared);
