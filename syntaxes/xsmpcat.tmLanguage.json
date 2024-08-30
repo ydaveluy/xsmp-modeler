@@ -134,15 +134,15 @@
 		"annotations": {
 			"patterns": [
 				{
-					"begin": "((@)\\s*([^\\s(]+))(\\()",
+					"begin": "((@)\\s*((?:[A-Za-z]\\w*\\s*(\\.)\\s*)*([A-Za-z]\\w*)))(\\()",
 					"beginCaptures": {
 						"2": {
 							"name": "punctuation.definition.annotation.xsmp"
 						},
-						"3": {
+						"5": {
 							"name": "storage.type.annotation.xsmp"
 						},
-						"4": {
+						"6": {
 							"name": "punctuation.definition.annotation-arguments.begin.bracket.round.xsmp"
 						}
 					},
@@ -160,13 +160,13 @@
 					]
 				},
 				{
-					"match": "(@)\\s*(\\w+)",
+					"match": "(@)\\s*((?:[A-Za-z]\\w*\\s*(\\.)\\s*)*([A-Za-z]\\w*))",
 					"name": "meta.declaration.annotation.xsmp",
 					"captures": {
 						"1": {
 							"name": "punctuation.definition.annotation.xsmp"
 						},
-						"2": {
+						"4": {
 							"name": "storage.type.annotation.xsmp"
 						}
 					}

@@ -98,7 +98,7 @@ export class SmpGenerator implements XsmpGenerator {
         return {
             '@xsi:type': id,
             ...this.convertVisibilityElement(type),
-            '@Uuid': XsmpUtils.getUuid(type)?.toString() ?? '',
+            '@Uuid': XsmpUtils.getUuid(type)?.toString().trim() ?? '',
         };
     }
     protected convertValueReference(valueReference: ast.ValueReference): Types.ValueReference {

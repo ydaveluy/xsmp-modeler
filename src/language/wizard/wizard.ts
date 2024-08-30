@@ -101,9 +101,7 @@ async function createTemplateProject(projectName: string, dirPath: string,
     fs.mkdirSync(smdlPath);
 
     // Create the catalog file
-    const creator = os.userInfo().username,
-        currentDate = new Date(Date.now()).toISOString(),
-        catalogueName = projectName.replace(/[.-]/, '_');
+    const catalogueName = projectName.replace(/[.-]/, '_');
 
     await fs.promises.writeFile(path.join(smdlPath, `${projectName}.xsmpcat`), `// Copyright \${year} \${user}. All rights reserved.
 //
@@ -114,8 +112,8 @@ async function createTemplateProject(projectName: string, dirPath: string,
 /**
  * Catalogue ${projectName}
  * 
- * @creator ${creator}
- * @date ${currentDate}
+ * @creator ${os.userInfo().username}
+ * @date ${new Date(Date.now()).toISOString()}
  */
 catalogue ${catalogueName}
 

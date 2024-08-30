@@ -28,6 +28,18 @@ export class GapPatternCppGenerator extends CppGenerator {
         return ast.isReferenceType(type);
     }
 
+    public override generatePackage(catalogue: ast.Catalogue, projectUri: URI, notice: string | undefined, acceptTask: TaskAcceptor): void {
+        const name = this.catalogueFileName(catalogue);
+        const includePath = UriUtils.joinPath(projectUri, this.includeGenFolder, name + '.h').fsPath;
+        acceptTask(() => this.generatePackageHeader(includePath, catalogue, notice));
+
+        const sourcePath = UriUtils.joinPath(projectUri, this.sourceGenFolder, name + '.cpp').fsPath;
+        acceptTask(() => this.generatePackageSource(sourcePath, catalogue, notice));
+
+        const sourceDynPath = UriUtils.joinPath(projectUri, this.sourceGenFolder, name + '.pkg.cpp').fsPath;
+        acceptTask(() => this.generateDynamicPackageSource(sourceDynPath, catalogue, notice));
+    }
+
     protected override generateType(type: ast.Type, projectUri: URI, notice: string | undefined, acceptTask: TaskAcceptor) {
 
         const qualifiedName = fqn(type, '/');
@@ -217,7 +229,7 @@ export class GapPatternCppGenerator extends CppGenerator {
                 #ifndef ${guard}
                 #define ${guard}
 
-                ${this.includes(type, this.headerIncludes(type), true)}
+                ${this.includes(this.headerIncludes(type), [type])}
 
                 ${this.namespace(type, body)}
 
@@ -271,7 +283,7 @@ export class GapPatternCppGenerator extends CppGenerator {
                 /// @file ${fqn(type, '/')}${useGenerationGapPattern ? 'Gen' : ''}.cpp
                 // This file is auto-generated, Do not edit otherwise your changes will be lost
 
-                ${this.includes(type, [...this.sourceIncludes(type), `${fqn(type, '/')}.h`], false)} 
+                ${this.includes([...this.sourceIncludes(type), type])} 
 
                 ${this.namespace(type, body)}
                 `);
@@ -279,15 +291,13 @@ export class GapPatternCppGenerator extends CppGenerator {
     }
     async generateTypeHeader(type: ast.Type): Promise<string | undefined> {
         return s`
-        ${this.comment(type)}
-        using ${type.name} = ${type.name}Gen;
+        ${this.comment(type)}using ${type.name} = ${type.name}Gen;
         `;
     }
 
     async generateClassHeader(type: ast.Class): Promise<string | undefined> {
         return s`
-            ${this.comment(type)}
-            class ${type.name}: public ${type.name}Gen
+            ${this.comment(type)}class ${type.name}: public ${type.name}Gen
             {
                 friend class ${this.fqn(type)}Gen;
             public:
@@ -306,8 +316,7 @@ export class GapPatternCppGenerator extends CppGenerator {
         const base = this.fqn(type.base?.ref, ast.isException(type) ? '::Smp::Exception' : undefined);
         return s`
         ${gen ? `class ${type.name};` : ''}
-        ${this.comment(type)}
-        class ${type.name}${gen ? 'Gen' : ''}${base ? `: public ${base}` : ''}
+        ${this.comment(type)}class ${type.name}${gen ? 'Gen' : ''}${base ? `: public ${base}` : ''}
         {
             ${gen ? `friend class ${this.fqn(type)};` : ''}
         public:
@@ -329,23 +338,23 @@ export class GapPatternCppGenerator extends CppGenerator {
         void ${type.name}${gen ? 'Gen' : ''}::_Register(::Smp::Publication::ITypeRegistry* registry) 
         {
             ${fields.length > 0 ? 'auto *type = ' : ''}registry->AddClassType(
-                "${type.name}",  /// Name
-                ${this.description(type)},   /// description
-                ${this.uuid(type)}, /// UUID
-                ${this.uuid(type.base?.ref)} /// Base Class UUID
+                "${type.name}",  // Name
+                ${this.description(type)},   // Description
+                ${this.uuid(type)}, // UUID
+                ${this.uuid(type.base?.ref)} // Base Class UUID
                 ); 
             
-            ${fields.length > 0 ? '/// Register the Fields of the Class' : ''}
+            ${fields.length > 0 ? '// Register the Fields of the Class' : ''}
             ${fields.map(f => `
                   type->AddField(
-                    "${f.name}",
-                    ${this.description(f)},
-                    ${this.uuid(f.type.ref)}, /// UUID of the Field Type
-                    offsetof(${type.name}, ${f.name}), ///Compute the offset of the current item
-                    ${this.viewKind(f)}, /// viewkind
-                    ${isState(f)}, /// state
-                    ${isInput(f)}, /// input
-                    ${isOutput(f)}/// output
+                    "${f.name}", // Name
+                    ${this.description(f)}, // Description
+                    ${this.uuid(f.type.ref)}, // Type UUID
+                    offsetof(${type.name}, ${f.name}), // Field offset
+                    ${this.viewKind(f)}, // Viewkind
+                    ${isState(f)}, // State
+                    ${isInput(f)}, // Input
+                    ${isOutput(f)} // Output
                     );  
                 `).join('\n')}
         }
@@ -371,8 +380,7 @@ export class GapPatternCppGenerator extends CppGenerator {
     }
     async generateStructureHeader(type: ast.Structure): Promise<string | undefined> {
         return s`
-        ${this.comment(type)}
-        struct ${type.name} : public ${type.name}Gen 
+        ${this.comment(type)}struct ${type.name} : public ${type.name}Gen 
         {
             //«declareMembers(VisibilityKind.PUBLIC)»
         };
@@ -385,10 +393,9 @@ export class GapPatternCppGenerator extends CppGenerator {
 
     async generateStructureHeaderGen(type: ast.Structure, gen: boolean): Promise<string | undefined> {
         return s`
-        ${this.comment(type)}
-        struct ${type.name}${gen ? 'Gen' : ''}  
+        ${this.comment(type)}struct ${type.name}${gen ? 'Gen' : ''}  
         {
-            «declareMembersGen(useGenPattern,  VisibilityKind.PUBLIC)»
+           // «declareMembersGen(useGenPattern,  VisibilityKind.PUBLIC)»
             
            // «IF hasConstructor»
                 ${type.name}${gen ? 'Gen' : ''} (/*«FOR f : member.filter(Field) SEPARATOR ", "»«f.type.id» «f.name» = «IF f.^default !== null»«f.^default.generateExpression()»«ELSE»{}«ENDIF»«ENDFOR»*/)//:
@@ -412,26 +419,25 @@ export class GapPatternCppGenerator extends CppGenerator {
         void ${type.name}${gen ? 'Gen' : ''}::_Register(::Smp::Publication::ITypeRegistry* registry) 
         {
                 ${fields.length > 0 ? 'auto *type = ' : ''}registry->AddStructureType(
-                "${type.name}",  /// Name
-                ${this.description(type)}, /// description
-                ${this.uuid(type)} /// UUID
+                "${type.name}",  // Name
+                ${this.description(type)}, // Description
+                ${this.uuid(type)} // UUID
                 ); 
                 
-            ${fields.length > 0 ? '/// Register the Fields of the Class' : ''}
-            ${fields.map(f => `
-                  type->AddField(
-                    "${f.name}",
-                    ${this.description(f)},
-                    ${this.uuid(f.type.ref)}, /// UUID of the Field Type
-                    offsetof(${type.name}, ${f.name}), ///Compute the offset of the current item
-                    ${this.viewKind(f)}, /// viewkind
-                    ${isState(f)}, /// state
-                    ${isInput(f)}, /// input
-                    ${isOutput(f)}/// output
+            ${fields.length > 0 ? '// Register the Fields of the Class' : ''}
+            ${fields.map(f => `type->AddField(
+                    "${f.name}", // Name
+                    ${this.description(f)}, // Description
+                    ${this.uuid(f.type.ref)}, // Type UUID
+                    offsetof(${type.name}, ${f.name}), // Field offset
+                    ${this.viewKind(f)}, // Viewkind
+                    ${isState(f)}, // State
+                    ${isInput(f)}, // Input
+                    ${isOutput(f)} // Output
                     );  
-                `).join('\n')}
+                `).join('')}
         }
-        «defineMembersGen(useGenPattern)»
+        //«defineMembersGen(useGenPattern)»
         
         ${this.uuidDefinition(type)}
         `;
@@ -447,8 +453,7 @@ export class GapPatternCppGenerator extends CppGenerator {
     async generateIntegerHeaderGen(type: ast.Integer, gen: boolean): Promise<string | undefined> {
         return s`
         ${this.uuidDeclaration(type)}
-        ${this.comment(type)}
-        using ${type.name}${gen ? 'Gen' : ''}  = ${this.fqn(type.primitiveType?.ref, '::Smp::Int32')};
+        ${this.comment(type)}using ${type.name}${gen ? 'Gen' : ''}  = ${this.fqn(type.primitiveType?.ref, '::Smp::Int32')};
         void _Register_${type.name}(::Smp::Publication::ITypeRegistry* registry);
         `;
     }
@@ -457,9 +462,9 @@ export class GapPatternCppGenerator extends CppGenerator {
         return s`
         void _Register_${type.name}(::Smp::Publication::ITypeRegistry* registry) {
             registry->AddIntegerType(
-                "${type.name}", //Name
-                ${this.description(type)}, //description
-                ${this.uuid(type)}, //UUID
+                "${type.name}", // Name
+                ${this.description(type)}, // Description
+                ${this.uuid(type)}, // UUID
                 ${type.minimum ? this.expression(type.minimum) : `std::numeric_limits<${this.fqn(type.primitiveType?.ref, '::Smp::Int32')}>::min()`}, // Minimum
                 ${type.maximum ? this.expression(type.maximum) : `std::numeric_limits<${this.fqn(type.primitiveType?.ref, '::Smp::Int32')}>::max()`}, // Maximum
                 "${getUnit(type)}", // Unit
@@ -479,23 +484,24 @@ export class GapPatternCppGenerator extends CppGenerator {
     async generateFloatHeaderGen(type: ast.Float, gen: boolean): Promise<string | undefined> {
         return s`
         ${this.uuidDeclaration(type)}
-        ${this.comment(type)}
-        using ${type.name}${gen ? 'Gen' : ''}  = ${this.fqn(type.primitiveType?.ref, '::Smp::Float64')};
+        ${this.comment(type)}using ${type.name}${gen ? 'Gen' : ''}  = ${this.fqn(type.primitiveType?.ref, '::Smp::Float64')};
         void _Register_${type.name}(::Smp::Publication::ITypeRegistry* registry);
         `;
     }
 
     async generateFloatSourceGen(type: ast.Float, _gen: boolean): Promise<string | undefined> {
+        const minInclusive = type.range !== '<..' && type.range !== '<.<';
+        const maxInclusive = type.range !== '..<' && type.range !== '<.<';
         return s`
         void _Register_${type.name}(::Smp::Publication::ITypeRegistry* registry) {
         registry->AddFloatType(
-            "${type.name}", //Name
-            ${this.description(type)}, //description
-            ${this.uuid(type)}, //UUID
-            ${type.minimum ? this.expression(type.minimum) : `std::numeric_limits<${this.fqn(type.primitiveType?.ref, '::Smp::Float64')}>::min()`}, // Minimum
+            "${type.name}", // Name
+            ${this.description(type)}, // Description
+            ${this.uuid(type)}, // UUID
+            ${type.minimum ? this.expression(type.minimum) : `std::numeric_limits<${this.fqn(type.primitiveType?.ref, '::Smp::Float64')}>::lowest()`}, // Minimum
             ${type.maximum ? this.expression(type.maximum) : `std::numeric_limits<${this.fqn(type.primitiveType?.ref, '::Smp::Float64')}>::max()`}, // Maximum
-            ${type.range !== '<..' && type.range !== '<.<'}, // Minimm inclusive
-            ${type.range !== '..<' && type.range !== '<.<'}, // Maximim inclusive
+            ${minInclusive}, // Minimum ${minInclusive ? 'inclusive' : 'exclusive'}
+            ${maxInclusive}, // Maximum ${maxInclusive ? 'inclusive' : 'exclusive'}
             "${getUnit(type)}", // Unit
             ${this.primitiveTypeKind(type)} // Primitive Type Kind
         );  
@@ -505,8 +511,7 @@ export class GapPatternCppGenerator extends CppGenerator {
     }
     async generateComponentHeader(type: ast.Component): Promise<string | undefined> {
         return s`
-        ${this.comment(type)}
-        class ${type.name}: public ${type.name}Gen {
+        ${this.comment(type)}class ${type.name}: public ${type.name}Gen {
         public:
             /// Re-use parent constructors
             using ${type.name}Gen::${type.name}Gen;
@@ -542,11 +547,9 @@ export class GapPatternCppGenerator extends CppGenerator {
     }
     async generateInterfaceHeader(type: ast.Interface): Promise<string | undefined> {
         return s`
-        ${this.comment(type)}
-        class ${type.name}: public ${type.name}Gen {
+        ${this.comment(type)}class ${type.name}: public ${type.name}Gen {
         public:
             ~${type.name}() override = default;
-            //«declareMembers(VisibilityKind.PRIVATE)»
         };
         `;
     }
@@ -556,8 +559,7 @@ export class GapPatternCppGenerator extends CppGenerator {
     }
     async generateInterfaceHeaderGen(type: ast.Interface, gen: boolean): Promise<string | undefined> {
         return s`
-        ${this.comment(type)}
-        class ${type.name}${gen ? 'Gen' : ''}${type.base.length > 0 ? ': ' : ''}${type.base.map(b => `public virtual ${this.fqn(b.ref)}`).join(', ')} {
+        ${this.comment(type)}class ${type.name}${gen ? 'Gen' : ''}${type.base.length > 0 ? ': ' : ''}${type.base.map(b => `public virtual ${this.fqn(b.ref)}`).join(', ')} {
             public:
             virtual ~${type.name}${gen ? 'Gen' : ''} () = default;
             //«declareMembersGen(useGenPattern, VisibilityKind.PUBLIC)»
@@ -566,23 +568,18 @@ export class GapPatternCppGenerator extends CppGenerator {
         ${this.uuidDeclaration(type)}
         `;
     }
-    async generateInterfaceSourceGen(type: ast.Interface, _gen: boolean): Promise<string | undefined> {
-        return s`
-        ${this.uuidDefinition(type)}
-        //«defineMembersGen(useGenPattern)»
-        `;
+    async generateInterfaceSourceGen(_type: ast.Interface, _gen: boolean): Promise<string | undefined> {
+        return undefined;
     }
 
     async generateArrayHeader(type: ast.ArrayType): Promise<string | undefined> {
         return s`
-        ${this.comment(type)}
-        using ${type.name} = ::${type.name}Gen;
+        ${this.comment(type)}using ${type.name} = ::${type.name}Gen;
         `;
     }
     async generateArrayHeaderGen(type: ast.ArrayType, gen: boolean): Promise<string | undefined> {
         return s`
-        ${this.comment(type)}
-        struct ${type.name}${gen ? 'Gen' : ''} 
+        ${this.comment(type)}struct ${type.name}${gen ? 'Gen' : ''} 
         { 
             ${this.fqn(type.itemType.ref)} internalArray[${this.expression(type.size)}];
         };
@@ -604,8 +601,8 @@ export class GapPatternCppGenerator extends CppGenerator {
                 ${this.uuid(type)}, // UUID
                 ${this.uuid(type.itemType.ref)}, // Item Type UUID
                 sizeof(${this.fqn(type.itemType.ref)}), // Item Type size
-                ${this.expression(type.size)}, // size of the array
-                ${isSimpleArray(type) === true} // is simple array
+                ${this.expression(type.size)}, // Number of elements
+                ${isSimpleArray(type) === true} // Simple array
             );
         }
         ${this.uuidDefinition(type)}
@@ -619,12 +616,8 @@ export class GapPatternCppGenerator extends CppGenerator {
     }
     async generateEnumerationHeaderGen(type: ast.Enumeration, gen: boolean): Promise<string | undefined> {
         return s`
-        ${this.comment(type)}
-        enum class ${type.name}${gen ? 'Gen' : ''}: ::Smp::Int32 {
-            ${type.literal.map(l => `
-                ${this.comment(l)}
-                ${l.name} = ${this.expression(l.value)}
-                `).join(', ')}
+        ${this.comment(type)}enum class ${type.name}${gen ? 'Gen' : ''}: ::Smp::Int32 {
+            ${type.literal.map(literal => `${this.comment(literal)}${literal.name} = ${this.expression(literal.value)}`).join(',\n')}
         };
         
         ${this.uuidDeclaration(type)}
@@ -632,11 +625,11 @@ export class GapPatternCppGenerator extends CppGenerator {
         void _Register_${type.name}(::Smp::Publication::ITypeRegistry* registry);
         
         const std::map<${type.name}${gen ? 'Gen' : ''}, std::string> ${type.name}_name_map = {
-            ${type.literal.map(l => `{ ${type.name}${gen ? 'Gen' : ''}::${l.name}, "${l.name}" }`).join(', ')}
+            ${type.literal.map(literal => `{ ${type.name}${gen ? 'Gen' : ''}::${literal.name}, "${literal.name}" }`).join(', ')}
         };
         
         const std::map<${type.name}${gen ? 'Gen' : ''}, std::string> ${type.name}_descr_map = {
-            ${type.literal.map(l => `{ ${type.name}${gen ? 'Gen' : ''}::${l.name}, ${this.description(l)} }`).join(', ')}
+            ${type.literal.map(literal => `{ ${type.name}${gen ? 'Gen' : ''}::${literal.name}, ${this.description(literal)} }`).join(', ')}
         };
         `;
     }
@@ -644,14 +637,14 @@ export class GapPatternCppGenerator extends CppGenerator {
         return s`
         void _Register_${type.name}(::Smp::Publication::ITypeRegistry* registry) {
         auto *type = registry->AddEnumerationType(
-            "${type.name}", // name
-            ${this.description(type)}, // description
+            "${type.name}", // Name
+            ${this.description(type)}, // Description
             ${this.uuid(type)}, // UUID
             sizeof(${this.fqn(type)}) // Size
             );
     
         // Register the Literals of the Enumeration
-        ${type.literal.map(l => `type->AddLiteral("${l.name}", ${this.description(l)}, static_cast<::Smp::Int32>(${this.fqn(l)}));`).join('\n')}
+        ${type.literal.map(literal => `type->AddLiteral("${literal.name}", ${this.description(literal)}, static_cast<::Smp::Int32>(${this.fqn(literal)}));`).join('\n')}
         }
         ${this.uuidDefinition(type)}
         `;
@@ -664,8 +657,7 @@ export class GapPatternCppGenerator extends CppGenerator {
     }
     async generateStringHeaderGen(type: ast.StringType, gen: boolean): Promise<string | undefined> {
         return s`
-        ${this.comment(type)}
-        struct ${type.name}${gen ? 'Gen' : ''}  
+        ${this.comment(type)}struct ${type.name}${gen ? 'Gen' : ''}  
         { 
             ::Smp::Char8 internalString[(${this.expression(type.length)}) + 1];
         };
@@ -680,7 +672,7 @@ export class GapPatternCppGenerator extends CppGenerator {
         return s`
         void _Register_${type.name}(::Smp::Publication::ITypeRegistry* registry) {
             registry->AddStringType(
-                "${type.name}", //Name
+                "${type.name}", // Name
                 ${this.description(type)}, // Description
                 ${this.uuid(type)}, // UUID
                 ${this.expression(type.length)} // Length of the String
@@ -796,10 +788,9 @@ export class GapPatternCppGenerator extends CppGenerator {
         }
     }
 
-    protected declareAssociationGen(_element: ast.Association, _gen: boolean): string | undefined {
+    protected declareAssociationGen(element: ast.Association, _gen: boolean): string | undefined {
         return s`
-            «comment»
-            «IF isConst»const «ENDIF»«IF isStatic»static «ENDIF»«IF isMutable»mutable «ENDIF»«type.id»«IF isByPointer»*«ENDIF» «name»;
+            ${this.comment(element)}«IF isConst»const «ENDIF»«IF isStatic»static «ENDIF»«IF isMutable»mutable «ENDIF»«type.id»«IF isByPointer»*«ENDIF» ${element.name};
             `;
     }
     protected defineAssociationGen(_element: ast.Association, _gen: boolean): string | undefined {
@@ -809,28 +800,24 @@ export class GapPatternCppGenerator extends CppGenerator {
     protected declareConstantGen(element: ast.Constant, _gen: boolean): string | undefined {
         if (!this.stringTypeIsConstexpr() && ast.isStringType(element.type)) {
             return s`
-                ${this.comment(element)}
-                static const ${this.fqn(element.type.ref)} ${element.name};
+                ${this.comment(element)}static const ${this.fqn(element.type.ref)} ${element.name};
                 `;
         }
 
         return s`
-            ${this.comment(element)}
-            static constexpr ${this.fqn(element.type.ref)} ${element.name}${this.directListInitializer(element.value)};
+            ${this.comment(element)}static constexpr ${this.fqn(element.type.ref)} ${element.name}${this.directListInitializer(element.value)};
             `;
     }
     protected defineConstantGen(element: ast.Constant, gen: boolean): string | undefined {
         if (!this.stringTypeIsConstexpr() && ast.isStringType(element.type)) {
             return s`
-                ${this.comment(element)}
-                const ${this.fqn(element.type.ref)} ${element.$container.name}${gen ? 'Gen' : ''}::${element.name}${this.directListInitializer(element.value)};
+                ${this.comment(element)}const ${this.fqn(element.type.ref)} ${element.$container.name}${gen ? 'Gen' : ''}::${element.name}${this.directListInitializer(element.value)};
                 `;
         }
 
         if (this.cxxStandard < CxxStandard.CXX_STD_17) {
             return s`
-                ${this.comment(element)}
-                static constexpr ${this.fqn(element.type.ref)} ${element.$container.name}${gen ? 'Gen' : ''}::${element.name};
+                ${this.comment(element)}static constexpr ${this.fqn(element.type.ref)} ${element.$container.name}${gen ? 'Gen' : ''}::${element.name};
                 `;
         }
         return undefined;
@@ -838,8 +825,7 @@ export class GapPatternCppGenerator extends CppGenerator {
 
     protected declareContainerGen(element: ast.Container, _gen: boolean): string | undefined {
         return s`
-        ${this.comment(element)}
-        ::Smp::IContainer* ${element.name};
+        ${this.comment(element)}::Smp::IContainer* ${element.name};
         `;
     }
     protected override finalizeContainer(element: ast.Container): string | undefined {
@@ -862,8 +848,7 @@ export class GapPatternCppGenerator extends CppGenerator {
 
     protected declareEntryPointGen(element: ast.EntryPoint, gen: boolean): string | undefined {
         return s`
-            ${this.comment(element)}
-            ::Smp::IEntryPoint* ${element.name}; 
+            ${this.comment(element)}::Smp::IEntryPoint* ${element.name}; 
             virtual void _${element.name}()${gen ? ' = 0' : ''};
             `;
     }
@@ -898,8 +883,7 @@ export class GapPatternCppGenerator extends CppGenerator {
         const eventType = this.eventType(element);
 
         return s`
-        ${this.comment(element)}
-        ::Smp::IEventSink* ${element.name};
+        ${this.comment(element)}::Smp::IEventSink* ${element.name};
         virtual void _${element.name}(::Smp::IObject* sender${eventType ? `, ${this.fqn(eventType)}` : ''})${gen ? ' = 0' : ''};
         `;
     }
@@ -912,8 +896,7 @@ export class GapPatternCppGenerator extends CppGenerator {
 
     protected declareEventSourceGen(element: ast.EventSource, _gen: boolean): string | undefined {
         return s`
-        ${this.comment(element)}
-        ::Smp::IEventSource* ${element.name};
+        ${this.comment(element)}::Smp::IEventSource* ${element.name};
         `;
     }
     protected defineEventSourceGen(_element: ast.EventSource, _gen: boolean): string | undefined {

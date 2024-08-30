@@ -164,40 +164,40 @@ export function getUsages(element: ast.AttributeType): JSDocParagraph[] | undefi
 }
 
 export function getId(element: ast.NamedElement | ast.ReturnParameter): string | undefined {
-    return getTag(element, 'id')?.toString();
+    return getTag(element, 'id')?.toString().trim();
 }
 export function getNativeType(element: ast.NativeType): string | undefined {
-    return getTag(element, 'type')?.toString();
+    return getTag(element, 'type')?.toString().trim();
 }
 export function getNativeNamespace(element: ast.NativeType): string | undefined {
-    return getTag(element, 'namespace')?.toString();
+    return getTag(element, 'namespace')?.toString().trim();
 }
 export function getNativeLocation(element: ast.NativeType): string | undefined {
-    return getTag(element, 'location')?.toString();
+    return getTag(element, 'location')?.toString().trim();
 }
 export function isMulticast(element: ast.EventSource): boolean {
     return getTag(element, 'singlecast') === undefined;
 }
 
 export function getPropertyCategory(element: ast.Property): string | undefined {
-    return getTag(element, 'category')?.toString();
+    return getTag(element, 'category')?.toString().trim();
 }
 export function getUnit(element: ast.Integer | ast.Float): string | undefined {
-    return getTag(element, 'unit')?.toString();
+    return getTag(element, 'unit')?.toString().trim();
 }
 
 export function getTitle(element: ast.Document): string | undefined {
-    return getTag(element, 'title')?.toString();
+    return getTag(element, 'title')?.toString().trim();
 }
 export function getDate(element: ast.Document): JSDocParagraph | undefined {
     return getTag(element, 'date');
 }
 
 export function getCreator(element: ast.Document): string | undefined {
-    return getTags(element, 'creator')?.map(e => e.toString()).join(', ');
+    return getTags(element, 'creator')?.map(e => e.toString().trim()).join(', ');
 }
 export function getVersion(element: ast.Document): string | undefined {
-    return getTag(element, 'version')?.toString();
+    return getTag(element, 'version')?.toString().trim();
 }
 
 export function getUuid(type: ast.Type): JSDocParagraph | undefined {

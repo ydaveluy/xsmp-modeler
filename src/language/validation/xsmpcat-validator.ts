@@ -102,7 +102,7 @@ export class XsmpcatValidator {
         const map = new MultiMap<string, AstNodeDescription>();
         for (const type of this.indexManager.allElements(ast.Type)) {
             if (type.node) {
-                const uuid = XsmpUtils.getUuid(type.node as ast.Type)?.toString();
+                const uuid = XsmpUtils.getUuid(type.node as ast.Type)?.toString().trim();
                 if (uuid) {
                     map.add(uuid, type);
                 }
@@ -404,11 +404,11 @@ export class XsmpcatValidator {
                 data: { code: IssueCodes.MissingUuid, actionRange: XsmpUtils.getJSDoc(type)?.range ?? { start: type.$cstNode?.range.start, end: type.$cstNode?.range.start } }
             });
         }
-        else if (!uuidRegex.test(uuid.toString())) {
+        else if (!uuidRegex.test(uuid.toString().trim())) {
             accept('error', 'The UUID is invalid.', { node: type, range: uuid.range, data: diagnosticData(IssueCodes.InvalidUuid) });
         }
         else {
-            const duplicates = this.globalCache.get('uuids', () => this.computeUuidsForTypes()).get(uuid.toString());
+            const duplicates = this.globalCache.get('uuids', () => this.computeUuidsForTypes()).get(uuid.toString().trim());
             if (duplicates.length > 1) {
                 accept('error', 'Duplicated UUID.', {
                     node: type,
@@ -896,12 +896,12 @@ export class XsmpcatValidator {
     checkNamespace(namespace: ast.Namespace, accept: ValidationAcceptor): void {
 
         const duplicates = this.getDuplicatedName(namespace);
-        if (duplicates.length > 1 && (duplicates.some(ast.isType) || duplicates.filter(e => !ast.isCatalogue(e) && AstUtils.getDocument(namespace).uri === e.documentUri).length > 1)) {
+        if (duplicates.length > 1 && (duplicates.some(ast.isType) || duplicates.filter(e => e.type !== ast.Catalogue && AstUtils.getDocument(namespace).uri === e.documentUri).length > 1)) {
 
             accept('error', 'Duplicated name.', {
                 node: namespace,
                 property: 'name',
-                relatedInformation: duplicates.filter(d => d.node !== namespace && !ast.isCatalogue(d) && AstUtils.getDocument(namespace).uri === d.documentUri).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment!.range), message: d.name }))
+                relatedInformation: duplicates.filter(d => d.node !== namespace && d.type !== ast.Catalogue && AstUtils.getDocument(namespace).uri === d.documentUri).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment!.range), message: d.name }))
             });
         }
 

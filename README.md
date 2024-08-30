@@ -21,6 +21,7 @@ Features status:
 - [ ] AsciiDoc Tool - generator
 - [ ] xsmp-sdk Profile - generator (in progress)
 - [ ] esa-cdk Profile - generator
+- [ ] esa-cdk-legacy Profile - generator
 - [ ] Command Line Interface
 
 # XSMP Modeler

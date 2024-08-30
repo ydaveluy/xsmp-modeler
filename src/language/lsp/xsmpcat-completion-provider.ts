@@ -310,10 +310,8 @@ array \${1:name} = \${2|${this.getCrossReferences(context, 'ArrayType', 'itemTyp
 /**
 * Specifies the SMP Component Model as Catalogue.
 *
+* @creator ${os.userInfo().username}
 * @date ${new Date(Date.now()).toISOString()}
-* @author ${os.userInfo().username}
-* @title Catalogue
-* @version 1.0
 */
 catalogue \${1:name}
 `;
