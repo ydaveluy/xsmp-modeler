@@ -16,7 +16,7 @@ entry Catalogue returns Catalogue:
 ;
 
 hidden terminal WS: /\s+/;
-terminal ID: /[_a-zA-Z][\w]*/;
+terminal ID: /[_a-zA-Z]\w*/;
 
 terminal STRING: /"(?:\\(?:[abfnrtv\\\"\'\?]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})|[^"\n])*"/;
 terminal CHAR:   /'(?:\\(?:[abfnrtv\\\"\'\?]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})|[^'\n])*'/;

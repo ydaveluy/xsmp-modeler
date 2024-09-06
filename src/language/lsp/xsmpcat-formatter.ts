@@ -1,77 +1,11 @@
-import { isLeafCstNode, type AstNode, type CstNode, type TextDocument } from 'langium';
-import type { FormattingAction, FormattingContext, NodeFormatter } from 'langium/lsp';
+import { type AstNode } from 'langium';
+import type { NodeFormatter } from 'langium/lsp';
 import { AbstractFormatter, Formatting } from 'langium/lsp';
 import * as ast from '../generated/ast.js';
-import type { TextEdit, Range } from 'vscode-languageserver-protocol';
 
 export class XsmpcatFormatter extends AbstractFormatter {
-    // TO BE REMOVED with langium 3.1.4
-    protected override avoidOverlappingEdits(textDocument: TextDocument, textEdits: TextEdit[]): TextEdit[] {
-        const edits: TextEdit[] = [];
-        for (const edit of textEdits) {
-            let last = edits[edits.length - 1];
-            while (last) {
-                const currentStart = textDocument.offsetAt(edit.range.start);
-                const lastEnd = textDocument.offsetAt(last.range.end);
-                if (currentStart < lastEnd) {
-                    edits.pop();
-                    last = edits[edits.length - 1];
-                }
-                else {
-                    break;
-                }
-            }
-            edits.push(edit);
-        }
-        return edits.filter(e => e.newText !== textDocument.getText(e.range));
-    }
-    // TO BE REMOVED with langium 3.1.4
-    protected override createTextEdit(a: CstNode | undefined, b: CstNode, formatting: FormattingAction, context: FormattingContext): TextEdit[] {
-        if (b.hidden) {
-            return this.createHiddenTextEdits(a, b, formatting, context);
-        }
-        // Ignore the edit if the previous node ends after the current node starts
-        if (a && (a.range.end.line > b.range.start.line ||
-            (a.range.end.line === b.range.start.line && a.range.end.character > b.range.start.character))) {
-            return [];
-        }
-        const betweenRange: Range = {
-            start: a?.range.end ?? {
-                character: 0,
-                line: 0
-            },
-            end: b.range.start
-        };
-        const move = this.findFittingMove(betweenRange, formatting.moves, context);
-        if (!move) {
-            return [];
-        }
-        const chars = move.characters;
-        const lines = move.lines;
-        const tabs = move.tabs;
-        const existingIndentation = context.indentation;
-        context.indentation += (tabs ?? 0);
-        const edits: TextEdit[] = [];
-        if (chars !== undefined) {
-            // Do not apply formatting on the same line if preceding node is hidden
-            if (!a?.hidden) {
-                edits.push(this.createSpaceTextEdit(betweenRange, chars, formatting.options));
-            }
-        } else if (lines !== undefined) {
-            edits.push(this.createLineTextEdit(betweenRange, lines, context, formatting.options));
-        } else if (tabs !== undefined) {
-            edits.push(this.createTabTextEdit(betweenRange, Boolean(a), context));
-        }
-        if (isLeafCstNode(b)) {
-            context.indentation = existingIndentation;
-        }
-        return edits;
-    }
-
-    [key: string]: unknown;
 
     protected override format(node: AstNode): void {
-
         switch (node.$type) {
             case ast.Attribute: return this.formatAttribute(node as ast.Attribute, this.getNodeFormatter(node));
             case ast.Parameter: return this.formatParameter(node as ast.Parameter, this.getNodeFormatter(node));

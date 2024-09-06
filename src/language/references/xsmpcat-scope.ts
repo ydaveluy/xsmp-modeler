@@ -6,6 +6,7 @@ import { AstUtils, Cancellation, DocumentCache, EMPTY_SCOPE, MultiMap, Workspace
 import * as ProjectUtils from '../utils/project-utils.js';
 import type { XsmpTypeProvider } from './type-provider.js';
 import * as XsmpUtils from '../utils/xsmp-utils.js';
+import { VisibilityKind } from '../utils/visibility-kind.js';
 
 export class XsmpcatScopeComputation implements ScopeComputation {
 
@@ -62,7 +63,7 @@ export class XsmpcatScopeComputation implements ScopeComputation {
         } else if (ast.isStructure(type) || ast.isReferenceType(type)) {
             const elementBaseName = `${typeName}.`;
             for (const member of type.elements) {
-                if (member.name && ast.isConstant(member) && XsmpUtils.getRealVisibility(member) === 'public') { // Export only public constants
+                if (member.name && ast.isConstant(member) && XsmpUtils.getRealVisibility(member) === VisibilityKind.public) { // Export only public constants
                     exportedDescriptions.push(this.descriptions.createDescription(member, elementBaseName + member.name, document));
                 }
             }

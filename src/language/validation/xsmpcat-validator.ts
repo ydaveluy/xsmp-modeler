@@ -12,6 +12,7 @@ import * as IssueCodes from './xsmpcat-issue-codes.js';
 import { isBuiltinLibrary } from '../builtins.js';
 import { isFloatingType, PTK } from '../utils/primitive-type-kind.js';
 import { DiagnosticTag, Location } from 'vscode-languageserver';
+import { VisibilityKind } from '../utils/visibility-kind.js';
 /**
  * Register custom validation checks.
  */
@@ -247,7 +248,7 @@ export class XsmpcatValidator {
             return false;
         }
 
-        if (node.$container !== field.$container && XsmpUtils.getRealVisibility(field) === 'private') { accept('error', 'The Field is not visible.', { node, property, index, data: diagnosticData(IssueCodes.FieldNotVisible) }); }
+        if (node.$container !== field.$container && XsmpUtils.getRealVisibility(field) === VisibilityKind.private) { accept('error', 'The Field is not visible.', { node, property, index, data: diagnosticData(IssueCodes.FieldNotVisible) }); }
 
         const deprecated = XsmpUtils.getDeprecated(field);
         if (deprecated) {

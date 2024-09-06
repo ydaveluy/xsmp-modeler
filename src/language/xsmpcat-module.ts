@@ -19,8 +19,8 @@ import { XsmpDocumentationProvider } from './lsp/documentation-provider.js';
  * Declaration of Xsmp services.
  */
 export interface XsmpcatAddedServices {
-    validation: {
-        XsmpcatValidator: XsmpcatValidator
+    readonly validation: {
+        readonly XsmpcatValidator: XsmpcatValidator
     },
 }
 

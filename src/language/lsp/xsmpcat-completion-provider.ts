@@ -11,6 +11,7 @@ import type { XsmpcatServices } from '../xsmpcat-module.js';
 import type { XsmpTypeProvider } from '../references/type-provider.js';
 import * as Solver from '../utils/solver.js';
 import { PTK } from '../utils/primitive-type-kind.js';
+import { VisibilityKind } from '../utils/visibility-kind.js';
 
 export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
 
@@ -79,7 +80,7 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
             case 'Field:type':
                 return (desc) => ast.isValueType(desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node) && !XsmpUtils.isRecursiveType((refInfo.container as ast.Field).$container, desc.node);
             case 'Property:attachedField':
-                return (desc) => ast.isField(desc.node) && (desc.node.$container === refInfo.container.$container || XsmpUtils.getRealVisibility(desc.node) !== 'private');
+                return (desc) => ast.isField(desc.node) && (desc.node.$container === refInfo.container.$container || XsmpUtils.getRealVisibility(desc.node) !== VisibilityKind.private);
             case 'Integer:primitiveType':
                 return (desc) => desc.type === ast.PrimitiveType && this.intRegex.test(desc.name) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node as ast.Type);
             case 'Float:primitiveType':
@@ -108,9 +109,9 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
             case 'Exception:base':
                 return (desc) => ast.isException(desc.node) && !XsmpUtils.isBaseOfClass(refInfo.container as ast.Class, desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node as ast.Type);
             case 'EntryPoint:input':
-                return (desc) => ast.isField(desc.node) && XsmpUtils.isInput(desc.node) && (desc.node.$container === refInfo.container.$container || XsmpUtils.getRealVisibility(desc.node) !== 'private');
+                return (desc) => ast.isField(desc.node) && XsmpUtils.isInput(desc.node) && (desc.node.$container === refInfo.container.$container || XsmpUtils.getRealVisibility(desc.node) !== VisibilityKind.private);
             case 'EntryPoint:output':
-                return (desc) => ast.isField(desc.node) && XsmpUtils.isOutput(desc.node) && (desc.node.$container === refInfo.container.$container || XsmpUtils.getRealVisibility(desc.node) !== 'private');
+                return (desc) => ast.isField(desc.node) && XsmpUtils.isOutput(desc.node) && (desc.node.$container === refInfo.container.$container || XsmpUtils.getRealVisibility(desc.node) !== VisibilityKind.private);
             case 'NamedElementReference:value':
                 return (desc) => this.isValidNamedElementReference(desc, refInfo.container as ast.Expression);
             default:

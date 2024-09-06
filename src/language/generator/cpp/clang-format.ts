@@ -36,13 +36,13 @@ export async function format(path: string, content: string): Promise<string> {
         let errorContent = '';
 
         // Capture stdout
-        process.stdout.once('data', (data) => {
-            formattedContent = data.toString();
+        process.stdout.on('data', (data) => {
+            formattedContent += data.toString();
         });
 
         // Capture stderr
-        process.stderr.once('data', (data) => {
-            errorContent = data.toString();
+        process.stderr.on('data', (data) => {
+            errorContent += data.toString();
         });
 
         // Handle process completion

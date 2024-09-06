@@ -1,8 +1,8 @@
 import * as ast from '../../generated/ast.js';
-import { type AstNode, AstUtils, type JSDocElement, type JSDocTag, type URI } from 'langium';
+import { type AstNode, AstUtils, type JSDocElement, type JSDocTag, type URI, UriUtils } from 'langium';
 import * as fs from 'fs';
 import type { TaskAcceptor, XsmpGenerator } from '../generator.js';
-import { escape, fqn, getDescription, getJSDoc, getNativeLocation, getNativeNamespace, getNativeType, getPTK, getUuid, getViewKind, isAbstractType } from '../../utils/xsmp-utils.js';
+import { escape, fqn, getAccessKind, getAllFields, getDescription, getJSDoc, getNativeLocation, getNativeNamespace, getNativeType, getParameterDescription, getPTK, getReturnParameterDescription, getUuid, getViewKind, isAbstractType, isInput, isOutput, isState } from '../../utils/xsmp-utils.js';
 import * as CopyrightNoticeProvider from '../copyright-notice-provider.js';
 import { expandToString as s } from 'langium/generate';
 import * as Path from 'path';
@@ -27,9 +27,9 @@ export namespace ForwardedType {
         return typeof value === 'object' && value !== null && 'type' in value && ast.isType((value as ForwardedType).type);
     }
 }
-export type Include = string | ast.Type | ForwardedType;
+export type Include = string | ast.Type | ForwardedType | undefined;
 
-export class CppGenerator implements XsmpGenerator {
+export abstract class CppGenerator implements XsmpGenerator {
     protected static readonly defaultIncludeFolder = 'src';
     protected static readonly defaultSourceFolder = 'src';
     protected readonly includeFolder = CppGenerator.defaultIncludeFolder;
@@ -55,9 +55,18 @@ export class CppGenerator implements XsmpGenerator {
         }
     }
 
-    public generatePackage(_catalogue: ast.Catalogue, _projectUri: URI, _notice: string | undefined, _acceptTask: TaskAcceptor) {
-        //TODO
+    public generatePackage(catalogue: ast.Catalogue, projectUri: URI, notice: string | undefined, acceptTask: TaskAcceptor) {
+        const name = this.catalogueFileName(catalogue);
+        const includePath = UriUtils.joinPath(projectUri, this.includeFolder, name + '.h').fsPath;
+        acceptTask(() => this.generatePackageHeader(includePath, catalogue, notice));
+
+        const sourcePath = UriUtils.joinPath(projectUri, this.sourceFolder, name + '.cpp').fsPath;
+        acceptTask(() => this.generatePackageSource(sourcePath, catalogue, notice));
+
+        const sourceDynPath = UriUtils.joinPath(projectUri, this.sourceFolder, name + '.pkg.cpp').fsPath;
+        acceptTask(() => this.generateDynamicPackageSource(sourceDynPath, catalogue, notice));
     }
+
     protected catalogueFileName(catalogue: ast.Catalogue): string {
         return catalogue.name;
     }
@@ -66,6 +75,7 @@ export class CppGenerator implements XsmpGenerator {
         return ['Smp/ISimulator.h', 'Smp/Publication/ITypeRegistry.h', 'unordered_set', `${this.catalogueFileName(catalogue)}.h`];
     }
 
+    /** List of includes required to create a Factory */
     factoryIncludes(): Include[] {
         return [];
     }
@@ -76,11 +86,9 @@ export class CppGenerator implements XsmpGenerator {
             default: return undefined;
         }
     }
-    registerModel(_model: ast.Model): string | undefined {
-        return undefined;
-    }
+    abstract registerModel(_model: ast.Model): string | undefined;
     registerService(service: ast.Service): string {
-        return `
+        return s`
         // Register Service ${service.name}
         simulator->AddService( new ${this.fqn(service)}(
             "${service.name}", // Name
@@ -88,6 +96,7 @@ export class CppGenerator implements XsmpGenerator {
             simulator, // Parent
             simulator // Simulator
             ));
+        
         `;
     }
 
@@ -130,10 +139,65 @@ export class CppGenerator implements XsmpGenerator {
             `);
     }
 
+    /**
+     * Return the List of ValueType in the Catalogue
+     * Keep order as defined in the Catalogue as much as possible
+     * Types with dependencies are put at the end
+     */
+    protected exportedTypes(catalogue: ast.Catalogue): ast.Type[] {
+        // collect all types
+        const types: ast.Type[] = AstUtils.streamAllContents(catalogue).filter(ast.isValueType).toArray();
+        const computeDeps = (type: ast.Type) => {
+            if (ast.isArrayType(type)) return [type.itemType.ref];
+            if (ast.isValueReference(type)) return [type.type.ref];
+            if (ast.isStructure(type)) return getAllFields(type).map(field => field.type.ref).toArray();
+            return [];
+        };
+
+        // compute the list of dependencies for each Type
+        const deps = new Map<ast.Type, ast.Type[]>();
+
+        types.forEach(type => {
+            const dependencies = computeDeps(type).filter(dep => dep !== undefined).filter(dep => types.includes(dep));
+            deps.set(type, dependencies);
+        });
+
+        const result: ast.Type[] = [];
+        while (deps.size > 0) {
+            const iterator = deps.entries();
+            for (const [type, typeDeps] of iterator) {
+                // Check if all dependencies are already in result
+                if (typeDeps.every(dep => result.includes(dep))) {
+                    result.push(type);
+                    // Remove the current entry
+                    deps.delete(type);
+                }
+            }
+        }
+        return result;
+    }
+
+    protected registerType(type: ast.Type): string | undefined {
+        if (ast.isStructure(type)) {
+            return s`
+                // register ${type.$type} ${type.name}
+                ${this.fqn(type)}::_Register(typeRegistry);
+
+                `;
+        }
+        return s`
+            // register ${type.$type} ${type.name}
+            ${this.fqn(type.$container as ast.NamedElement)}::_Register_${type.name}(typeRegistry);
+
+            `;
+
+    }
+
     async generatePackageSource(path: string, catalogue: ast.Catalogue, notice: string | undefined) {
         const deps = this.dependentPackages(catalogue);
         const components = AstUtils.streamAllContents(catalogue).filter(ast.isComponent).filter(component => !isAbstractType(component)).toArray();
         const requiresFactory = components.some(ast.isModel);
+        const exportedTypes = this.exportedTypes(catalogue);
         await this.generateFile(path, s`
             ${notice}
             // -----------------------------------------------------------------------------
@@ -143,7 +207,7 @@ export class CppGenerator implements XsmpGenerator {
             /// @file ${Path.basename(path)}
             // This file is auto-generated, Do not edit otherwise your changes will be lost
 
-            ${this.includes([...this.headerIncludesCatalogue(catalogue), ...components, ...requiresFactory ? this.factoryIncludes() : []])}
+            ${this.includes([...this.headerIncludesCatalogue(catalogue), ...components, ...requiresFactory ? this.factoryIncludes() : [], ...exportedTypes, ...deps.map(d => `${d.name}.h`)])}
 
             // -----------------------------------------------------------------------------
             // ----------------------------- Global variables ------------------------------
@@ -167,7 +231,7 @@ export class CppGenerator implements XsmpGenerator {
                 /// @return True if initialisation was successful, false otherwise.
                 bool Initialise_${catalogue.name}(
                         ::Smp::ISimulator* simulator,
-                        ${this.cxxStandard >= CxxStandard.CXX_STD_17 ? '[[maybe_unused]] ' : ''}::Smp::Publication::ITypeRegistry* typeRegistry) {
+                        ${this.cxxStandard >= CxxStandard.CXX_STD_17 && deps.length === 0 && exportedTypes.length === 0 ? '[[maybe_unused]] ' : ''}::Smp::Publication::ITypeRegistry* typeRegistry) {
                     // check simulator validity
                     if (!simulator) {
                         return false;
@@ -182,11 +246,8 @@ export class CppGenerator implements XsmpGenerator {
                             return false;
                         }
                         ` : ''}
-                    /*«FOR v : sortedTypes»
-                        «v.register»
-                    «ENDFOR»*/
-                    
-                    ${components.map(this.registerComponent, this).join('')}
+                    ${exportedTypes.map(this.registerType, this).join('\n')}
+                    ${components.map(this.registerComponent, this).join('\n')}
                     
                     return true;
                 }
@@ -359,7 +420,7 @@ export class CppGenerator implements XsmpGenerator {
     }
 
     // list of types with uuids defined in namespace ::Smp::Uuids
-    protected static smpPrimitiveTypes = new Set<string>(['Smp.Uuid', 'Smp.Char8', 'Smp.Bool', 'Smp.Int8', 'Smp.UInt8', 'Smp.Int16', 'Smp.UInt16', 'Smp.Int32',
+    protected static smpUuidsTypes = new Set<string>(['Smp.Uuid', 'Smp.Char8', 'Smp.Bool', 'Smp.Int8', 'Smp.UInt8', 'Smp.Int16', 'Smp.UInt16', 'Smp.Int32',
         'Smp.UInt32', 'Smp.Int64', 'Smp.UInt64', 'Smp.Float32', 'Smp.Float64', 'Smp.Duration', 'Smp.DateTime', 'Smp.String8', 'Smp.PrimitiveTypeKind',
         'Smp.EventId', 'Smp.LogMessageKind', 'Smp.TimeKind', 'Smp.ViewKind', 'Smp.ParameterDirectionKind', 'Smp.ComponentStateKind', 'Smp.AccessKind',
         'Smp.SimulatorStateKind'
@@ -368,7 +429,7 @@ export class CppGenerator implements XsmpGenerator {
         if (!type) {
             return '::Smp::Uuids::Uuid_Void';
         }
-        if (CppGenerator.smpPrimitiveTypes.has(fqn(type))) {
+        if (CppGenerator.smpUuidsTypes.has(fqn(type))) {
             return `::Smp::Uuids::Uuid_${type.name}`;
         }
         return `${this.fqn(type.$container as ast.NamedElement)}::Uuid_${type.name}`;
@@ -378,12 +439,12 @@ export class CppGenerator implements XsmpGenerator {
         return `"${escape(getDescription(element))}"`;
     }
 
-    protected viewKind(element: ast.Property | ast.Field | ast.Operation | ast.EntryPoint): string {
+    protected viewKind(element: ast.Property | ast.Field | ast.Operation | ast.EntryPoint, defaultViewKind: string = '::Smp::ViewKind::VK_All'): string {
         const vk = getViewKind(element);
         if (vk) {
             return this.expression(vk);
         }
-        return '::Smp::ViewKind::VK_All';
+        return defaultViewKind;
     }
     protected guard(type: ast.Type): string {
         return `${fqn(type, '_').toUpperCase()}_H_`;
@@ -394,7 +455,14 @@ export class CppGenerator implements XsmpGenerator {
             return '';
         }
         switch (expr.$type) {
-            case ast.CollectionLiteral: return `{ ${(expr as ast.CollectionLiteral).elements.map(e => this.expression(e), this).join(', ')}}`;
+            case ast.CollectionLiteral: {
+                const type = this.typeProvider.getType(expr);
+                if (ast.isArrayType(type) && ast.isArrayType(type.itemType.ref))
+                    return `{ ${(expr as ast.CollectionLiteral).elements.map(e => `{${this.expression(e)}}`, this).join(', ')}}`;
+                else if (ast.isStructure(type))
+                    return `{ ${(expr as ast.CollectionLiteral).elements.map(e => ast.isArrayType(this.typeProvider.getType(e)) ? `{${this.expression(e)}}` : this.expression(e), this).join(', ')}}`;
+                return `{ ${(expr as ast.CollectionLiteral).elements.map(e => this.expression(e), this).join(', ')}}`;
+            }
             case ast.DesignatedInitializer: return `/* .${(expr as ast.DesignatedInitializer).field.ref?.name} = */${this.expression((expr as ast.DesignatedInitializer).expr)}`;
             case ast.UnaryOperation: return `${(expr as ast.UnaryOperation).feature}${this.expression((expr as ast.UnaryOperation).operand)}`;
             case ast.BinaryOperation: return `${this.expression((expr as ast.BinaryOperation).leftOperand)} ${(expr as ast.BinaryOperation).feature} ${this.expression((expr as ast.BinaryOperation).rightOperand)}`;
@@ -436,8 +504,13 @@ export class CppGenerator implements XsmpGenerator {
     }
     protected stringTypeIsConstexpr(): boolean { return true; }
 
-    protected directListInitializer(expr: ast.Expression): string {
-        return `{${this.expression(expr)}}`;
+    protected directListInitializer(expr: ast.Expression | undefined): string {
+        if (!expr) return '{}';
+        const type = this.typeProvider.getType(expr);
+        if (ast.isStructure(type)) // do not add square brackets around struct init
+            return this.expression(expr);
+        else
+            return `{${this.expression(expr)}}`;
     }
 
     protected namespace(object: AstNode, body: string): string {
@@ -464,19 +537,18 @@ export class CppGenerator implements XsmpGenerator {
             return body;
     }
     protected uuidDeclaration(type: ast.Type): string | undefined {
-        return `
-        /// Universally unique identifier of type ${type.name}.
-        ${this.cxxStandard >= CxxStandard.CXX_STD_17 ? 'inline ' : ''}constexpr ::Smp::Uuid Uuid_${type.name} { ${getUuid(type)?.toString().trim().split('-').map(u => `0x${u}U`).join(', ')} };
-    `;
+        return s`
+            /// Universally unique identifier of type ${type.name}.
+            ${this.cxxStandard >= CxxStandard.CXX_STD_17 ? 'inline ' : ''}constexpr ::Smp::Uuid Uuid_${type.name} { ${getUuid(type)?.toString().trim().split('-').map(u => `0x${u}U`).join(', ')} };
+            `;
     }
     protected uuidDefinition(_type: ast.Type): string | undefined {
         return undefined;
     }
-    protected primitiveTypeKind(type: ast.Type): string {
+    protected primitiveTypeKind(type: ast.Type | undefined): string {
         const kind = getPTK(type);
         return kind === PTK.Enum ? '::Smp::PrimitiveTypeKind::PTK_Int32' : `::Smp::PrimitiveTypeKind::PTK_${PTK[kind]}`;
     }
-
     protected lower(element: ast.NamedElementWithMultiplicity): string {
         if (element.optional) {
             return '0';
@@ -521,9 +593,11 @@ export class CppGenerator implements XsmpGenerator {
                 includeDeclarations.add(include);
             }
             else if (ast.isType(include)) {
-                includeDeclarations.add(CppGenerator.smpPrimitiveTypes.has(fqn(include)) ? 'Smp/PrimitiveTypes.h' : fqn(include, '/') + '.h');
+                includeDeclarations.add(CppGenerator.smpUuidsTypes.has(fqn(include)) ? 'Smp/PrimitiveTypes.h' : fqn(include, '/') + '.h');
             }
-            //TODO else forward
+            else if (ForwardedType.is(include)) {
+                //TODO else forward
+            }
         }
 
         const excludeDeclarations = new Set<string>();
@@ -532,7 +606,7 @@ export class CppGenerator implements XsmpGenerator {
                 excludeDeclarations.add(exclude);
             }
             else if (ast.isType(exclude)) {
-                excludeDeclarations.add(CppGenerator.smpPrimitiveTypes.has(fqn(exclude)) ? 'Smp/PrimitiveTypes.h' : fqn(exclude, '/') + '.h');
+                excludeDeclarations.add(CppGenerator.smpUuidsTypes.has(fqn(exclude)) ? 'Smp/PrimitiveTypes.h' : fqn(exclude, '/') + '.h');
             }
         }
         const sortedIncludes = Array.from(includeDeclarations.difference(excludeDeclarations)).toSorted((a, b) => a.localeCompare(b));
@@ -571,14 +645,14 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
             default: return [];
         }
     }
-    headerIncludesAssociation(_element: ast.Association): Include[] {
-        return [];
+    headerIncludesAssociation(element: ast.Association): Include[] {
+        return [element.type.ref];
     }
-    headerIncludesConstant(_element: ast.Constant): Include[] {
-        return [];
+    headerIncludesConstant(element: ast.Constant): Include[] {
+        return [element.type.ref, ...this.expressionIncludes(element.value)];
     }
     headerIncludesContainer(_element: ast.Container): Include[] {
-        return [];
+        return ['Smp/IContainer.h'];
     }
     headerIncludesEntryPoint(_element: ast.EntryPoint): Include[] {
         return [];
@@ -589,26 +663,27 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
     headerIncludesEventSource(_element: ast.EventSource): Include[] {
         return [];
     }
-    headerIncludesField(_element: ast.Field): Include[] {
-        return [];
+    headerIncludesField(element: ast.Field): Include[] {
+        return [element.type.ref, ...this.expressionIncludes(element.default)];
     }
-    headerIncludesOperation(_element: ast.Operation): Include[] {
-        return [];
+    headerIncludesOperation(element: ast.Operation): Include[] {
+        // TODO forward pointer types ?
+        return [element.returnParameter?.type.ref, ...element.parameter.map(param => param.type.ref)];
     }
-    headerIncludesProperty(_element: ast.Property): Include[] {
-        return [];
+    headerIncludesProperty(element: ast.Property): Include[] {
+        return [element.type.ref];
     }
-    headerIncludesReference(_element: ast.Reference_): Include[] {
-        return [];
+    headerIncludesReference(element: ast.Reference_): Include[] {
+        return [element.interface.ref];
     }
-    headerIncludesClass(_type: ast.Class): Include[] {
-        return ['Smp/Publication/ITypeRegistry.h'];
+    headerIncludesClass(type: ast.Class): Include[] {
+        return ['Smp/Publication/ITypeRegistry.h', ...type.elements.flatMap(element => this.headerIncludes(element)), type.base?.ref];
     }
-    headerIncludesException(_type: ast.Exception): Include[] {
-        return ['Smp/Publication/ITypeRegistry.h'];
+    headerIncludesException(type: ast.Exception): Include[] {
+        return ['Smp/Publication/ITypeRegistry.h', ...type.elements.flatMap(element => this.headerIncludes(element)), type.base?.ref];
     }
-    headerIncludesStructure(_type: ast.Structure): Include[] {
-        return ['Smp/Publication/ITypeRegistry.h'];
+    headerIncludesStructure(type: ast.Structure): Include[] {
+        return ['Smp/Publication/ITypeRegistry.h', ...type.elements.flatMap(element => this.headerIncludes(element))];
     }
     headerIncludesInteger(_type: ast.Integer): Include[] {
         return ['Smp/Publication/ITypeRegistry.h', 'Smp/PrimitiveTypes.h'];
@@ -616,17 +691,20 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
     headerIncludesFloat(_type: ast.Float): Include[] {
         return ['Smp/Publication/ITypeRegistry.h', 'Smp/PrimitiveTypes.h'];
     }
-    headerIncludesModel(_type: ast.Model): Include[] {
-        return ['Smp/Publication/ITypeRegistry.h'];
+    headerIncludesComponent(type: ast.Component): Include[] {
+        return ['Smp/Publication/ITypeRegistry.h', ...type.elements.flatMap(element => this.headerIncludes(element)), type.base?.ref, ...type.interface.map(inter => inter.ref)];
     }
-    headerIncludesService(_type: ast.Service): Include[] {
-        return ['Smp/Publication/ITypeRegistry.h'];
+    headerIncludesModel(type: ast.Model): Include[] {
+        return this.headerIncludesComponent(type);
     }
-    headerIncludesInterface(_type: ast.Interface): Include[] {
-        return ['Smp/Uuid.h'];
+    headerIncludesService(type: ast.Service): Include[] {
+        return this.headerIncludesComponent(type);
+    }
+    headerIncludesInterface(type: ast.Interface): Include[] {
+        return ['Smp/Uuid.h', ...type.elements.flatMap(element => this.headerIncludes(element)), ...type.base.map(inter => inter.ref)];
     }
     headerIncludesArray(type: ast.ArrayType): Include[] {
-        return ['Smp/Publication/ITypeRegistry.h', type.itemType.ref!];
+        return ['Smp/Publication/ITypeRegistry.h', type.itemType.ref];
     }
     headerIncludesEnumeration(_type: ast.Enumeration): Include[] {
         return ['Smp/Publication/ITypeRegistry.h', 'Smp/PrimitiveTypes.h', 'map'];
@@ -635,8 +713,7 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
         return ['Smp/Publication/ITypeRegistry.h'];
     }
     headerIncludesNativeType(type: ast.NativeType): Include[] {
-        const location = getNativeLocation(type);
-        return location ? ['Smp/Publication/ITypeRegistry.h', location] : ['Smp/Publication/ITypeRegistry.h'];
+        return ['Smp/Publication/ITypeRegistry.h', getNativeLocation(type)];
     }
     protected sourceIncludes(element: ast.NamedElement): Include[] {
         switch (element.$type) {
@@ -712,14 +789,18 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
         return AstUtils.streamAst(expr).filter(ast.isNamedElementReference).map(l => l.value.ref?.$container).filter(l => l !== undefined).toArray();
     }
     sourceIncludesInteger(type: ast.Integer): Include[] {
-        return type.minimum === undefined || type.maximum === undefined ?
-            ['limits', ...this.expressionIncludes(type.minimum), ...this.expressionIncludes(type.maximum)] :
-            [...this.expressionIncludes(type.minimum), ...this.expressionIncludes(type.maximum)];
+        const includes = [
+            ...this.expressionIncludes(type.minimum),
+            ...this.expressionIncludes(type.maximum)
+        ];
+        return (type.minimum === undefined || type.maximum === undefined) ? ['limits', ...includes] : includes;
     }
     sourceIncludesFloat(type: ast.Float): Include[] {
-        return type.minimum === undefined || type.maximum === undefined ?
-            ['limits', ...this.expressionIncludes(type.minimum), ...this.expressionIncludes(type.maximum)] :
-            [...this.expressionIncludes(type.minimum), ...this.expressionIncludes(type.maximum)];
+        const includes = [
+            ...this.expressionIncludes(type.minimum),
+            ...this.expressionIncludes(type.maximum)
+        ];
+        return (type.minimum === undefined || type.maximum === undefined) ? ['limits', ...includes] : includes;
     }
     sourceIncludesModel(_type: ast.Model): Include[] {
         return [];
@@ -930,6 +1011,123 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
     }
     protected finalizeReference(_element: ast.Reference_): string | undefined {
         return undefined;
+    }
+
+    protected isInvokable(element: ast.Invokable): boolean {
+        if (ast.isProperty(element)) {
+            return ast.isSimpleType(element.type.ref);
+        }
+        if (element.returnParameter && !ast.isSimpleType(element.returnParameter.type.ref)) {
+            return false;
+        }
+        return element.parameter.every(param => ast.isValueType(param.type.ref));
+    }
+    protected componentBase(type: ast.Component): string | undefined {
+        if (type.base) { return this.fqn(type.base.ref); }
+        return undefined;
+    }
+
+    protected componentBases(type: ast.Component): string[] {
+        const bases: string[] = [];
+        const base = this.componentBase(type);
+
+        if (base !== undefined) {
+            bases.push(`public ${base}`);
+        }
+        bases.push(...type.interface.map(inter => `public virtual ${this.fqn(inter.ref)}`, this));
+
+        return bases;
+    }
+
+    protected publishMember(element: ast.Publicable): string | undefined {
+        switch (element.$type) {
+            case ast.Field: return this.publishField(element as ast.Field);
+            case ast.Operation: return this.publishOperation(element as ast.Operation);
+            case ast.Property: return this.publishProperty(element as ast.Property);
+        }
+    }
+
+    publishField(field: ast.Field): string | undefined {
+        if (ast.isPrimitiveType(field.type.ref)) {
+            switch (getPTK(field.type.ref)) {
+                case PTK.Bool:
+                case PTK.Char8:
+                case PTK.Float32:
+                case PTK.Float64:
+                case PTK.Int8:
+                case PTK.Int16:
+                case PTK.Int32:
+                case PTK.Int64:
+                case PTK.UInt8:
+                case PTK.UInt16:
+                case PTK.UInt32:
+                case PTK.UInt64:
+                    // Publish directly with address of the field (not valid for DateTime and Duration that are identical to Int64)
+                    return s`
+                        // Publish field ${field.name}
+                        receiver->PublishField("${field.name}", ${this.description(field)}, &${field.name},  ${this.viewKind(field)}, ${isState(field)}, ${isInput(field)}, ${isOutput(field)});
+                        
+                        `;
+                case PTK.String8:
+                    return s`
+                        // Do not Publish field ${field.name} of type Smp::String8
+                        
+                        `;
+            }
+        }
+        // Generic Publish with type UUID
+        return s`
+            // Publish field ${field.name}
+            receiver->PublishField("${field.name}", ${this.description(field)}, &${field.name},${this.uuid(field.type.ref)}, ${this.viewKind(field)}, ${isState(field)}, ${isInput(field)}, ${isOutput(field)});
+
+            `;
+    }
+    parameterDirectionKind(param: ast.Parameter | ast.ReturnParameter): string {
+        if (ast.isReturnParameter(param)) return 'Smp::Publication::ParameterDirectionKind::PDK_Return';
+        switch (param.direction) {
+            case 'out': return 'Smp::Publication::ParameterDirectionKind::PDK_Out';
+            case 'inout': return 'Smp::Publication::ParameterDirectionKind::PDK_InOut';
+        }
+        return 'Smp::Publication::ParameterDirectionKind::PDK_In';
+    }
+
+    publishOperation(op: ast.Operation): string | undefined {
+        if (this.isInvokable(op)) {
+            const r = op.returnParameter;
+            return s`
+                {
+                    // Publish operation ${op.name}
+                    ${r || op.parameter.length > 0 ? 'auto* operation = ' : ''}receiver->PublishOperation("${op.name}", ${this.description(op)}, ${this.viewKind(op)});
+                    ${op.parameter.map(param => `operation->PublishParameter("${param.name}", "${escape(getParameterDescription(param))}", ${this.uuid(param.type.ref)}, ${this.parameterDirectionKind(param)});`).join('\n')}
+                    ${r ? `operation->PublishParameter("${r.name ?? 'return'}", "${escape(getReturnParameterDescription(r))}", ${this.uuid(r.type.ref)}, ${this.parameterDirectionKind(r)});` : ''}
+                }
+
+                `;
+        }
+        return undefined;
+    }
+    publishProperty(property: ast.Property): string | undefined {
+        if (this.isInvokable(property)) {
+            return s`
+                // Publish Property ${property.name}
+                receiver->PublishProperty("${property.name}", ${this.description(property)}, ${this.uuid(property.type.ref)}, ${this.accessKind(property)}, ${this.viewKind(property)});
+
+                `;
+        }
+        return undefined;
+    }
+    accessKind(element: ast.Property): string {
+        const kind = getAccessKind(element);
+        switch (kind) {
+            case 'readOnly': return '::Smp::AccessKind::AK_ReadOnly';
+            case 'writeOnly': return '::Smp::AccessKind::AK_WriteOnly';
+            case 'readWrite':
+            default:
+                return '::Smp::AccessKind::AK_ReadWrite';
+        }
+    }
+    protected publishMembers(type: ast.WithBody): string {
+        return type.elements.filter(ast.isPublicable).map(this.publishMember, this).filter(text => text !== undefined).join('\n');
     }
 }
 

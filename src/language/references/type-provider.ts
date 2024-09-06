@@ -15,7 +15,7 @@ export class XsmpTypeProvider {
         this.typeCache = new WorkspaceCache<AstNode, ast.Type | undefined>(services);
     }
 
-    /** Get the type of the expression on undefined if no type can be found */
+    /** Get the type of the expression or undefined if no type can be found */
     public getType(node: AstNode): ast.Type | undefined {
         return this.typeCache.get(node, () => this.doGetType(node));
     }

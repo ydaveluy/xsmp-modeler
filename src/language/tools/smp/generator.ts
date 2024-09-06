@@ -15,6 +15,7 @@ import * as Solver from '../../utils/solver.js';
 import type { TaskAcceptor, XsmpGenerator } from '../../generator/generator.js';
 import { create } from 'xmlbuilder2';
 import { type FloatingPTK, type IntegralPTK, PTK } from '../../utils/primitive-type-kind.js';
+import { VisibilityKind } from '../../utils/visibility-kind.js';
 
 export class SmpGenerator implements XsmpGenerator {
 
@@ -40,10 +41,19 @@ export class SmpGenerator implements XsmpGenerator {
                 this.convertValue((element.type.ref as ast.AttributeType).type.ref, (element.type.ref as ast.AttributeType).default!),
         };
     }
+    protected convertVisibilityKind(element: ast.VisibilityElement): Types.VisibilityKind | undefined {
+        switch (XsmpUtils.getVisibility(element)) {
+            case VisibilityKind.private: return 'private';
+            case VisibilityKind.protected: return 'protected';
+            case VisibilityKind.public: return 'public';
+            default: return undefined;
+        }
+    }
+
     protected convertVisibilityElement(element: ast.VisibilityElement): Types.VisibilityElement {
         return {
             ...this.convertNamedElement(element),
-            '@Visibility': XsmpUtils.getVisibility(element),
+            '@Visibility': this.convertVisibilityKind(element),
         };
     }
 

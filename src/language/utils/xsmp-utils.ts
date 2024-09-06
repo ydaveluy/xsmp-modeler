@@ -3,6 +3,7 @@ import { AstUtils, CstUtils, isJSDoc, isLeafCstNode, isRootCstNode, parseJSDoc, 
 import * as ast from '../generated/ast.js';
 import * as Solver from './solver.js';
 import { PTK } from './primitive-type-kind.js';
+import { VisibilityKind } from './visibility-kind.js';
 
 export type Attributes = 'Attributes.Static'
     | 'Attributes.Const' | 'Attributes.Mutable'
@@ -45,16 +46,21 @@ export function escape(input: string | undefined): string {
  * @param element the element
  * @returns the visibility
  */
-export function getVisibility(node: ast.VisibilityElement): ast.VisibilityModifiers | undefined {
-    if (node.modifiers.includes('private')) { return 'private'; }
-    if (node.modifiers.includes('protected')) { return 'protected'; }
-    if (node.modifiers.includes('public')) { return 'public'; }
+export function getVisibility(node: ast.VisibilityElement): VisibilityKind | undefined {
+    if (node.modifiers.includes('private')) { return VisibilityKind.private; }
+    if (node.modifiers.includes('protected')) { return VisibilityKind.protected; }
+    if (node.modifiers.includes('public')) { return VisibilityKind.public; }
     return undefined;
 }
-export function getRealVisibility(node: ast.VisibilityElement): ast.VisibilityModifiers {
-    if (node.$container?.$type === ast.Structure || node.$container?.$type === ast.Interface) { return 'public'; }
+export function getRealVisibility(node: ast.NamedElement): VisibilityKind {
 
-    return getVisibility(node) ?? 'private';
+    if (ast.isVisibilityElement(node)) {
+        if (node.$container?.$type === ast.Structure || node.$container?.$type === ast.Interface) {
+            return VisibilityKind.public;
+        }
+        return getVisibility(node) ?? VisibilityKind.private;
+    }
+    return VisibilityKind.public;
 }
 
 export function getAccessKind(node: ast.Property): ast.AccessKind | undefined {
@@ -254,6 +260,9 @@ export function getParameterDescription(element: ast.Parameter): string | undefi
 export function getReturnParameterDescription(element: ast.ReturnParameter): string | undefined {
     return getJSDoc(element.$container)?.getTag('return')?.content.toString().trim();
 }
+export function isConstructor(element: ast.Operation): boolean | undefined {
+    return attributeBoolValue(element, 'Attributes.Constructor');
+}
 export function isFailure(element: ast.Field): boolean | undefined {
     return attributeBoolValue(element, 'Attributes.Failure');
 }
@@ -322,7 +331,7 @@ export function getUpper(element: ast.NamedElementWithMultiplicity): bigint | un
 
 export function getAllFields(element: ast.Structure): Stream<ast.Field> {
     // Return non static and public fields from element's base if any and current element
-    const result = stream(element.elements).filter(ast.isField).filter(f => isStatic(f) !== true && getRealVisibility(f) === 'public');
+    const result = stream(element.elements).filter(ast.isField).filter(f => isStatic(f) !== true && getRealVisibility(f) === VisibilityKind.public);
     if (ast.isClass(element) && ast.isStructure(element.base)) {
         return getAllFields(element.base).concat(result);
     }
@@ -409,12 +418,12 @@ export function isRecursiveType(parent: ast.Type, other: ast.Type | undefined): 
 }
 
 export function isConstantVisibleFrom(from: ast.Expression, element: ast.Constant): boolean {
-    return element.$container === AstUtils.getContainerOfType(from, ast.isType) || getRealVisibility(element) !== 'private';
+    return element.$container === AstUtils.getContainerOfType(from, ast.isType) || getRealVisibility(element) !== VisibilityKind.private;
 }
 export function isTypeVisibleFrom(from: AstNode, element: ast.Type): boolean {
     const visibility = getRealVisibility(element);
-    return !((visibility === 'protected' && AstUtils.getDocument(element) !== AstUtils.getDocument(from)) ||
-        (visibility === 'private' && !isAncestor(AstUtils.getContainerOfType(from, ast.isNamespace), element)));
+    return !((visibility === VisibilityKind.protected && AstUtils.getDocument(element) !== AstUtils.getDocument(from)) ||
+        (visibility === VisibilityKind.private && !isAncestor(AstUtils.getContainerOfType(from, ast.isNamespace), element)));
 
 }
 

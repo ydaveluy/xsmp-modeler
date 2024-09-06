@@ -2,13 +2,14 @@ import * as ast from '../../generated/ast.js';
 import * as fs from 'fs';
 import { expandToString as s } from 'langium/generate';
 import { type URI, UriUtils } from 'langium';
-import { fqn, getUnit, isInput, isOutput, isSimpleArray, isState, isStatic } from '../../utils/xsmp-utils.js';
+import { fqn, getRealVisibility, getUnit, isAbstract, isByPointer, isByReference, isConst, isConstructor, isInput, isMutable, isOutput, isSimpleArray, isState, isStatic, isVirtual } from '../../utils/xsmp-utils.js';
 import { CppGenerator, CxxStandard } from './generator.js';
 import type { TaskAcceptor } from '../generator.js';
 import type { XsmpSharedServices } from '../../xsmp-module.js';
 import * as Path from 'path';
+import { VisibilityKind } from '../../utils/visibility-kind.js';
 
-export class GapPatternCppGenerator extends CppGenerator {
+export abstract class GapPatternCppGenerator extends CppGenerator {
 
     protected static readonly defaultIncludeGenFolder = 'src-gen';
     protected static readonly defaultSourceGenFolder = 'src-gen';
@@ -216,7 +217,7 @@ export class GapPatternCppGenerator extends CppGenerator {
                 break;
         }
         if (body?.length) {
-            const guard = `${fqn(type, '_').toUpperCase()}GEN_H_`;
+            const guard = `${fqn(type, '_').toUpperCase()}${useGenerationGapPattern ? 'GEN' : ''}_H_`;
             await this.generateFile(path, s`
                 ${notice}
                 // -----------------------------------------------------------------------------
@@ -301,16 +302,16 @@ export class GapPatternCppGenerator extends CppGenerator {
             {
                 friend class ${this.fqn(type)}Gen;
             public:
-                ${type.name}()=default;
-                ${type.name}(const ${type.name}&)=default;
-                //«declareMembers(VisibilityKind.PUBLIC)»
+                ${type.name}() = default;
+                ${type.name}(const ${type.name}&) = default;
+                ${this.declareMembers(type, VisibilityKind.public)}
             };
         `;
     }
-    async generateClassSource(_type: ast.Class): Promise<string | undefined> {
+    async generateClassSource(type: ast.Class): Promise<string | undefined> {
         return s`
-        //«defineMembers(useGenPattern)»
-        `;
+            ${this.defineMembers(type, false)}
+            `;
     }
     async generateClassHeaderGen(type: ast.Class, gen: boolean): Promise<string | undefined> {
         const base = this.fqn(type.base?.ref, ast.isException(type) ? '::Smp::Exception' : undefined);
@@ -326,20 +327,21 @@ export class GapPatternCppGenerator extends CppGenerator {
             //«IF destructor»~${type.name}${gen ? 'Gen' : ''} () noexcept = default;«ENDIF»
             ${type.name}${gen ? 'Gen' : ''} (const ${type.name}${gen ? 'Gen' : ''} &) = default;
             
-            //«declareMembersGen(useGenPattern, VisibilityKind.PUBLIC)»
+           ${this.declareMembersGen(type, gen, VisibilityKind.public)}
         };
         
         ${this.uuidDeclaration(type)}
         `;
     }
     async generateClassSourceGen(type: ast.Class, gen: boolean): Promise<string | undefined> {
-        const fields = type.elements.filter(ast.isField);
+        const fields = type.elements.filter(ast.isField).filter(field => !isStatic(field));
         return s`
+        ${this.defineMembersGen(type, gen)}
         void ${type.name}${gen ? 'Gen' : ''}::_Register(::Smp::Publication::ITypeRegistry* registry) 
         {
             ${fields.length > 0 ? 'auto *type = ' : ''}registry->AddClassType(
-                "${type.name}",  // Name
-                ${this.description(type)},   // Description
+                "${type.name}", // Name
+                ${this.description(type)}, // Description
                 ${this.uuid(type)}, // UUID
                 ${this.uuid(type.base?.ref)} // Base Class UUID
                 ); 
@@ -351,14 +353,13 @@ export class GapPatternCppGenerator extends CppGenerator {
                     ${this.description(f)}, // Description
                     ${this.uuid(f.type.ref)}, // Type UUID
                     offsetof(${type.name}, ${f.name}), // Field offset
-                    ${this.viewKind(f)}, // Viewkind
+                    ${this.viewKind(f)}, // View Kind
                     ${isState(f)}, // State
                     ${isInput(f)}, // Input
                     ${isOutput(f)} // Output
                     );  
                 `).join('\n')}
         }
-        //«defineMembersGen(useGenPattern)»
         
         ${this.uuidDefinition(type)}
         `;
@@ -382,7 +383,7 @@ export class GapPatternCppGenerator extends CppGenerator {
         return s`
         ${this.comment(type)}struct ${type.name} : public ${type.name}Gen 
         {
-            //«declareMembers(VisibilityKind.PUBLIC)»
+            ${this.declareMembers(type, VisibilityKind.public)}
         };
         `;
     }
@@ -395,17 +396,8 @@ export class GapPatternCppGenerator extends CppGenerator {
         return s`
         ${this.comment(type)}struct ${type.name}${gen ? 'Gen' : ''}  
         {
-           // «declareMembersGen(useGenPattern,  VisibilityKind.PUBLIC)»
-            
-           // «IF hasConstructor»
-                ${type.name}${gen ? 'Gen' : ''} (/*«FOR f : member.filter(Field) SEPARATOR ", "»«f.type.id» «f.name» = «IF f.^default !== null»«f.^default.generateExpression()»«ELSE»{}«ENDIF»«ENDFOR»*/)//:
-                        //«FOR f : member.filter(Field) SEPARATOR ", "»«f.name»(«f.name»)«ENDFOR» {}
-                ~${type.name}${gen ? 'Gen' : ''} () = default;
-                ${type.name}${gen ? 'Gen' : ''} (const ${type.name}${gen ? 'Gen' : ''}  &) = default;
-                ${type.name}${gen ? 'Gen' : ''} (${type.name}${gen ? 'Gen' : ''}  &&) = default;
-                ${type.name}${gen ? 'Gen' : ''} & operator=(const ${type.name}${gen ? 'Gen' : ''}  &) = default;
-                
-            //«ENDIF»
+           ${this.declareMembersGen(type, gen, VisibilityKind.public)}
+
             static void _Register(::Smp::Publication::ITypeRegistry* registry);
         };
         
@@ -414,12 +406,13 @@ export class GapPatternCppGenerator extends CppGenerator {
     }
 
     async generateStructureSourceGen(type: ast.Structure, gen: boolean): Promise<string | undefined> {
-        const fields = type.elements.filter(ast.isField);
+        const fields = type.elements.filter(ast.isField).filter(field => !isStatic(field));
         return s`
+        ${this.defineMembersGen(type, gen)}
         void ${type.name}${gen ? 'Gen' : ''}::_Register(::Smp::Publication::ITypeRegistry* registry) 
         {
                 ${fields.length > 0 ? 'auto *type = ' : ''}registry->AddStructureType(
-                "${type.name}",  // Name
+                "${type.name}", // Name
                 ${this.description(type)}, // Description
                 ${this.uuid(type)} // UUID
                 ); 
@@ -430,15 +423,14 @@ export class GapPatternCppGenerator extends CppGenerator {
                     ${this.description(f)}, // Description
                     ${this.uuid(f.type.ref)}, // Type UUID
                     offsetof(${type.name}, ${f.name}), // Field offset
-                    ${this.viewKind(f)}, // Viewkind
+                    ${this.viewKind(f)}, // View Kind
                     ${isState(f)}, // State
                     ${isInput(f)}, // Input
                     ${isOutput(f)} // Output
                     );  
                 `).join('')}
         }
-        //«defineMembersGen(useGenPattern)»
-        
+
         ${this.uuidDefinition(type)}
         `;
     }
@@ -535,13 +527,12 @@ export class GapPatternCppGenerator extends CppGenerator {
             
             /// Connect model to simulator.
             /// @param simulator Simulation Environment that hosts the model.
-            ///
             void DoConnect( ::Smp::ISimulator* simulator);
             
             /// Disconnect model to simulator.
             void DoDisconnect();
         
-            //«declareMembers(VisibilityKind.PRIVATE)»
+            ${this.declareMembers(type, VisibilityKind.private)}
         };
         `;
     }
@@ -562,7 +553,7 @@ export class GapPatternCppGenerator extends CppGenerator {
         ${this.comment(type)}class ${type.name}${gen ? 'Gen' : ''}${type.base.length > 0 ? ': ' : ''}${type.base.map(b => `public virtual ${this.fqn(b.ref)}`).join(', ')} {
             public:
             virtual ~${type.name}${gen ? 'Gen' : ''} () = default;
-            //«declareMembersGen(useGenPattern, VisibilityKind.PUBLIC)»
+            ${this.declareMembersGen(type, gen, VisibilityKind.public)}
         };
         
         ${this.uuidDeclaration(type)}
@@ -744,9 +735,7 @@ export class GapPatternCppGenerator extends CppGenerator {
     protected override initializeEventSource(element: ast.EventSource, _gen: boolean = false): string | undefined {
         return undefined;
     }
-    protected override initializeField(element: ast.Field, _gen: boolean = false): string | undefined {
-        return undefined;
-    }
+
     protected override initializeOperation(element: ast.Operation, _gen: boolean = false): string | undefined {
         return undefined;
     }
@@ -790,7 +779,7 @@ export class GapPatternCppGenerator extends CppGenerator {
 
     protected declareAssociationGen(element: ast.Association, _gen: boolean): string | undefined {
         return s`
-            ${this.comment(element)}«IF isConst»const «ENDIF»«IF isStatic»static «ENDIF»«IF isMutable»mutable «ENDIF»«type.id»«IF isByPointer»*«ENDIF» ${element.name};
+            ${this.comment(element)}${isConst(element) ? 'const ' : ''}${isStatic(element) ? 'static ' : ''}${isMutable(element) ? 'mutable ' : ''}${this.fqn(element.type.ref)}${isByPointer(element) ? '*' : ''} ${element.name};
             `;
     }
     protected defineAssociationGen(_element: ast.Association, _gen: boolean): string | undefined {
@@ -881,11 +870,10 @@ export class GapPatternCppGenerator extends CppGenerator {
     }
     protected declareEventSinkGen(element: ast.EventSink, gen: boolean): string | undefined {
         const eventType = this.eventType(element);
-
         return s`
-        ${this.comment(element)}::Smp::IEventSink* ${element.name};
-        virtual void _${element.name}(::Smp::IObject* sender${eventType ? `, ${this.fqn(eventType)}` : ''})${gen ? ' = 0' : ''};
-        `;
+            ${this.comment(element)}::Smp::IEventSink* ${element.name};
+            virtual void _${element.name}(::Smp::IObject* sender${eventType ? `, ${this.fqn(eventType)}` : ''})${gen ? ' = 0' : ''};
+            `;
     }
     protected defineEventSinkGen(_element: ast.EventSink, _gen: boolean): string | undefined {
         return undefined;
@@ -896,8 +884,8 @@ export class GapPatternCppGenerator extends CppGenerator {
 
     protected declareEventSourceGen(element: ast.EventSource, _gen: boolean): string | undefined {
         return s`
-        ${this.comment(element)}::Smp::IEventSource* ${element.name};
-        `;
+            ${this.comment(element)}::Smp::IEventSource* ${element.name};
+            `;
     }
     protected defineEventSourceGen(_element: ast.EventSource, _gen: boolean): string | undefined {
         return undefined;
@@ -906,20 +894,74 @@ export class GapPatternCppGenerator extends CppGenerator {
         return this.finalizePointer(element);
     }
 
-    protected declareFieldGen(_element: ast.Field, _gen: boolean): string | undefined {
+    protected declareFieldGen(element: ast.Field, _gen: boolean): string | undefined {
+        return s`
+            ${this.comment(element)}${isStatic(element) ? 'static ' : ''}${isMutable(element) ? 'mutable ' : ''}${this.fqn(element.type.ref)} ${element.name}${element.default && !isStatic(element) ? this.directListInitializer(element.default) : ''};
+            `;
+    }
+    protected defineFieldGen(element: ast.Field, gen: boolean): string | undefined {
+        if (isStatic(element))
+            return `
+                // ${element.name} initialization
+                ${this.fqn(element.type.ref)} ${element.$container.name}${gen ? 'Gen' : ''}::${element.name}${this.directListInitializer(element.default)};
+                `;
         return undefined;
     }
-    protected defineFieldGen(_element: ast.Field, _gen: boolean): string | undefined {
+    protected override initializeField(element: ast.Field, _gen: boolean = false): string | undefined {
+        if (!isStatic(element)) {
+            return s`
+                // ${element.name} initialization
+                ${element.name} ${this.directListInitializer(element.default)}
+                `;
+        }
         return undefined;
+    }
+    protected declareParameter(param: ast.Parameter): string {
+        return `${isConst(param) ? 'const ' : ''}${this.fqn(param.type.ref)} ${isByPointer(param) ? '*' : ''}${isByReference(param) ? '&' : ''}${param.name}${param.default ? ` = ${this.expression(param.default)}` : ''}`;
+    }
+    protected defineParameter(param: ast.Parameter): string {
+        return `${isConst(param) ? 'const ' : ''}${this.fqn(param.type.ref)} ${isByPointer(param) ? '*' : ''}${isByReference(param) ? '&' : ''}${param.name}`;
     }
 
-    protected declareOperationGen(_element: ast.Operation, _gen: boolean): string | undefined {
-        return undefined;
+    protected declareOperationGen(op: ast.Operation, gen: boolean): string | undefined {
+        if (isConstructor(op)) // a constructor
+            return `${this.comment(op)}${op.$container.name}${gen ? 'Gen' : ''}(${op.parameter.map(param => this.declareParameter(param)).join(', ')});`;
+        else if (isStatic(op)) // a static method
+            return `${this.comment(op)}static ${op.returnParameter ? this.fqn(op.returnParameter.type.ref) : 'void'} ${op.name}(${op.parameter.map(param => this.declareParameter(param)).join(', ')});`;
+        else if (isVirtual(op)) // a virtual method
+            return `${this.comment(op)}virtual ${op.returnParameter ? this.fqn(op.returnParameter.type.ref) : 'void'} ${op.name}(${op.parameter.map(param => this.declareParameter(param)).join(', ')})${isConst(op) ? ' const' : ''}${isAbstract(op) || gen ? '=0' : ''};`;
+
+        return `${this.comment(op)}${op.returnParameter ? this.fqn(op.returnParameter.type.ref) : 'void'} ${op.name}(${op.parameter.map(param => this.declareParameter(param)).join(', ')})${isConst(op) ? ' const' : ''};`;
+
     }
     protected defineOperationGen(_element: ast.Operation, _gen: boolean): string | undefined {
         return undefined;
     }
-
+    protected override declareOperation(op: ast.Operation): string | undefined {
+        if (isConstructor(op)) // constructor declared in gen folder
+            // TODO call base class constructor if any ?
+            return `using ${op.$container.name}::${op.$container.name};`;
+        if (isVirtual(op) && !isAbstract(op)) // override virtual methods
+            return `${this.comment(op)}${op.returnParameter ? this.fqn(op.returnParameter.type.ref) : 'void'} ${op.name}(${op.parameter.map(param => this.declareParameter(param)).join(', ')})${isConst(op) ? ' const' : ''} override;`;
+        return undefined;
+    }
+    protected override defineOperation(op: ast.Operation): string | undefined {
+        if (isConstructor(op)) // constructor declared in gen folder
+            return undefined;
+        else if (isStatic(op) || !isVirtual(op)) // static or not virtual method declared in gen folder
+            return `${op.returnParameter ? this.fqn(op.returnParameter.type.ref) : 'void'} ${op.$container.name}::${op.name}(${op.parameter.map(param => this.defineParameter(param)).join(', ')})${isConst(op) ? ' const' : ''}
+                {
+                    ${op.returnParameter ? (op.returnParameter.type.ref === op.$container ? `return ${isByPointer(op.returnParameter) ? '' : '*'}this;` : `return static_cast<${this.fqn(op.returnParameter.type.ref)}>({});`) : ''}
+                }
+                `;
+        else if (!isAbstract) // override virtual method
+            return `${op.returnParameter ? this.fqn(op.returnParameter.type.ref) : 'void'} ${op.$container.name}::${op.name}(${op.parameter.map(param => this.defineParameter(param)).join(', ')})${isConst(op) ? ' const' : ''}
+                {
+                    ${op.returnParameter ? (op.returnParameter.type.ref === op.$container ? `return ${isByPointer(op.returnParameter) ? '' : '*'}this;` : `return static_cast<${this.fqn(op.returnParameter.type.ref)}>({});`) : ''}
+                }
+                `;
+        return undefined;
+    }
     protected declarePropertyGen(_element: ast.Property, _gen: boolean): string | undefined {
         return undefined;
     }
@@ -927,11 +969,105 @@ export class GapPatternCppGenerator extends CppGenerator {
         return undefined;
     }
 
-    protected declareReferenceGen(_element: ast.Reference_, _gen: boolean): string | undefined {
-        return undefined;
+    protected declareReferenceGen(element: ast.Reference_, _gen: boolean): string | undefined {
+        return s`
+        ${this.comment(element)}::Smp::IReference* ${element.name};
+        `;
     }
     protected defineReferenceGen(_element: ast.Reference_, _gen: boolean): string | undefined {
         return undefined;
+    }
+
+    protected initializeMembers(container: ast.WithBody): string[] {
+        const buffer: Array<string | undefined> = [];
+        for (const c of container.elements.filter(ast.isConstant)) // TODO sort constants
+            buffer.push(this.initializeConstant(c));
+        for (const c of container.elements.filter(ast.isProperty))
+            buffer.push(this.initializeProperty(c));
+        for (const c of container.elements.filter(ast.isOperation))
+            buffer.push(this.initializeOperation(c));
+        for (const c of container.elements.filter(ast.isEntryPoint))
+            buffer.push(this.initializeEntryPoint(c));
+        for (const c of container.elements.filter(ast.isEventSink))
+            buffer.push(this.initializeEventSink(c));
+        for (const c of container.elements.filter(ast.isEventSource))
+            buffer.push(this.initializeEventSource(c));
+        for (const c of container.elements.filter(ast.isField))
+            buffer.push(this.initializeField(c));
+        for (const c of container.elements.filter(ast.isAssociation))
+            buffer.push(this.initializeAssociation(c));
+        for (const c of container.elements.filter(ast.isContainer))
+            buffer.push(this.initializeContainer(c));
+        for (const c of container.elements.filter(ast.isReference_))
+            buffer.push(this.initializeReference(c));
+        return buffer.filter(v => v !== undefined);
+    }
+
+    protected declareMember(element: ast.NamedElement, initialVisibility: VisibilityKind, declaration: string | undefined, buffer: string[]): VisibilityKind {
+        let visibility = initialVisibility;
+        if (declaration !== undefined) {
+            visibility = getRealVisibility(element);
+            buffer.push(`${visibility !== initialVisibility ? VisibilityKind[visibility] + ': ' : ''}${declaration}`);
+        }
+        return visibility;
+    }
+
+    protected declareMembers(container: ast.WithBody, initialVisibility: VisibilityKind): string {
+        const buffer: string[] = [];
+        let current = initialVisibility;
+        for (const c of container.elements.filter(ast.isConstant)) // TODO sort constants
+            current = this.declareMember(c, current, this.declareConstant(c), buffer);
+        for (const c of container.elements.filter(ast.isProperty))
+            current = this.declareMember(c, current, this.declareProperty(c), buffer);
+        for (const c of container.elements.filter(ast.isOperation))
+            current = this.declareMember(c, current, this.declareOperation(c), buffer);
+        for (const c of container.elements.filter(ast.isEntryPoint))
+            current = this.declareMember(c, current, this.declareEntryPoint(c), buffer);
+        for (const c of container.elements.filter(ast.isEventSink))
+            current = this.declareMember(c, current, this.declareEventSink(c), buffer);
+        for (const c of container.elements.filter(ast.isEventSource))
+            current = this.declareMember(c, current, this.declareEventSource(c), buffer);
+        for (const c of container.elements.filter(ast.isField))
+            current = this.declareMember(c, current, this.declareField(c), buffer);
+        for (const c of container.elements.filter(ast.isAssociation))
+            current = this.declareMember(c, current, this.declareAssociation(c), buffer);
+        for (const c of container.elements.filter(ast.isContainer))
+            current = this.declareMember(c, current, this.declareContainer(c), buffer);
+        for (const c of container.elements.filter(ast.isReference_))
+            current = this.declareMember(c, current, this.declareReference(c), buffer);
+        return buffer.join('\n');
+    }
+    protected declareMembersGen(container: ast.WithBody, useGenPattern: boolean, initialVisibility: VisibilityKind): string {
+        const buffer: string[] = [];
+        let current = initialVisibility;
+        for (const c of container.elements.filter(ast.isConstant)) // TODO sort constants
+            current = this.declareMember(c, current, this.declareConstantGen(c, useGenPattern), buffer);
+        for (const c of container.elements.filter(ast.isProperty))
+            current = this.declareMember(c, current, this.declarePropertyGen(c, useGenPattern), buffer);
+        for (const c of container.elements.filter(ast.isOperation))
+            current = this.declareMember(c, current, this.declareOperationGen(c, useGenPattern), buffer);
+        for (const c of container.elements.filter(ast.isEntryPoint))
+            current = this.declareMember(c, current, this.declareEntryPointGen(c, useGenPattern), buffer);
+        for (const c of container.elements.filter(ast.isEventSink))
+            current = this.declareMember(c, current, this.declareEventSinkGen(c, useGenPattern), buffer);
+        for (const c of container.elements.filter(ast.isEventSource))
+            current = this.declareMember(c, current, this.declareEventSourceGen(c, useGenPattern), buffer);
+        for (const c of container.elements.filter(ast.isField))
+            current = this.declareMember(c, current, this.declareFieldGen(c, useGenPattern), buffer);
+        for (const c of container.elements.filter(ast.isAssociation))
+            current = this.declareMember(c, current, this.declareAssociationGen(c, useGenPattern), buffer);
+        for (const c of container.elements.filter(ast.isContainer))
+            current = this.declareMember(c, current, this.declareContainerGen(c, useGenPattern), buffer);
+        for (const c of container.elements.filter(ast.isReference_))
+            current = this.declareMember(c, current, this.declareReferenceGen(c, useGenPattern), buffer);
+        return buffer.join('\n');
+    }
+
+    protected defineMembers(container: ast.WithBody, _useGenPattern: boolean): string {
+        return container.elements.map(this.define, this).join('\n');
+    }
+    protected defineMembersGen(container: ast.WithBody, useGenPattern: boolean): string {
+        return container.elements.map(element => this.defineGen(element, useGenPattern), this).join('\n');
     }
 
 }

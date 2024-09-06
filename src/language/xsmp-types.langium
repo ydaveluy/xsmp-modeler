@@ -6,13 +6,15 @@ type RangeKind_MinInclusive = '..<';
 type RangeKind_MaxInclusive = '<..';
 type RangeKind_Inclusive = '...';
 
-type ParameterDirectionKind = ParameterDirectionKind_in | ParameterDirectionKind_out | ParameterDirectionKind_inout | ParameterDirectionKind_return;
+type ParameterDirectionKind = ParameterDirectionKind_in | ParameterDirectionKind_out | ParameterDirectionKind_inout;
 type ParameterDirectionKind_in = 'in';
 type ParameterDirectionKind_out = 'out';
 type ParameterDirectionKind_inout = 'inout';
-type ParameterDirectionKind_return = 'return';
 
 type WithBody = Structure | ReferenceType | Namespace;
+type Invokable = Operation | Property;
+type Publicable = Invokable | Field;
+
 
 interface Catalogue extends Document {
 	elements:Namespace[]

@@ -13,8 +13,8 @@ import type { XsmpSharedServices } from './xsmp-module.js';
  * Declaration of custom services.
  */
 export interface XsmpprojectAddedServices {
-    validation: {
-        XsmpprojectValidator: XsmpprojectValidator
+    readonly validation: {
+        readonly XsmpprojectValidator: XsmpprojectValidator
     },
 }
 
