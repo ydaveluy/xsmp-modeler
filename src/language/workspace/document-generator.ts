@@ -8,6 +8,7 @@ import pLimit from 'p-limit';
 import type { Task, TaskAcceptor } from '../generator/generator.js';
 import { XsmpSdkGenerator } from '../profiles/xsmp-sdk/generator.js';
 import type { XsmpSharedServices } from '../xsmp-module.js';
+import { PythonGenerator } from '../tools/python/generator.js';
 
 const limit = pLimit(8);
 
@@ -17,6 +18,7 @@ export class XsmpDocumentGenerator {
     protected readonly indexManager: IndexManager;
     protected readonly smpGenerator: SmpGenerator;
     protected readonly xsmpSdkGenerator: XsmpSdkGenerator;
+    protected readonly pythonGenerator: PythonGenerator;
     protected readonly builder: DocumentBuilder;
 
     constructor(services: XsmpSharedServices) {
@@ -25,6 +27,7 @@ export class XsmpDocumentGenerator {
         this.serviceRegistry = services.ServiceRegistry;
         this.smpGenerator = new SmpGenerator();
         this.xsmpSdkGenerator = new XsmpSdkGenerator(services);
+        this.pythonGenerator = new PythonGenerator();
         this.builder = services.workspace.DocumentBuilder;
     }
 
@@ -90,6 +93,10 @@ export class XsmpDocumentGenerator {
                 case 'org.eclipse.xsmp.tool.adoc':
                 case 'adoc':
                     //TODO
+                    break;
+                case 'org.eclipse.xsmp.tool.python':
+                case 'python':
+                    this.pythonGenerator.generate(catalogue, projectUri, taskAcceptor);
                     break;
             }
         }

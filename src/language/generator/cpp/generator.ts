@@ -1,8 +1,8 @@
 import * as ast from '../../generated/ast.js';
-import { type AstNode, AstUtils, type JSDocElement, type JSDocTag, type URI, UriUtils } from 'langium';
+import { type AstNode, AstUtils, type JSDocElement, type JSDocTag, type URI, UriUtils, WorkspaceCache } from 'langium';
 import * as fs from 'fs';
 import type { TaskAcceptor, XsmpGenerator } from '../generator.js';
-import { escape, fqn, getAccessKind, getAllFields, getDescription, getJSDoc, getNativeLocation, getNativeNamespace, getNativeType, getParameterDescription, getPTK, getReturnParameterDescription, getUuid, getViewKind, isAbstractType, isInput, isOutput, isState } from '../../utils/xsmp-utils.js';
+import { escape, fqn, getAccessKind, getAllFields, getDescription, getJSDoc, getNativeLocation, getNativeNamespace, getNativeType, getPTK, getUuid, getViewKind, isAbstractType, isByPointer, isByReference, isConst, isInput, isOutput, isState } from '../../utils/xsmp-utils.js';
 import * as CopyrightNoticeProvider from '../copyright-notice-provider.js';
 import { expandToString as s } from 'langium/generate';
 import * as Path from 'path';
@@ -37,10 +37,12 @@ export abstract class CppGenerator implements XsmpGenerator {
 
     protected readonly cxxStandard: CxxStandard;
     protected readonly typeProvider: XsmpTypeProvider;
+    protected readonly cache: WorkspaceCache<unknown, unknown>;
 
     constructor(services: XsmpSharedServices, cxxStandard: CxxStandard) {
         this.cxxStandard = cxxStandard;
         this.typeProvider = services.TypeProvider;
+        this.cache = new WorkspaceCache(services);
     }
 
     clean(_projectUri: URI) {
@@ -380,9 +382,16 @@ export abstract class CppGenerator implements XsmpGenerator {
         try {
             await fs.promises.mkdir(Path.dirname(path), { recursive: true });
 
-            const formatted = await ClangFormat(path, content);;
-
-            await fs.promises.writeFile(path, formatted);
+            const formatted = await ClangFormat(path, content);
+            try {
+                // check if existing file is different
+                if (await fs.promises.readFile(path, { encoding: 'utf8' }) !== formatted) {
+                    await fs.promises.writeFile(path, formatted);
+                }
+            }
+            catch {
+                await fs.promises.writeFile(path, formatted, { encoding: 'utf8' });
+            }
         } catch (error) {
             console.error(`Error generating file ${path}:`, error);
         }
@@ -395,8 +404,9 @@ export abstract class CppGenerator implements XsmpGenerator {
         const mapElement = (e: JSDocElement) => {
             if (typeof (e as JSDocTag).name === 'string') {
                 const tag = e as JSDocTag;
-                if (tag.name === 'uuid' || tag.name === 'id')
+                if (!tag.inline && (tag.name === 'uuid' || tag.name === 'id'))
                     return undefined;
+                return ' ' + e.toString().trimEnd().replaceAll('\n', newLine);
             }
             return e.toString().trimEnd().replaceAll('\n', newLine);
         };
@@ -411,12 +421,15 @@ export abstract class CppGenerator implements XsmpGenerator {
         if (!reference) {
             return defaultFqn ?? '';
         }
-        if (ast.isNativeType(reference)) {
-            const type = getNativeType(reference);
-            const namespace = getNativeNamespace(reference);
-            return namespace ? `${namespace}::${type}` : type ?? '';
-        }
-        return `::${fqn(reference, '::')}`;
+        const key = { id: 'fqn', value: reference };
+        return this.cache.get(key, () => {
+            if (ast.isNativeType(reference)) {
+                const type = getNativeType(reference);
+                const namespace = getNativeNamespace(reference);
+                return namespace ? `${namespace}::${type}` : type ?? '';
+            }
+            return `::${fqn(reference, '::')}`;
+        }) as string;
     }
 
     // list of types with uuids defined in namespace ::Smp::Uuids
@@ -435,7 +448,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         return `${this.fqn(type.$container as ast.NamedElement)}::Uuid_${type.name}`;
     }
 
-    protected description(element: ast.NamedElement): string {
+    protected description(element: ast.NamedElement | ast.ReturnParameter): string {
         return `"${escape(getDescription(element))}"`;
     }
 
@@ -1041,13 +1054,23 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
 
     protected publishMember(element: ast.Publicable): string | undefined {
         switch (element.$type) {
-            case ast.Field: return this.publishField(element as ast.Field);
-            case ast.Operation: return this.publishOperation(element as ast.Operation);
-            case ast.Property: return this.publishProperty(element as ast.Property);
+            case ast.Field: return this.publishField(element);
+            case ast.Operation: return this.publishOperation(element);
+            case ast.Property: return this.publishProperty(element);
         }
     }
+    protected isCdkField(_field: ast.Field): boolean {
+        return false;
+    }
 
-    publishField(field: ast.Field): string | undefined {
+    protected publishField(field: ast.Field): string | undefined {
+        if (this.isCdkField(field)) {
+            return s`
+            // Publish field ${field.name}
+            receiver->PublishField(&${field.name});
+
+            `;
+        }
         if (ast.isPrimitiveType(field.type.ref)) {
             switch (getPTK(field.type.ref)) {
                 case PTK.Bool:
@@ -1065,12 +1088,20 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
                     // Publish directly with address of the field (not valid for DateTime and Duration that are identical to Int64)
                     return s`
                         // Publish field ${field.name}
-                        receiver->PublishField("${field.name}", ${this.description(field)}, &${field.name},  ${this.viewKind(field)}, ${isState(field)}, ${isInput(field)}, ${isOutput(field)});
-                        
+                        receiver->PublishField(
+                            "${field.name}", // Name
+                            ${this.description(field)}, // Description
+                            &${field.name}, // Address
+                            ${this.viewKind(field)}, // View Kind
+                            ${isState(field)}, // State
+                            ${isInput(field)}, // Input
+                            ${isOutput(field)} // Output
+                        );
+
                         `;
                 case PTK.String8:
                     return s`
-                        // Do not Publish field ${field.name} of type Smp::String8
+                        // WARNING: Field ${field.name} of type ::Smp::String8 is not publicable.
                         
                         `;
             }
@@ -1078,7 +1109,16 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
         // Generic Publish with type UUID
         return s`
             // Publish field ${field.name}
-            receiver->PublishField("${field.name}", ${this.description(field)}, &${field.name},${this.uuid(field.type.ref)}, ${this.viewKind(field)}, ${isState(field)}, ${isInput(field)}, ${isOutput(field)});
+            receiver->PublishField(
+                "${field.name}", // Name
+                ${this.description(field)}, // Description
+                &${field.name}, // Address
+                ${this.uuid(field.type.ref)}, // Type UUID
+                ${this.viewKind(field)}, // View Kind
+                ${isState(field)}, // State
+                ${isInput(field)}, // Input
+                ${isOutput(field)} // Output
+            );
 
             `;
     }
@@ -1095,12 +1135,24 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
         if (this.isInvokable(op)) {
             const r = op.returnParameter;
             return s`
-                {
-                    // Publish operation ${op.name}
-                    ${r || op.parameter.length > 0 ? 'auto* operation = ' : ''}receiver->PublishOperation("${op.name}", ${this.description(op)}, ${this.viewKind(op)});
-                    ${op.parameter.map(param => `operation->PublishParameter("${param.name}", "${escape(getParameterDescription(param))}", ${this.uuid(param.type.ref)}, ${this.parameterDirectionKind(param)});`).join('\n')}
-                    ${r ? `operation->PublishParameter("${r.name ?? 'return'}", "${escape(getReturnParameterDescription(r))}", ${this.uuid(r.type.ref)}, ${this.parameterDirectionKind(r)});` : ''}
-                }
+                // Publish operation ${op.name}
+                ${r || op.parameter.length > 0 ? 'auto* op_${op.name} = ' : ''}receiver->PublishOperation(
+                    "${op.name}", // Name
+                    ${this.description(op)}, // Description
+                    ${this.viewKind(op)} // View Kind
+                );
+                ${op.parameter.map(param => `op_${op.name}->PublishParameter(
+                    "${param.name}", // Name
+                    ${this.description(param)}, // Description
+                    ${this.uuid(param.type.ref)}, // Type UUID
+                    ${this.parameterDirectionKind(param)} // Parameter Direction Kind
+                );`).join('\n')}
+                ${r ? `op_${op.name}->PublishParameter(
+                    "${r.name ?? 'return'}", // Name
+                    ${this.description(r)}, // Description
+                    ${this.uuid(r.type.ref)}, // Type UUID
+                    ${this.parameterDirectionKind(r)} // Parameter Direction Kind
+                );` : ''}
 
                 `;
         }
@@ -1110,7 +1162,13 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
         if (this.isInvokable(property)) {
             return s`
                 // Publish Property ${property.name}
-                receiver->PublishProperty("${property.name}", ${this.description(property)}, ${this.uuid(property.type.ref)}, ${this.accessKind(property)}, ${this.viewKind(property)});
+                receiver->PublishProperty(
+                    "${property.name}", // Name
+                    ${this.description(property)}, // Description
+                    ${this.uuid(property.type.ref)}, // Type UUID
+                    ${this.accessKind(property)}, // Access Kind
+                    ${this.viewKind(property)} // View Kind
+                );
 
                 `;
         }
@@ -1129,5 +1187,17 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
     protected publishMembers(type: ast.WithBody): string {
         return type.elements.filter(ast.isPublicable).map(this.publishMember, this).filter(text => text !== undefined).join('\n');
     }
+    protected declareParameter(param: ast.Parameter): string {
+        return `${this.type(param)} ${param.name}${param.default ? ' = ' + this.expression(param.default) : ''}`;
+    }
+    protected defineParameter(param: ast.Parameter): string {
+        return `${this.type(param)} ${param.name}`;
+    }
+
+    protected type(elem: ast.Parameter | ast.ReturnParameter | ast.Association | ast.Property | undefined): string {
+        if (!elem) { return 'void'; }
+        return `${isConst(elem) ? 'const ' : ''}${this.fqn(elem.type.ref)}${isByPointer(elem) ? '*' : ''}${!ast.isAssociation(elem) && isByReference(elem) ? '&' : ''}`;
+    }
+
 }
 

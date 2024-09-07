@@ -17,6 +17,7 @@ Features status:
 - [x] xsmpcat - Quickfixs
 - [x] xsmpcat - Content Assist
 - [x] SMP Tool - generator
+- [x] Python Tool - generator
 - [ ] SMP Tool - import
 - [ ] AsciiDoc Tool - generator
 - [ ] xsmp-sdk Profile - generator (in progress)

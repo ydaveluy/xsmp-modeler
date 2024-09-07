@@ -401,7 +401,7 @@ export class SmpGenerator implements XsmpGenerator {
         return {
             '@Id': `${id}.${parameter.name ?? 'return'}`,
             '@Name': parameter.name ?? 'return',
-            Description: XsmpUtils.getReturnParameterDescription(parameter),
+            Description: XsmpUtils.getDescription(parameter),
             Metadata: parameter.attributes.map(this.convertAttribute, this),
             Type: this.convertXlink(parameter.type, parameter),
             '@Direction': 'return',
@@ -411,7 +411,7 @@ export class SmpGenerator implements XsmpGenerator {
         return {
             '@Id': `${id}.${parameter.name}`,
             '@Name': parameter.name,
-            Description: XsmpUtils.getParameterDescription(parameter),
+            Description: XsmpUtils.getDescription(parameter),
             Metadata: parameter.attributes.map(this.convertAttribute, this),
             Type: this.convertXlink(parameter.type, parameter),
             Default: parameter.default ? this.convertValue(parameter.type.ref, parameter.default) : undefined,

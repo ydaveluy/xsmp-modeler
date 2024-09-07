@@ -67,8 +67,14 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
 
     protected override initializeContainer(element: ast.Container): string | undefined {
         return s`
-        // Container: ${element.name}
-        ${element.name} { "${element.name}", ${this.description(element)}, this, ${this.lower(element)}, ${this.upper(element)}}
+        // Container ${element.name}
+        ${element.name} {
+            "${element.name}", // Name
+            ${this.description(element)}, // Description
+            this, // Parent
+            ${this.lower(element)}, // Lower bound
+            ${this.upper(element)} // Upper bound
+        }
         `;
     }
 
@@ -86,8 +92,14 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
 
     protected override initializeReference(element: ast.Reference_): string | undefined {
         return s`
-        // Reference: ${element.name}
-        ${element.name} { "${element.name}", ${this.description(element)}, this, ${this.lower(element)}, ${this.upper(element)}}
+        // Reference ${element.name}
+        ${element.name}{
+            "${element.name}", // Name
+            ${this.description(element)}, // Description
+            this, // Parent
+            ${this.lower(element)}, // Lower bound
+            ${this.upper(element)} // Upper bound
+        }
         `;
     }
 
@@ -102,8 +114,13 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
     }
     protected override initializeEntryPoint(element: ast.EntryPoint, gen: boolean): string | undefined {
         return s`
-        // EntryPoint: ${element.name}
-        ${element.name} { "${element.name}", ${this.description(element)}, this, std::bind(&${element.$container.name}${gen ? 'Gen' : ''}:_${element.name}, this) }
+        // EntryPoint ${element.name}
+        ${element.name}{
+            "${element.name}", // Name
+            ${this.description(element)}, // Description
+            this, // Parent
+            std::bind(&${element.$container.name}${gen ? 'Gen' : ''}::_${element.name}, this) // Callback
+        }
         `;
     }
     protected override finalizeEntryPoint(_element: ast.EntryPoint): string | undefined {
@@ -126,14 +143,25 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
 
         if (eventType) {
             return s`
-        // Event Sink: ${element.name}
-        ${element.name} { "${element.name}", ${this.description(element)}, this, std::bind(&${element.$container.name}${gen ? 'Gen' : ''}:_${element.name}, this, std::placeholders::_1, std::placeholders::_2), ${this.primitiveTypeKind(eventType)} }
+        // EventSink ${element.name}
+        ${element.name}{
+            "${element.name}", // Name
+            ${this.description(element)}, // Description
+            this, // Parent
+            std::bind(&${element.$container.name}${gen ? 'Gen' : ''}::_${element.name}, this, std::placeholders::_1, std::placeholders::_2), // Callback
+            ${this.primitiveTypeKind(eventType)} // Primitive Type Kind
+        }
         `;
         }
         else {
             return s`
-        // Event Sink: ${element.name}
-        ${element.name} { "${element.name}", ${this.description(element)}, this, std::bind(&${element.$container.name}${gen ? 'Gen' : ''}:_${element.name}, this, std::placeholders::_1) }
+        // EventSink ${element.name}
+        ${element.name}{
+            "${element.name}", // Name
+            ${this.description(element)}, // Description
+            this, // Parent
+            std::bind(&${element.$container.name}${gen ? 'Gen' : ''}::_${element.name}, this, std::placeholders::_1) //Callback
+        }
         `;
         }
     }
@@ -153,8 +181,12 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
     protected override initializeEventSource(element: ast.EventSource, _gen: boolean): string | undefined {
         const eventType = this.eventType(element);
         return s`
-        // Event Source: ${element.name}
-        ${element.name} { "${element.name}", ${this.description(element)}, this${eventType ? `, ${this.primitiveTypeKind(eventType)}` : ''} }
+        // EventSource ${element.name}
+        ${element.name}{
+            "${element.name}", // Name
+            ${this.description(element)}, // Description
+            this${eventType ? `, // Parent\n    ${this.primitiveTypeKind(eventType)} // Primitive Type Kind` : ' // Parent'} 
+        }
         `;
 
     }
@@ -237,7 +269,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         return s`
             ${this.comment(type)}class ${type.name}: public ${type.name}Gen {
             public:
-                /// Re-use parent constructors
+                /// Re-use parent constructor
                 using ${type.name}Gen::${type.name}Gen;
                 
                 /// Virtual destructor to release memory.
@@ -279,19 +311,12 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
             
             ${this.comment(type)}class ${name}${bases.length > 0 ? ':' : ''} ${bases.join(', ')}
             {
-            
             ${gen ? `friend class ${this.fqn(type)};` : ''}
-            
             public:
-            // --------------------------------------------------------------------------
-            // ------------------------ Constructors/Destructor -------------------------
-            // --------------------------------------------------------------------------
-            
-            
             /// Constructor setting name, description, parent and simulator.
-            /// @param name Name of new model instance.
-            /// @param description Description of new model instance.
-            /// @param parent Parent of new model instance.
+            /// @param name Name of new ${type.$type} instance.
+            /// @param description Description of new ${type.$type} instance.
+            /// @param parent Parent of new ${type.$type} instance.
             /// @param simulator The simulator instance.
             ${name}(::Smp::String8 name,
                     ::Smp::String8 description,
@@ -309,42 +334,49 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
             /// Virtual destructor to release memory.
             ~${name}() override = default;
             
-            // --------------------------------------------------------------------------
-            // ------------------------------- IComponent -------------------------------
-            // --------------------------------------------------------------------------
-            
-            /// Publish fields, operations and properties of the model.
-            /// @param receiver Publication receiver.
+            /// Request the ${type.$type} to publish its fields, properties and 
+            /// operations against the provided publication receiver.
+            /// @param   receiver Publication receiver.
+            /// @throws  Smp::InvalidComponentState
             void Publish(::Smp::IPublication* receiver) override;
             
-            /// Request for configuration.
-            /// @param logger Logger to use for log messages during Configure().
-            /// @param linkRegistry Link Registry to use for registration of
-            ///         links created during Configure() or later.
+            /// Request the ${type.$type} to perform any custom configuration. The 
+            /// component can create and configure other components using the field
+            /// values of its published fields.
+            /// @param   logger Logger service for logging of error messages during
+            ///          configuration.
+            /// @param   linkRegistry Reference to the link registry services, so 
+            ///          that the ${type.$type} can register links that it creates 
+            ///          during configuration.
+            /// @throws  Smp::InvalidComponentState
             void Configure( ::Smp::Services::ILogger* logger, ::Smp::Services::ILinkRegistry* linkRegistry) override;
             
-            /// Connect model to simulator.
-            /// @param simulator Simulation Environment that hosts the model.
-            ///
+            /// Allow the ${type.$type} to connect to the simulator and its simulation 
+            /// services.
+            /// @param   simulator Simulation Environment that hosts the ${type.$type}.
+            /// @throws  Smp::InvalidComponentState
             void Connect( ::Smp::ISimulator* simulator) override;
             
-            /// Disconnect model to simulator.
-            /// @throws Smp::InvalidComponentState
+            /// Ask the ${type.$type} to disconnect from the simulator and all its 
+            /// simulation services.
+            /// @throws  Smp::InvalidComponentState
             void Disconnect() override;
             
-            /// Return the Universally Unique Identifier of the Model.
-            /// @return Universally Unique Identifier of the Model.
-            const Smp::Uuid& GetUuid() const override;
+            /// Get Universally Unique Identifier of ${type.$type} Type.
+            /// @return  Universally Unique Identifier of ${type.$type}.
+            const ::Smp::Uuid& GetUuid() const override;
             ${type.elements.filter(ast.isInvokable).some(this.isInvokable, this) ? `
-            // --------------------------------------------------------------------------
-            // --------------------------- IDynamicInvocation ---------------------------
-            // --------------------------------------------------------------------------
+
             using RequestHandlers = std::map<std::string, std::function<void(${name}*, ::Smp::IRequest*)>>;
             static RequestHandlers requestHandlers;
             static RequestHandlers InitRequestHandlers();
             
-            /// Invoke the operation for the given request.
-            /// @param request Request object to invoke.
+            /// Dynamically invoke an operation using a request object that has 
+            /// been created and filled with parameter values by the caller.
+            /// @param   request Request object to invoke.
+            /// @throws  Smp::InvalidOperationName
+            /// @throws  Smp::InvalidParameterCount
+            /// @throws  Smp::InvalidParameterType
             void Invoke(::Smp::IRequest* request) override;
             `: ''}
             
@@ -376,7 +408,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         const name = `${type.name}${gen ? 'Gen' : ''}`;
         const base = this.componentBase(type);
         const fqn = this.fqn(type);
-        const initializer = this.initializeMembers(type);
+        const initializer = this.initializeMembers(type, gen);
         return s`
             //--------------------------- Constructor -------------------------
             ${name}::${name}(
@@ -384,7 +416,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
                 ::Smp::String8 description,
                 ::Smp::IComposite* parent,
                 ::Smp::ISimulator* simulator):
-                // Base class initialization
+                // Base class
                 ${base}(name, description, parent, simulator)${initializer.length > 0 ? `,
                     ${initializer.join(',\n')}` : ''} {
                 //«FOR f : member»
@@ -450,7 +482,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
                 }
 
                 `: ''}
-            const Smp::Uuid& ${name}::GetUuid() const {
+            const ::Smp::Uuid& ${name}::GetUuid() const {
                 return Uuid_${type.name};
             }
             ${this.uuidDefinition(type)}
@@ -461,18 +493,15 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
     protected generateRqHandlerOperation(op: ast.Operation, gen: boolean): string {
         const r = op.returnParameter;
         return `
-            if (handlers.find("${op.name}") == handlers.end()) {
-                handlers["${op.name}"] = [](${op.$container.name}${gen ? 'Gen' : ''}* cmp, ::Smp::IRequest *${r || op.parameter.length > 0 ? 'req' : ''}) {
-                
+            // Handler for Operation ${op.name}
+            handlers.try_emplace("${op.name}", [](${op.$container.name}${gen ? 'Gen' : ''}* component, ::Smp::IRequest *${r || op.parameter.length > 0 ? 'request' : ''}) {
                 ${op.parameter.map(this.initParameter, this).join('\n')}
                 
-                /// Invoke ${op.name}
-                ${r ? `const auto p_${r.name ?? 'return'} = ` : ''}cmp->${op.name}(${op.parameter.map(param => `${isByPointer(param) ? '&' : ''}p_${param.name}`).join(', ')});
+                ${r ? `const auto p_${r.name ?? 'return'} = ` : ''}component->${op.name}(${op.parameter.map(param => `${isByPointer(param) ? '&' : ''}p_${param.name}`).join(', ')});
                 
                 ${op.parameter.map(this.setParameter, this).join('\n')}
-                ${r ? `::Xsmp::Request::setReturnValue(req, ${this.primitiveTypeKind(r.type.ref)}, p_${r.name ?? 'return'});` : ''}
-                };
-            }
+                ${r ? `::Xsmp::Request::setReturnValue(request, ${this.primitiveTypeKind(r.type.ref)}, p_${r.name ?? 'return'});` : ''}
+            });
         `;
     }
 
@@ -482,9 +511,9 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
             case 'inout':
                 // declare and initialize the parameter
                 if (ast.isSimpleType(param.type.ref))
-                    return `auto p_${param.name} = ::Xsmp::Request::get<${this.fqn(param.type.ref)}>(cmp, req, "${param.name}", ${this.primitiveTypeKind(param.type.ref)}${param.default ? `, ${this.expression(param.default)}` : ''});`;
+                    return `auto p_${param.name} = ::Xsmp::Request::get<${this.fqn(param.type.ref)}>(component, request, "${param.name}", ${this.primitiveTypeKind(param.type.ref)}${param.default ? `, ${this.expression(param.default)}` : ''});`;
                 else
-                    return `auto p_${param.name} = ::Xsmp::Request::get<${this.fqn(param.type.ref)}>(cmp, req, "${param.name}", ${this.uuid(param.type.ref)}${param.default ? `, ${this.expression(param.default)}` : ''});`;
+                    return `auto p_${param.name} = ::Xsmp::Request::get<${this.fqn(param.type.ref)}>(component, request, "${param.name}", ${this.uuid(param.type.ref)}${param.default ? `, ${this.expression(param.default)}` : ''});`;
             default:
                 // only declare the parameter
                 return `${this.fqn(param.type.ref)} p_${param.name}${this.directListInitializer(param.default)};`;
@@ -495,7 +524,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         switch (param.direction) {
             case 'out':
             case 'inout':
-                return `::Xsmp::Request::set(cmp, req, "${param.name}", ${this.primitiveTypeKind(param.type.ref)}, p_${param.name});`;
+                return `::Xsmp::Request::set(component, request, "${param.name}", ${this.primitiveTypeKind(param.type.ref)}, p_${param.name});`;
             default:
                 // do nothing
                 return undefined;
@@ -507,21 +536,61 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         const cmp = `${property.$container.name}${gen ? 'Gen' : ''}`;
         return s`
             ${accessKind !== 'writeOnly' ? `
-                if (handlers.find("get_${property.name}") == handlers.end()) {
-                    handlers["get_${property.name}"] = [](${cmp}* component, :: Smp:: IRequest * request) {
-                        /// Invoke get_${property.name}
-                        ::Xsmp::Request::setReturnValue(request, ${this.primitiveTypeKind(property.type.ref)}, component->get_${property.name}());
-                    };
-                }
+                // Getter handler for Property ${property.name}
+                handlers.try_emplace("get_${property.name}", [](${cmp}* component, ::Smp::IRequest *request) {
+                    ::Xsmp::Request::setReturnValue(request, ${this.primitiveTypeKind(property.type.ref)}, component->get_${property.name}());
+                });
+                
                 `: ''}
             ${accessKind !== 'readOnly' ? `
-                if (handlers.find("set_${property.name}") == handlers.end()) {
-                    handlers["set_${property.name}"] = [](${cmp}* component, :: Smp:: IRequest * request) {
-                        /// Invoke set_${property.name}
-                        component->set_${property.name}(::Xsmp::Request::get<${this.fqn(property.type.ref)}>(component, request, "${property.name}", ${this.primitiveTypeKind(property.type.ref)}));
-                    };
-                }
+                // Setter handler for Property ${property.name}
+                handlers.try_emplace("set_${property.name}", [](${cmp}* component, ::Smp::IRequest *request) {
+                    component->set_${property.name}(::Xsmp::Request::get<${this.fqn(property.type.ref)}>(component, request, "${property.name}", ${this.primitiveTypeKind(property.type.ref)}));
+                });
+                
                 `: ''}
             `;
+    }
+    private isCdkFieldType(type: ast.Type | undefined): boolean {
+        if (ast.isStructure(type))
+            return type.elements.filter(ast.isField).some(this.isCdkField, this);
+        if (ast.isArrayType(type))
+            return this.isCdkFieldType(type.itemType.ref);
+        return false;
+    }
+
+    protected override isCdkField(field: ast.Field): boolean {
+        const key = { id: 'isCdkField', value: field };
+        return this.cache.get(key, () => ast.isComponent(field.$container) && !isStatic(field) && (isOutput(field) || isFailure(field) || isForcible(field) || this.isCdkFieldType(field.type.ref))) as boolean;
+    }
+    override headerIncludesField(field: ast.Field): Include[] {
+        if (this.isCdkField(field)) {
+            return [...super.headerIncludesField(field), 'Xsmp/Field.h'];
+        }
+        return super.headerIncludesField(field);
+    }
+    protected override declareFieldGen(field: ast.Field, _gen: boolean): string | undefined {
+        if (this.isCdkField(field)) {
+            return s`
+                ${this.comment(field)}${isMutable(field) ? 'mutable ' : ''}::Xsmp::Field<${this.fqn(field.type.ref)}>${isState(field) ? '' : '::transient'}${isInput(field) ? '::input' : ''}${isOutput(field) ? '::output' : ''}${isForcible(field) ? '::forcible' : ''}${isFailure(field) ? '::failure' : ''} ${field.name};
+                `;
+        }
+        return super.declareFieldGen(field, _gen);
+    }
+    protected override initializeField(field: ast.Field, _gen: boolean = false): string | undefined {
+        if (this.isCdkField(field)) {
+            return s`
+                // Field ${field.name}
+                ${field.name}{
+                    simulator->GetTypeRegistry(), // Type Registry
+                    ${this.uuid(field.type.ref)}, // Type UUID
+                    "${field.name}", // Name
+                    ${this.description(field)}, // Description
+                    this, // Parent
+                    ${this.viewKind(field)}${field.default ? `, // View Kind\n    ${this.expression(field.default)} // Default value` : ' // View Kind'}
+                }
+                `;
+        }
+        return super.initializeField(field, _gen);
     }
 }

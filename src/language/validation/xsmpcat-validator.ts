@@ -218,7 +218,7 @@ export class XsmpcatValidator {
 
     checkTypeReference<N extends AstNode>(accept: ValidationAcceptor, node: N, reference: Reference<ast.Type>, property: Properties<N>, index?: number): boolean {
 
-        if (!reference.ref) {
+        if (!reference?.ref) {
             return false;
         }
 

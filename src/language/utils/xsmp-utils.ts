@@ -54,11 +54,11 @@ export function getVisibility(node: ast.VisibilityElement): VisibilityKind | und
 }
 export function getRealVisibility(node: ast.NamedElement): VisibilityKind {
 
-    if (ast.isVisibilityElement(node)) {
+    if (ast.reflection.isSubtype(node.$type, ast.VisibilityElement)) {
         if (node.$container?.$type === ast.Structure || node.$container?.$type === ast.Interface) {
             return VisibilityKind.public;
         }
-        return getVisibility(node) ?? VisibilityKind.private;
+        return getVisibility(node as ast.VisibilityElement) ?? VisibilityKind.private;
     }
     return VisibilityKind.public;
 }
@@ -238,7 +238,14 @@ function attributeBoolValue(element: ast.NamedElement | ast.ReturnParameter, id:
     return isAttributeTrue(attribute(element, id));
 }
 
-export function getDescription(element: ast.NamedElement): string | undefined {
+export function getDescription(element: ast.NamedElement | ast.ReturnParameter): string | undefined {
+    if (ast.Parameter === element.$type) {
+        const regex = new RegExp(`^${element.name}\\s`);
+        return getJSDoc(element.$container as AstNode)?.getTags('param').find(t => regex.test(t.content.toString()))?.content.toString().slice(element.name.length).trim();
+    }
+    if (ast.ReturnParameter === element.$type) {
+        return getJSDoc(element.$container)?.getTag('return')?.content.toString().trim();
+    }
     const jsDoc = getJSDoc(element);
     if (!jsDoc) {
         return undefined;
@@ -252,13 +259,6 @@ export function getDescription(element: ast.NamedElement): string | undefined {
         result.push(e.toString());
     }
     return result.length > 0 ? result.join('\n').trim() : undefined;
-}
-export function getParameterDescription(element: ast.Parameter): string | undefined {
-    const regex = new RegExp(`^${element.name}\\s`);
-    return getJSDoc(element.$container)?.getTags('param').find(t => regex.test(t.content.toString()))?.content.toString().slice(element.name.length).trim();
-}
-export function getReturnParameterDescription(element: ast.ReturnParameter): string | undefined {
-    return getJSDoc(element.$container)?.getTag('return')?.content.toString().trim();
 }
 export function isConstructor(element: ast.Operation): boolean | undefined {
     return attributeBoolValue(element, 'Attributes.Constructor');
@@ -284,11 +284,43 @@ export function isMutable(element: ast.Field | ast.Association): boolean | undef
 export function isConst(element: ast.Parameter | ast.ReturnParameter | ast.Association | ast.Operation | ast.Property): boolean | undefined {
     return attributeBoolValue(element, 'Attributes.Const');
 }
-export function isByPointer(element: ast.Parameter | ast.ReturnParameter | ast.Association | ast.Property): boolean | undefined {
-    return attributeBoolValue(element, 'Attributes.ByPointer');
+
+function kind(parameter: ast.Parameter | ast.ReturnParameter): ArgKind {
+    if (ast.isReferenceType(parameter.type.ref)) {
+        if (ast.isParameter(parameter) && (parameter.direction === undefined || parameter.direction === 'in')) {
+            return ArgKind.BY_REF;
+        }
+        return ArgKind.BY_PTR;
+    }
+    if ((ast.isNativeType(parameter.type.ref) || ast.isValueType(parameter.type.ref)) && ast.isParameter(parameter) && (parameter.direction === 'inout' || parameter.direction === 'out')) {
+        return ArgKind.BY_PTR;
+    }
+    return ArgKind.BY_VALUE;
 }
-export function isByReference(element: ast.Parameter | ast.ReturnParameter | ast.Property): boolean | undefined {
-    return attributeBoolValue(element, 'Attributes.ByReference');
+
+enum ArgKind {
+    BY_VALUE, BY_PTR, BY_REF
+}
+
+export function isByPointer(element: ast.Parameter | ast.ReturnParameter | ast.Association | ast.Property): boolean {
+    const value = attributeBoolValue(element, 'Attributes.ByPointer');
+    switch (element.$type) {
+        case ast.Association: return value ?? ast.isReferenceType(element.type.ref);
+        case ast.Property: return value ?? (ast.isReferenceType(element.type.ref) && !isByReference(element));
+        case ast.Parameter:
+        case ast.ReturnParameter:
+            return value ?? (kind(element) === ArgKind.BY_PTR && !(attributeBoolValue(element, 'Attributes.ByReference') ?? false));
+    }
+
+}
+export function isByReference(element: ast.Parameter | ast.ReturnParameter | ast.Property): boolean {
+    const value = attributeBoolValue(element, 'Attributes.ByReference');
+    switch (element.$type) {
+        case ast.Property: return value ?? false;
+        case ast.Parameter:
+        case ast.ReturnParameter:
+            return value ?? (kind(element) === ArgKind.BY_REF && !(attributeBoolValue(element, 'Attributes.ByPointer') ?? false));
+    }
 }
 
 export function isSimpleArray(element: ast.ArrayType): boolean | undefined {
@@ -435,8 +467,8 @@ export function isTypeVisibleFrom(from: AstNode, element: ast.Type): boolean {
  * @return the signature
  */
 export function getSignature(element: ast.NamedElement): string {
-    if (ast.isOperation(element)) {
-        return `${element.name}(${element.parameter.map(getParameterSignature).join(',')})`;
+    if (ast.Operation === element.$type) {
+        return `${element.name}(${(element as ast.Operation).parameter.map(getParameterSignature).join(',')})`;
     }
     return element.name;
 }
@@ -460,7 +492,6 @@ export function getParameterSignature(p: ast.Parameter) {
     if (isByReference(p)) {
         signature += '&';
     }
-    //TODO handle in/out/inout
     return signature;
 }
 export function getNodeType(node: AstNode): string {

@@ -26,11 +26,11 @@ export class XsmpDocumentSymbolProvider implements DocumentSymbolProvider {
     protected getSymbol(document: LangiumDocument, astNode: AstNode): DocumentSymbol[] {
         const node = astNode.$cstNode;
 
-        if (node && ast.isNamedElement(astNode)) {
-
+        const name = this.getSymbolName(astNode);
+        if (node && name) {
             return [{
                 kind: this.nodeKindProvider.getSymbolKind(astNode),
-                name: this.getSymbolName(astNode),
+                name: name,
                 range: node.range,
                 selectionRange: node.range,
                 children: this.getChildSymbols(document, astNode),
@@ -48,7 +48,10 @@ export class XsmpDocumentSymbolProvider implements DocumentSymbolProvider {
         }
         return undefined;
     }
-    protected getSymbolName(node: ast.NamedElement): string {
+    protected getSymbolName(node: AstNode): string | undefined {
+        if (!ast.isNamedElement(node)) {
+            return undefined;
+        }
         if (node.$type === ast.Operation) {
             return `${node.name}(${(node as ast.Operation).parameter.map(XsmpUtils.getParameterSignature).join(', ')})`;
         }
