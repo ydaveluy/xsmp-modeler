@@ -263,12 +263,12 @@ export function getDescription(element: ast.NamedElement | ast.ReturnParameter):
     }
     return result.length > 0 ? result.join('\n').trim() : undefined;
 }
-export function isConstructor(element: ast.NamedElement): boolean | undefined {
+export function isConstructor(element: ast.NamedElement | ast.ReturnParameter): boolean | undefined {
     return attributeBoolValue(element, 'Attributes.Constructor');
 }
 export function operatorKind(op: ast.Operation): OperatorKind {
     const attr = attribute(op, 'Attributes.Operator');
-    if (!attr || !attr.value) {
+    if (!attr?.value) {
         return OperatorKind.NONE;
     }
     const value = Solver.getValueAs(attr.value, (attr.type.ref as ast.AttributeType).type.ref!)?.enumerationLiteral()?.getValue();
@@ -305,10 +305,10 @@ export function isForcible(element: ast.Field): boolean | undefined {
     return attributeBoolValue(element, 'Attributes.Forcible');
 }
 export function isStatic(element: ast.Operation | ast.Property | ast.Field | ast.Association): boolean | undefined {
-    return attributeBoolValue(element, 'Attributes.Static');
+    return !isConstructor(element) && attributeBoolValue(element, 'Attributes.Static');
 }
 export function isAbstract(element: ast.Operation | ast.Property): boolean {
-    return !isConstructor(element) && !isStatic(element)
+    return !isStatic(element)
         && (ast.isInterface(element.$container) || (attributeBoolValue(element, 'Attributes.Abstract') ?? false));
 }
 export function isVirtual(element: ast.Operation | ast.Property): boolean {
@@ -319,7 +319,10 @@ export function isMutable(element: ast.Field | ast.Association): boolean | undef
     return attributeBoolValue(element, 'Attributes.Mutable');
 }
 export function isConst(element: ast.Parameter | ast.ReturnParameter | ast.Association | ast.Operation | ast.Property): boolean | undefined {
-    return attributeBoolValue(element, 'Attributes.Const');
+    if (isConstructor(element)) {
+        return false;
+    }
+    return attributeBoolValue(element, 'Attributes.Const') ?? (ast.isParameter(element) && (!element.direction || element.direction === 'in') && !ast.isValueType(element.type.ref));
 }
 export function isConstGetter(element: ast.Property): boolean | undefined {
     return attributeBoolValue(element, 'Attributes.ConstGetter');

@@ -33,7 +33,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
 
     override async generateArrayHeaderGen(type: ast.ArrayType, gen: boolean): Promise<string | undefined> {
         return s`
-        ${this.comment(type)}using ${type.name}${gen ? 'Gen' : ''} = ::Xsmp::Array<${this.fqn(type.itemType.ref)}, ${this.expression(type.size)}>${isSimpleArray(type) ? '::simple' : ''};
+        ${this.comment(type)}using ${this.name(type, gen)} = ::Xsmp::Array<${this.fqn(type.itemType.ref)}, ${this.expression(type.size)}>${isSimpleArray(type) ? '::simple' : ''};
 
         ${this.uuidDeclaration(type)}
         
@@ -46,7 +46,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
 
     override async generateStringHeaderGen(type: ast.StringType, gen: boolean): Promise<string | undefined> {
         return s`
-        ${this.comment(type)}using ${type.name}${gen ? 'Gen' : ''} = ::Xsmp::String<${this.expression(type.length)}>;
+        ${this.comment(type)}using ${this.name(type, gen)} = ::Xsmp::String<${this.expression(type.length)}>;
 
         ${this.uuidDeclaration(type)}
         
@@ -199,9 +199,9 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
     }
     override async generateStructureHeaderGen(type: ast.Structure, gen: boolean): Promise<string | undefined> {
         const fields = type.elements.filter(ast.isField).filter(field => !isStatic(field));
-        const rawFqn = `${this.fqn(type)}${gen ? 'Gen' : ''}`;
+        const rawFqn = this.name(this.fqn(type), gen);
         return s`
-        ${this.comment(type)}struct ${type.name}${gen ? 'Gen' : ''} {
+        ${this.comment(type)}struct ${this.name(type, gen)} {
             ${this.declareMembersGen(type, VisibilityKind.public, gen)}
 
             static void _Register(::Smp::Publication::ITypeRegistry* registry);
@@ -331,7 +331,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
             `;
     }
     override async generateComponentHeaderGen(type: ast.Component, gen: boolean): Promise<string | undefined> {
-        const name = `${type.name}${gen ? 'Gen' : ''}`;
+        const name = this.name(type, gen);
         const bases = this.componentBases(type);
         return s`
             ${gen ? `// forward declaration of user class\nclass ${type.name};` : ''}
@@ -432,7 +432,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
     }
 
     override async generateComponentSourceGen(type: ast.Component, gen: boolean): Promise<string | undefined> {
-        const name = `${type.name}${gen ? 'Gen' : ''}`;
+        const name = this.name(type, gen);
         const base = this.componentBase(type);
         const fqn = this.fqn(type);
         const initializer = this.initializeMembers(type, gen);
@@ -515,7 +515,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         return `
             // Handler for Operation ${op.name}
             {"${op.name}",
-            [](${op.$container.name}${gen ? 'Gen' : ''}* component, ::Smp::IRequest *${r || op.parameter.length > 0 ? 'request' : ''}) {
+            [](${this.name(op.$container, gen)}* component, ::Smp::IRequest *${r || op.parameter.length > 0 ? 'request' : ''}) {
                 ${op.parameter.map(this.initParameter, this).join('\n')}
                 
                 ${r ? `const auto p_${r.name ?? 'return'} = ` : ''}component->${op.name}(${op.parameter.map(param => `${isByPointer(param) ? '&' : ''}p_${param.name}`).join(', ')});
@@ -567,7 +567,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
 
     protected generateRqHandlerProperty(property: ast.Property, gen: boolean): string {
         const accessKind = getAccessKind(property);
-        const cmp = `${property.$container.name}${gen ? 'Gen' : ''}`;
+        const cmp = this.name(property.$container, gen);
         return s`
             ${accessKind !== 'writeOnly' ? `
                 // Getter handler for Property ${property.name}
