@@ -4,6 +4,7 @@ import * as ast from '../generated/ast.js';
 import * as Solver from './solver.js';
 import { PTK } from './primitive-type-kind.js';
 import { VisibilityKind } from './visibility-kind.js';
+import { OperatorKind } from './operator-kind.js';
 
 export type Attributes = 'Attributes.Static'
     | 'Attributes.Const' | 'Attributes.Mutable'
@@ -12,7 +13,7 @@ export type Attributes = 'Attributes.Static'
     | 'Attributes.Constructor' | 'Attributes.Forcible'
     | 'Attributes.Failure' | 'Attributes.ConstGetter'
     | 'Attributes.NoConstructor' | 'Attributes.NoDestructor'
-    | 'Attributes.SimpleArray' | 'Attributes.OperatorKind' | 'Attributes.View';
+    | 'Attributes.SimpleArray' | 'Attributes.Operator' | 'Attributes.View';
 
 /**
  * Get the full qualified name of an element
@@ -86,7 +87,9 @@ export function isOutput(node: ast.VisibilityElement): boolean {
 export function isState(node: ast.VisibilityElement): boolean {
     return !node.modifiers.includes('transient');
 }
-
+export function isString8(type: ast.Type | undefined): boolean {
+    return fqn(type) === 'Smp.String8';
+}
 export function getPTK(type: ast.Type | undefined, defaultKind: PTK = PTK.None): PTK {
     if (!type) { return defaultKind; }
     switch (type.$type) {
@@ -260,8 +263,40 @@ export function getDescription(element: ast.NamedElement | ast.ReturnParameter):
     }
     return result.length > 0 ? result.join('\n').trim() : undefined;
 }
-export function isConstructor(element: ast.Operation): boolean | undefined {
+export function isConstructor(element: ast.NamedElement): boolean | undefined {
     return attributeBoolValue(element, 'Attributes.Constructor');
+}
+export function operatorKind(op: ast.Operation): OperatorKind {
+    const attr = attribute(op, 'Attributes.Operator');
+    if (!attr || !attr.value) {
+        return OperatorKind.NONE;
+    }
+    const value = Solver.getValueAs(attr.value, (attr.type.ref as ast.AttributeType).type.ref!)?.enumerationLiteral()?.getValue();
+    switch (value?.name) {
+        case 'Positive': return OperatorKind.POSITIVE;
+        case 'Negative': return OperatorKind.NEGATIVE;
+        case 'Assign': return OperatorKind.ASSIGN;
+        case 'Add': return OperatorKind.ADD;
+        case 'Subtract': return OperatorKind.SUBTRACT;
+        case 'Multiply': return OperatorKind.MULTIPLY;
+        case 'Divide': return OperatorKind.DIVIDE;
+        case 'Remainder': return OperatorKind.REMAINDER;
+        case 'Greater': return OperatorKind.GREATER;
+        case 'Less': return OperatorKind.LESS;
+        case 'Equal': return OperatorKind.EQUAL;
+        case 'NotGreater': return OperatorKind.NOT_GREATER;
+        case 'NotLess': return OperatorKind.NOT_LESS;
+        case 'NotEqual': return OperatorKind.NOT_EQUAL;
+        case 'Indexer': return OperatorKind.INDEXER;
+        case 'Sum': return OperatorKind.SUM;
+        case 'Difference': return OperatorKind.DIFFERENCE;
+        case 'Product': return OperatorKind.PRODUCT;
+        case 'Quotient': return OperatorKind.QUOTIENT;
+        case 'Module': return OperatorKind.MODULE;
+        case 'None':
+        default:
+            return OperatorKind.NONE;
+    }
 }
 export function isFailure(element: ast.Field): boolean | undefined {
     return attributeBoolValue(element, 'Attributes.Failure');
@@ -272,17 +307,22 @@ export function isForcible(element: ast.Field): boolean | undefined {
 export function isStatic(element: ast.Operation | ast.Property | ast.Field | ast.Association): boolean | undefined {
     return attributeBoolValue(element, 'Attributes.Static');
 }
-export function isAbstract(element: ast.Operation | ast.Property): boolean | undefined {
-    return attributeBoolValue(element, 'Attributes.Abstract');
+export function isAbstract(element: ast.Operation | ast.Property): boolean {
+    return !isConstructor(element) && !isStatic(element)
+        && (ast.isInterface(element.$container) || (attributeBoolValue(element, 'Attributes.Abstract') ?? false));
 }
-export function isVirtual(element: ast.Operation | ast.Property): boolean | undefined {
-    return attributeBoolValue(element, 'Attributes.Virtual');
+export function isVirtual(element: ast.Operation | ast.Property): boolean {
+    return !isConstructor(element) && (isAbstract(element) || (attributeBoolValue(element, 'Attributes.Virtual') ?? (ast.isReferenceType(element.$container) && !isStatic(element))));
 }
+
 export function isMutable(element: ast.Field | ast.Association): boolean | undefined {
     return attributeBoolValue(element, 'Attributes.Mutable');
 }
 export function isConst(element: ast.Parameter | ast.ReturnParameter | ast.Association | ast.Operation | ast.Property): boolean | undefined {
     return attributeBoolValue(element, 'Attributes.Const');
+}
+export function isConstGetter(element: ast.Property): boolean | undefined {
+    return attributeBoolValue(element, 'Attributes.ConstGetter');
 }
 
 function kind(parameter: ast.Parameter | ast.ReturnParameter): ArgKind {

@@ -2,7 +2,7 @@ import * as ast from '../../generated/ast.js';
 import { type AstNode, AstUtils, type JSDocElement, type JSDocTag, type URI, UriUtils, WorkspaceCache } from 'langium';
 import * as fs from 'fs';
 import type { TaskAcceptor, XsmpGenerator } from '../generator.js';
-import { escape, fqn, getAccessKind, getAllFields, getDescription, getJSDoc, getNativeLocation, getNativeNamespace, getNativeType, getPTK, getUuid, getViewKind, isAbstractType, isByPointer, isByReference, isConst, isInput, isOutput, isState } from '../../utils/xsmp-utils.js';
+import { escape, fqn, getAccessKind, getAllFields, getDescription, getJSDoc, getNativeLocation, getPTK, getUuid, getViewKind, isAbstractType, isByPointer, isByReference, isConst, isInput, isOutput, isState, operatorKind } from '../../utils/xsmp-utils.js';
 import * as CopyrightNoticeProvider from '../copyright-notice-provider.js';
 import { expandToString as s } from 'langium/generate';
 import * as Path from 'path';
@@ -12,6 +12,7 @@ import type { XsmpTypeProvider } from '../../references/type-provider.js';
 import * as Solver from '../../utils/solver.js';
 import { PTK } from '../../utils/primitive-type-kind.js';
 import { xsmpVersion } from '../../version.js';
+import { OperatorKind } from '../../utils/operator-kind.js';
 
 export enum CxxStandard { CXX_STD_11 = 0, CXX_STD_14 = 1, CXX_STD_17 = 2 }
 
@@ -73,8 +74,8 @@ export abstract class CppGenerator implements XsmpGenerator {
         return catalogue.name;
     }
 
-    headerIncludesCatalogue(catalogue: ast.Catalogue): Include[] {
-        return ['Smp/ISimulator.h', 'Smp/Publication/ITypeRegistry.h', 'unordered_set', `${this.catalogueFileName(catalogue)}.h`];
+    sourceIncludesCatalogue(catalogue: ast.Catalogue): Include[] {
+        return ['unordered_set', `${this.catalogueFileName(catalogue)}.h`];
     }
 
     /** List of includes required to create a Factory */
@@ -103,7 +104,7 @@ export abstract class CppGenerator implements XsmpGenerator {
     }
 
     async generatePackageHeader(path: string, catalogue: ast.Catalogue, notice: string | undefined) {
-        const guard = catalogue.name.toUpperCase() + '_H';
+        const guard = catalogue.name.toUpperCase() + '_H_';
         await this.generateFile(path, s`
             ${notice}
             // ---------------------------------------------------------------------------
@@ -209,7 +210,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             /// @file ${Path.basename(path)}
             // This file is auto-generated, Do not edit otherwise your changes will be lost
 
-            ${this.includes([...this.headerIncludesCatalogue(catalogue), ...components, ...requiresFactory ? this.factoryIncludes() : [], ...exportedTypes, ...deps.map(d => `${d.name}.h`)])}
+            ${this.includes([...this.sourceIncludesCatalogue(catalogue), ...components, ...requiresFactory ? this.factoryIncludes() : [], ...exportedTypes, ...deps.map(d => `${d.name}.h`)])}
 
             // -----------------------------------------------------------------------------
             // ----------------------------- Global variables ------------------------------
@@ -422,18 +423,10 @@ export abstract class CppGenerator implements XsmpGenerator {
             return defaultFqn ?? '';
         }
         const key = { id: 'fqn', value: reference };
-        return this.cache.get(key, () => {
-            if (ast.isNativeType(reference)) {
-                const type = getNativeType(reference);
-                const namespace = getNativeNamespace(reference);
-                return namespace ? `${namespace}::${type}` : type ?? '';
-            }
-            return `::${fqn(reference, '::')}`;
-        }) as string;
+        return this.cache.get(key, () => { return `::${fqn(reference, '::')}`; }) as string;
     }
-
     // list of types with uuids defined in namespace ::Smp::Uuids
-    protected static smpUuidsTypes = new Set<string>(['Smp.Uuid', 'Smp.Char8', 'Smp.Bool', 'Smp.Int8', 'Smp.UInt8', 'Smp.Int16', 'Smp.UInt16', 'Smp.Int32',
+    static readonly smpUuidsTypes = new Set<string>(['Smp.Uuid', 'Smp.Char8', 'Smp.Bool', 'Smp.Int8', 'Smp.UInt8', 'Smp.Int16', 'Smp.UInt16', 'Smp.Int32',
         'Smp.UInt32', 'Smp.Int64', 'Smp.UInt64', 'Smp.Float32', 'Smp.Float64', 'Smp.Duration', 'Smp.DateTime', 'Smp.String8', 'Smp.PrimitiveTypeKind',
         'Smp.EventId', 'Smp.LogMessageKind', 'Smp.TimeKind', 'Smp.ViewKind', 'Smp.ParameterDirectionKind', 'Smp.ComponentStateKind', 'Smp.AccessKind',
         'Smp.SimulatorStateKind'
@@ -442,6 +435,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         if (!type) {
             return '::Smp::Uuids::Uuid_Void';
         }
+
         if (CppGenerator.smpUuidsTypes.has(fqn(type))) {
             return `::Smp::Uuids::Uuid_${type.name}`;
         }
@@ -487,7 +481,7 @@ export abstract class CppGenerator implements XsmpGenerator {
                 const type = this.typeProvider.getType(expr);
                 if (ast.isEnumeration(type)) {
                     const value = Solver.getValueAs(expr, type)?.enumerationLiteral()?.getValue();
-                    if (value) {
+                    if (value !== undefined) {
                         return this.fqn(value);
                     }
                 }
@@ -500,7 +494,7 @@ export abstract class CppGenerator implements XsmpGenerator {
                     case PTK.Duration:
                     case PTK.DateTime: {
                         const value = Solver.getValue(expr)?.integralValue(kind)?.getValue();
-                        if (value) { return `${value}L`; }
+                        if (value !== undefined) { return `${value}L`; }
                         break;
                     }
                 }
@@ -515,7 +509,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         }
         return `${expr.$cstNode?.text}`;
     }
-    protected stringTypeIsConstexpr(): boolean { return true; }
+    protected stringTypeIsConstexpr(): boolean { return false; }
 
     protected directListInitializer(expr: ast.Expression | undefined): string {
         if (!expr) return '{}';
@@ -595,6 +589,59 @@ export abstract class CppGenerator implements XsmpGenerator {
     protected generatedBy() {
         return `XSMP-${xsmpVersion}`;
     }
+    private typeInclude(type: ast.Type): string {
+        switch (fqn(type)) {
+            case 'Smp.Char8':
+            case 'Smp.String8':
+            case 'Smp.Float32':
+            case 'Smp.Float64':
+            case 'Smp.Int8':
+            case 'Smp.UInt8':
+            case 'Smp.Int16':
+            case 'Smp.UInt16':
+            case 'Smp.Int32':
+            case 'Smp.UInt32':
+            case 'Smp.Int64':
+            case 'Smp.UInt64':
+            case 'Smp.Bool':
+            case 'Smp.DateTime':
+            case 'Smp.Duration':
+            case 'Smp.PrimitiveTypeKind':
+                return 'Smp/PrimitiveTypes.h';
+            case 'Smp.EventSourceCollection':
+                return 'Smp/IEventSource.h';
+            case 'Smp.EntryPointCollection':
+                return 'Smp/IEntryPoint.h';
+            case 'Smp.FactoryCollection':
+                return 'Smp/IFactory.h';
+            case 'Smp.FailureCollection':
+                return 'Smp/IFailure.h';
+            case 'Smp.FieldCollection':
+                return 'Smp/IField.h';
+            case 'Smp.ComponentCollection':
+                return 'Smp/IComponent.h';
+            case 'Smp.OperationCollection':
+                return 'Smp/IOperation.h';
+            case 'Smp.ParameterCollection':
+                return 'Smp/IParameter.h';
+            case 'Smp.PropertyCollection':
+                return 'Smp/IProperty.h';
+            case 'Smp.AnySimpleArray':
+                return 'Smp/AnySimple.h';
+            case 'Smp.ModelCollection':
+                return 'Smp/IModel.h';
+            case 'Smp.ServiceCollection':
+                return 'Smp/IService.h';
+            case 'Smp.ReferenceCollection':
+                return 'Smp/IReference.h';
+            case 'Smp.ContainerCollection':
+                return 'Smp/IContainer.h';
+            case 'Smp.EventSinkCollection':
+                return 'Smp/IEventSink.h';
+            default:
+                return fqn(type, '/') + '.h';
+        }
+    }
 
     protected includes(includes: Include[], excludes: Include[] = []): string | undefined {
         if (includes.length === 0) {
@@ -606,7 +653,7 @@ export abstract class CppGenerator implements XsmpGenerator {
                 includeDeclarations.add(include);
             }
             else if (ast.isType(include)) {
-                includeDeclarations.add(CppGenerator.smpUuidsTypes.has(fqn(include)) ? 'Smp/PrimitiveTypes.h' : fqn(include, '/') + '.h');
+                includeDeclarations.add(this.typeInclude(include));
             }
             else if (ForwardedType.is(include)) {
                 //TODO else forward
@@ -619,7 +666,7 @@ export abstract class CppGenerator implements XsmpGenerator {
                 excludeDeclarations.add(exclude);
             }
             else if (ast.isType(exclude)) {
-                excludeDeclarations.add(CppGenerator.smpUuidsTypes.has(fqn(exclude)) ? 'Smp/PrimitiveTypes.h' : fqn(exclude, '/') + '.h');
+                excludeDeclarations.add(this.typeInclude(exclude));
             }
         }
         const sortedIncludes = Array.from(includeDeclarations.difference(excludeDeclarations)).toSorted((a, b) => a.localeCompare(b));
@@ -664,8 +711,8 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
     headerIncludesConstant(element: ast.Constant): Include[] {
         return [element.type.ref, ...this.expressionIncludes(element.value)];
     }
-    headerIncludesContainer(_element: ast.Container): Include[] {
-        return ['Smp/IContainer.h'];
+    headerIncludesContainer(element: ast.Container): Include[] {
+        return [element.type.ref]; //'Smp/IContainer.h',
     }
     headerIncludesEntryPoint(_element: ast.EntryPoint): Include[] {
         return [];
@@ -786,13 +833,13 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
         return [];
     }
     sourceIncludesClass(_type: ast.Class): Include[] {
-        return [];
+        return ['cstddef'];
     }
     sourceIncludesException(_type: ast.Exception): Include[] {
-        return [];
+        return ['cstddef'];
     }
     sourceIncludesStructure(_type: ast.Structure): Include[] {
-        return [];
+        return ['cstddef'];
     }
 
     expressionIncludes(expr: ast.Expression | undefined): Include[] {
@@ -815,11 +862,14 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
         ];
         return (type.minimum === undefined || type.maximum === undefined) ? ['limits', ...includes] : includes;
     }
-    sourceIncludesModel(_type: ast.Model): Include[] {
+    sourceIncludesComponent(_type: ast.Component): Include[] {
         return [];
     }
-    sourceIncludesService(_type: ast.Service): Include[] {
-        return [];
+    sourceIncludesModel(type: ast.Model): Include[] {
+        return this.sourceIncludesComponent(type);
+    }
+    sourceIncludesService(type: ast.Service): Include[] {
+        return this.sourceIncludesComponent(type);
     }
     sourceIncludesInterface(_type: ast.Interface): Include[] {
         return [];
@@ -1033,7 +1083,7 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
         if (element.returnParameter && !ast.isSimpleType(element.returnParameter.type.ref)) {
             return false;
         }
-        return element.parameter.every(param => ast.isValueType(param.type.ref));
+        return element.parameter.every(param => ast.isSimpleType(param.type.ref));
     }
     protected componentBase(type: ast.Component): string | undefined {
         if (type.base) { return this.fqn(type.base.ref); }
@@ -1136,7 +1186,7 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
             const r = op.returnParameter;
             return s`
                 // Publish operation ${op.name}
-                ${r || op.parameter.length > 0 ? 'auto* op_${op.name} = ' : ''}receiver->PublishOperation(
+                ${r || op.parameter.length > 0 ? `auto* op_${op.name} = ` : ''}receiver->PublishOperation(
                     "${op.name}", // Name
                     ${this.description(op)}, // Description
                     ${this.viewKind(op)} // View Kind
@@ -1199,5 +1249,97 @@ ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
         return `${isConst(elem) ? 'const ' : ''}${this.fqn(elem.type.ref)}${isByPointer(elem) ? '*' : ''}${!ast.isAssociation(elem) && isByReference(elem) ? '&' : ''}`;
     }
 
+    protected getDefaultValueForType(type: ast.Type | undefined): string {
+        if (!type) {
+            return '';
+        }
+
+        if (ast.isArrayType(type)) {
+            const value = Solver.getValueAs(type.size, PTK.Int64)?.integralValue(PTK.Int64)?.getValue();
+            return value ? `{${new Array(Number(value)).fill(this.getDefaultValueForType(type.itemType.ref)).join(', ')}}` : '{}';
+        }
+        if (ast.isStructure(type)) {
+            return `{${getAllFields(type).map(f => `/*.${f.name} = */${this.getDefaultValueForType(f.type.ref)}`).join(', ')}}`;
+        }
+
+        if (ast.isEnumeration(type)) {
+            return type.literal.length > 0 ? this.fqn(type.literal[0]) : '0';
+        }
+
+        switch (getPTK(type)) {
+            case PTK.Bool:
+                return 'false';
+            case PTK.Float32:
+                return '0.0f';
+            case PTK.Float64:
+                return '0.0 ';
+            case PTK.Int8:
+            case PTK.Int16:
+            case PTK.Int32:
+                return '0 ';
+            case PTK.DateTime:
+            case PTK.Duration:
+            case PTK.Int64:
+                return '0L ';
+            case PTK.UInt8:
+            case PTK.UInt16:
+            case PTK.UInt32:
+                return '0U ';
+            case PTK.UInt64:
+                return '0UL ';
+            case PTK.Char8:
+                return "'\\0'";
+            case PTK.String8:
+                return '""';
+
+        }
+        return '{}';
+    }
+
+    protected operationName(op: ast.Operation): string {
+        switch (operatorKind(op)) {
+            case OperatorKind.NONE:
+                return op.name;
+            case OperatorKind.ADD:
+                return 'operator+=';
+            case OperatorKind.ASSIGN:
+                return 'operator=';
+            case OperatorKind.DIFFERENCE:
+            case OperatorKind.NEGATIVE:
+                return 'operator-';
+            case OperatorKind.DIVIDE:
+                return 'operator/=';
+            case OperatorKind.EQUAL:
+                return 'operator==';
+            case OperatorKind.GREATER:
+                return 'operator>';
+            case OperatorKind.INDEXER:
+                return 'operator[]';
+            case OperatorKind.LESS:
+                return 'operator<';
+            case OperatorKind.MODULE:
+                return 'operator%';
+            case OperatorKind.MULTIPLY:
+                return 'operator*=';
+            case OperatorKind.NOT_EQUAL:
+                return 'operator!=';
+            case OperatorKind.NOT_GREATER:
+                return 'operator<=';
+            case OperatorKind.NOT_LESS:
+                return 'operator>=';
+            case OperatorKind.POSITIVE:
+            case OperatorKind.SUM:
+                return 'operator+';
+            case OperatorKind.PRODUCT:
+                return 'operator*';
+            case OperatorKind.QUOTIENT:
+                return 'operator/';
+            case OperatorKind.REMAINDER:
+                return 'operator%=';
+            case OperatorKind.SUBTRACT:
+                return 'operator-=';
+        }
+
+    }
 }
 
