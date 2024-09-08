@@ -116,14 +116,14 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
     override headerIncludesEntryPoint(_element: ast.EntryPoint): Include[] {
         return ['Xsmp/EntryPoint.h'];
     }
-    protected override initializeEntryPoint(element: ast.EntryPoint, gen: boolean): string | undefined {
+    protected override initializeEntryPoint(element: ast.EntryPoint, _gen: boolean): string | undefined {
         return s`
         // EntryPoint ${element.name}
         ${element.name}{
             "${element.name}", // Name
             ${this.description(element)}, // Description
             this, // Parent
-            std::bind(&${element.$container.name}${gen ? 'Gen' : ''}::_${element.name}, this) // Callback
+            [this]{this->_${element.name}();} // Callback
         }
         `;
     }
@@ -142,7 +142,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
     override headerIncludesEventSink(_element: ast.EventSink): Include[] {
         return ['Xsmp/EventSink.h'];
     }
-    protected override initializeEventSink(element: ast.EventSink, gen: boolean): string | undefined {
+    protected override initializeEventSink(element: ast.EventSink, _gen: boolean): string | undefined {
         const eventType = this.eventType(element);
 
         if (eventType) {
@@ -152,7 +152,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
             "${element.name}", // Name
             ${this.description(element)}, // Description
             this, // Parent
-            std::bind(&${element.$container.name}${gen ? 'Gen' : ''}::_${element.name}, this, std::placeholders::_1, std::placeholders::_2), // Callback
+            [this](::Smp::IObject *sender, ${this.fqn(eventType)} value) {this->_${element.name}(sender, value);}, // Callback
             ${this.primitiveTypeKind(eventType)} // Primitive Type Kind
         }
         `;
@@ -164,7 +164,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
             "${element.name}", // Name
             ${this.description(element)}, // Description
             this, // Parent
-            std::bind(&${element.$container.name}${gen ? 'Gen' : ''}::_${element.name}, this, std::placeholders::_1) //Callback
+            [this](::Smp::IObject *sender) {this->_${element.name}(sender);} // Callback
         }
         `;
         }
