@@ -512,16 +512,14 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
 
     protected generateRqHandlerOperation(op: ast.Operation, gen: boolean): string {
         const r = op.returnParameter;
-        return `
+        const invokation = `component->${this.operationName(op)}(${op.parameter.map(param => `${isByPointer(param) ? '&' : ''}p_${param.name}`).join(', ')})`;
+        return s`
             // Handler for Operation ${op.name}
             {"${op.name}",
             [](${this.name(op.$container, gen)}* component, ::Smp::IRequest *${r || op.parameter.length > 0 ? 'request' : ''}) {
                 ${op.parameter.map(this.initParameter, this).join('\n')}
-                
-                ${r ? `const auto p_${r.name ?? 'return'} = ` : ''}component->${op.name}(${op.parameter.map(param => `${isByPointer(param) ? '&' : ''}p_${param.name}`).join(', ')});
-                
+                ${r ? `::Xsmp::Request::setReturnValue(request, ${this.primitiveTypeKind(r.type.ref)}, ${invokation})` : `${invokation}`};
                 ${op.parameter.map(this.setParameter, this).join('\n')}
-                ${r ? `::Xsmp::Request::setReturnValue(request, ${this.primitiveTypeKind(r.type.ref)}, p_${r.name ?? 'return'});` : ''}
             }},
 
             `;
@@ -531,7 +529,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
             if (element.returnParameter && !ast.isSimpleType(element.returnParameter.type.ref)) {
                 return false;
             }
-            return element.parameter.every(param => ast.isSimpleType(param.type.ref) /*&& !ast.isClass(param.type.ref)*/);
+            return element.parameter.every(param => ast.isValueType(param.type.ref) && !ast.isClass(param.type.ref));
         }
         return super.isInvokable(element);
     }

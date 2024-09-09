@@ -258,19 +258,19 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
             case PTK.Float32:
                 return '0.0f';
             case PTK.Float64:
-                return '0.0 ';
+                return '0.0';
             case PTK.Int8:
             case PTK.Int16:
             case PTK.Int32:
-                return '0 ';
+                return '0';
             case PTK.Int64:
-                return '0L ';
+                return '0L';
             case PTK.UInt8:
             case PTK.UInt16:
             case PTK.UInt32:
-                return '0U ';
+                return '0U';
             case PTK.UInt64:
-                return '0UL ';
+                return '0UL';
             case PTK.Char8:
                 return "'\\0'";
             case PTK.String8:
