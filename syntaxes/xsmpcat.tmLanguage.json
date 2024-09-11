@@ -186,14 +186,14 @@
 					}
 				},
 				{
-					"match": "\\b(?:[A-Za-z]\\w*\\s*(\\.)\\s*)*([A-Za-z]\\w*)\\b",
+					"match": "\\b([A-Za-z]\\w*\\s*(\\.)\\s*)*([A-Za-z]\\w*)\\b",
 					"name": "entity.other.type.reference.xsmp",
 					"captures": {
 						"1": {
-							"name": "punctuation.separator.period.xsmp"
+							"name": "entity.name.type.reference.xsmp"
 						},
 						"2": {
-							"name": "variable.parameter.constant-or-enum.xsmp"
+							"name": "punctuation.separator.period.xsmp"
 						}
 					}
 				}

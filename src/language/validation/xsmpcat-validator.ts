@@ -144,7 +144,10 @@ export class XsmpcatValidator {
             accept('error', 'An Element Name shall not be an ISO/ANSI C++ keyword.',
                 { node: element, property: 'name' });
         }
+        this.checkAttributes(element, accept);
+    }
 
+    private checkAttributes(element: ast.NamedElement | ast.ReturnParameter, accept: ValidationAcceptor) {
         const visited = new Set<ast.AttributeType>();
         for (const attribute of element.attributes) {
             if (this.checkTypeReference(accept, attribute, attribute.type, 'type')) {
@@ -164,7 +167,6 @@ export class XsmpcatValidator {
             }
         }
     }
-
     public static getReferenceType(type: string, property: string): string {
 
         const referenceId = `${type}:${property}`;
@@ -879,14 +881,19 @@ export class XsmpcatValidator {
         if (this.checkTypeReference(accept, parameter, parameter.type, 'type')) { this.checkExpression(parameter.type.ref, parameter.default, accept); } //TODO isByPointer
 
         const isByPointer = XsmpUtils.attribute(parameter, 'Attributes.ByPointer');
-        if (XsmpUtils.isAttributeTrue(isByPointer) && XsmpUtils.isAttributeTrue(XsmpUtils.attribute(parameter, 'Attributes.ByReference'))) { accept('error', 'A Parameter shall not be both ByPointer and ByReference.', { node: isByPointer!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
+        if (XsmpUtils.isAttributeTrue(isByPointer) && XsmpUtils.isAttributeTrue(XsmpUtils.attribute(parameter, 'Attributes.ByReference'))) {
+            accept('error', 'A Parameter shall not be both ByPointer and ByReference.', { node: isByPointer!, data: diagnosticData(IssueCodes.InvalidAttribute) });
+        }
     }
 
     checkReturnParameter(parameter: ast.ReturnParameter, accept: ValidationAcceptor): void {
         this.checkTypeReference(accept, parameter, parameter.type, 'type');
 
         const isByPointer = XsmpUtils.attribute(parameter, 'Attributes.ByPointer');
-        if (XsmpUtils.isAttributeTrue(isByPointer) && XsmpUtils.isAttributeTrue(XsmpUtils.attribute(parameter, 'Attributes.ByReference'))) { accept('error', 'A Parameter shall not be both ByPointer and ByReference.', { node: isByPointer!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
+        if (XsmpUtils.isAttributeTrue(isByPointer) && XsmpUtils.isAttributeTrue(XsmpUtils.attribute(parameter, 'Attributes.ByReference'))) {
+            accept('error', 'A Parameter shall not be both ByPointer and ByReference.', { node: isByPointer!, data: diagnosticData(IssueCodes.InvalidAttribute) });
+        }
+        this.checkAttributes(parameter, accept);
     }
 
     checkPrimitiveType(type: ast.PrimitiveType, accept: ValidationAcceptor): void {

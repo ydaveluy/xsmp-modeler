@@ -460,7 +460,7 @@ Operation returns Operation:
 	 * If such a parameter is absent, the operation is a void function (procedure) without return value.
 	 * An **RaisedException** may specify an arbitrary number of exceptions that it can raise (**RaisedException**).
      */
-    'def' (returnParameter=(ReturnParameter|ReturnParameterWithName)  | 'void' )name=ValidID  '(' (parameter+=Parameter  (',' parameter+=Parameter  )* )? ')' 
+    'def' (returnParameter=(ReturnParameter|ReturnParameterWithName)  | 'void') name=ValidID '(' (parameter+=Parameter  (',' parameter+=Parameter  )* )? ')' 
     ('throws' raisedException+=[Exception:QualifiedName ] (',' raisedException+=[Exception:QualifiedName ] )* )?  
 ;
 

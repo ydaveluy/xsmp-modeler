@@ -659,23 +659,21 @@ export abstract class CppGenerator implements XsmpGenerator {
                 //TODO else forward
             }
         }
-
-        const excludeDeclarations = new Set<string>();
         for (const exclude of excludes) {
             if (typeof exclude === 'string') {
-                excludeDeclarations.add(exclude);
+                includeDeclarations.delete(exclude);
             }
             else if (ast.isType(exclude)) {
-                excludeDeclarations.add(this.typeInclude(exclude));
+                includeDeclarations.delete(this.typeInclude(exclude));
             }
         }
-        const sortedIncludes = Array.from(includeDeclarations.difference(excludeDeclarations)).toSorted((a, b) => a.localeCompare(b));
-        return `
-// ----------------------------------------------------------------------------
-// --------------------------- Include Header Files ---------------------------
-// ----------------------------------------------------------------------------
-${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
-`;
+        const sortedIncludes = Array.from(includeDeclarations).toSorted((a, b) => a.localeCompare(b));
+        return s`
+            // ----------------------------------------------------------------------------
+            // --------------------------- Include Header Files ---------------------------
+            // ----------------------------------------------------------------------------
+            ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
+            `;
     }
 
     protected headerIncludes(element: ast.NamedElement): Include[] {

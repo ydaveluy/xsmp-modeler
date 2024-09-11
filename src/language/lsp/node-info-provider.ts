@@ -9,7 +9,7 @@ export class XsmpNodeInfoProvider {
 
     getDetails(node: AstNode): string | undefined {
         switch (node.$type) {
-            case ast.Association: return (node as ast.Association).type?.$refText + XsmpUtils.isByPointer(node as ast.Association) ? '*' : '';
+            case ast.Association: return (node as ast.Association).type?.$refText + (XsmpUtils.isByPointer(node as ast.Association) ? '*' : '');
             case ast.Constant: return (node as ast.Constant).type?.$refText;
             case ast.Container: return (node as ast.Container).type?.$refText + this.getMultiplicity(node as ast.NamedElementWithMultiplicity);
             case ast.EventSink: return `EventSink<${(node as ast.EventSink).type?.$refText}>`;
@@ -60,8 +60,8 @@ export class XsmpNodeInfoProvider {
         else {
             return `[${lower} ... ${upper}]`;
         }
-
     }
+
     getTags(node: AstNode): SymbolTag[] | undefined {
         if (ast.isNamedElement(node) && XsmpUtils.IsDeprecated(node)) {
             return [SymbolTag.Deprecated];

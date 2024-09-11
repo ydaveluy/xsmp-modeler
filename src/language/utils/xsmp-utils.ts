@@ -460,6 +460,19 @@ function checkIsBaseOfReferenceType(parent: ast.ReferenceType, base: ast.Type | 
     }
 
     if (ast.isComponent(base)) {
+        const parentFqn = fqn(parent);
+        if (parentFqn === 'Smp.IObject' ||
+            parentFqn === 'Smp.IComponent' ||
+            (parentFqn === 'Smp.IModel' && base.$type === ast.Model) ||
+            (parentFqn === 'Smp.IService' && base.$type === ast.Service) ||
+            (parentFqn === 'Smp.IEntryPointPublisher' && base.elements.some(ast.isEntryPoint)) ||
+            (parentFqn === 'Smp.IComposite' && base.elements.some(ast.isContainer)) ||
+            (parentFqn === 'Smp.IAggregate' && base.elements.some(ast.isReference_)) ||
+            (parentFqn === 'Smp.IEventConsumer' && base.elements.some(ast.isEventSink)) ||
+            (parentFqn === 'Smp.IEventProvider' && base.elements.some(ast.isEventSource)) ||
+            (parentFqn === 'Smp.IDynamicInvocation' && base.elements.some(ast.isInvokable))) {
+            return true;
+        }
         return (base.base !== undefined && checkIsBaseOfReferenceType(parent, base.base.ref, visited)) ||
             base.interface.some(i => checkIsBaseOfReferenceType(parent, i.ref, visited));
     }
