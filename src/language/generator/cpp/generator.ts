@@ -520,13 +520,13 @@ export abstract class CppGenerator implements XsmpGenerator {
             return `{${this.expression(expr)}}`;
     }
 
-    protected namespace(object: AstNode, body: string): string {
+    protected namespace(object: AstNode, body: string, generateComments = true): string {
         const namespace = AstUtils.getContainerOfType(object, ast.isNamespace);
         if (namespace !== undefined)
             if (this.cxxStandard >= CxxStandard.CXX_STD_17) {
                 const name = fqn(namespace, '::');
                 return s`
-                    ${this.comment(namespace)}namespace ${name}
+                    ${generateComments ? this.comment(namespace) : undefined}namespace ${name}
                     {
                         ${body}
                     } // namespace ${name}
@@ -535,7 +535,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             else
                 return this.namespace(namespace.$container,
                     s`
-                    ${this.comment(namespace)}namespace ${namespace.name}
+                    ${generateComments ? this.comment(namespace) : undefined}namespace ${namespace.name}
                     {
                         ${body}
                     } // namespace ${namespace.name}
@@ -648,31 +648,58 @@ export abstract class CppGenerator implements XsmpGenerator {
             return undefined;
         }
         const includeDeclarations = new Set<string>();
+        const includedTypes = new Set<ast.Type>();
+        const forwardedTypes = new Set<ast.Type>();
         for (const include of includes) {
             if (typeof include === 'string') {
                 includeDeclarations.add(include);
             }
-            else if (ast.isType(include)) {
-                includeDeclarations.add(this.typeInclude(include));
-            }
             else if (ForwardedType.is(include)) {
-                //TODO else forward
+                forwardedTypes.add(include.type);
             }
+            else if (include) {
+                includedTypes.add(include);
+            }
+        }
+
+        for (const type of includedTypes) {
+            includeDeclarations.add(this.typeInclude(type));
         }
         for (const exclude of excludes) {
             if (typeof exclude === 'string') {
                 includeDeclarations.delete(exclude);
             }
-            else if (ast.isType(exclude)) {
+            else if (ForwardedType.is(exclude)) {
+                forwardedTypes.delete(exclude.type);
+            }
+            else if (exclude) {
                 includeDeclarations.delete(this.typeInclude(exclude));
             }
         }
+        for (const type of forwardedTypes) {
+            if (includeDeclarations.has(this.typeInclude(type)))
+                forwardedTypes.delete(type);
+        }
+
+        if (includeDeclarations.size === 0 && forwardedTypes.size === 0) {
+            return undefined;
+        }
         const sortedIncludes = Array.from(includeDeclarations).toSorted((a, b) => a.localeCompare(b));
         return s`
-            // ----------------------------------------------------------------------------
-            // --------------------------- Include Header Files ---------------------------
-            // ----------------------------------------------------------------------------
-            ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
+            ${forwardedTypes.size > 0 ? s`
+                // ----------------------------------------------------------------------------
+                // --------------------------- Forward Declarations ---------------------------
+                // ----------------------------------------------------------------------------
+                ${Array.from(forwardedTypes).map(type => this.namespace(type, `class ${type.name};`, false), this).join('\n')}
+
+                `: undefined}
+            ${sortedIncludes.length > 0 ? s`
+                // ----------------------------------------------------------------------------
+                // --------------------------- Include Header Files ---------------------------
+                // ----------------------------------------------------------------------------
+                ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
+
+                `: undefined}
             `;
     }
 
@@ -703,36 +730,53 @@ export abstract class CppGenerator implements XsmpGenerator {
             default: return [];
         }
     }
+    isForwardable(type: ast.Type | undefined): type is ast.Type {
+        return type !== undefined && (ast.isStructure(type) || ast.isReferenceType(type));
+    }
     headerIncludesAssociation(element: ast.Association): Include[] {
+        if (isByPointer(element) && this.isForwardable(element.type.ref))
+            return [ForwardedType.create(element.type.ref)];
         return [element.type.ref];
     }
     headerIncludesConstant(element: ast.Constant): Include[] {
         return [element.type.ref, ...this.expressionIncludes(element.value)];
     }
     headerIncludesContainer(element: ast.Container): Include[] {
-        return [element.type.ref]; //'Smp/IContainer.h',
+        return [ForwardedType.create(element.type.ref!), element.type.ref];
     }
     headerIncludesEntryPoint(_element: ast.EntryPoint): Include[] {
         return [];
     }
-    headerIncludesEventSink(_element: ast.EventSink): Include[] {
+    headerIncludesEventSink(element: ast.EventSink): Include[] {
+        if (ast.isEventType(element.type.ref) && element.type.ref.eventArgs)
+            return ['Smp/PrimitiveTypes.h'];
         return [];
     }
-    headerIncludesEventSource(_element: ast.EventSource): Include[] {
+    headerIncludesEventSource(element: ast.EventSource): Include[] {
+        if (ast.isEventType(element.type.ref) && element.type.ref.eventArgs)
+            return ['Smp/PrimitiveTypes.h'];
         return [];
     }
     headerIncludesField(element: ast.Field): Include[] {
         return [element.type.ref, ...this.expressionIncludes(element.default)];
     }
+    headerIncludesParameter(element: ast.Parameter | ast.ReturnParameter | undefined): Include[] {
+        if (!element)
+            return [];
+        return [isByPointer(element) && this.isForwardable(element.type.ref) ? ForwardedType.create(element.type.ref) : element.type.ref,
+        ...ast.isParameter(element) ? this.expressionIncludes(element.default) : []];
+    }
+
     headerIncludesOperation(element: ast.Operation): Include[] {
-        // TODO forward pointer types ?
-        return [element.returnParameter?.type.ref, ...element.parameter.map(param => param.type.ref)];
+        return [...this.headerIncludesParameter(element.returnParameter), ...element.parameter.flatMap(param => this.headerIncludesParameter(param), this)];
     }
     headerIncludesProperty(element: ast.Property): Include[] {
+        if (isByPointer(element) && this.isForwardable(element.type.ref))
+            return [ForwardedType.create(element.type.ref)];
         return [element.type.ref];
     }
     headerIncludesReference(element: ast.Reference_): Include[] {
-        return [element.interface.ref];
+        return [ForwardedType.create(element.interface.ref!), element.interface.ref];
     }
     headerIncludesClass(type: ast.Class): Include[] {
         return ['Smp/Publication/ITypeRegistry.h', ...type.elements.flatMap(element => this.headerIncludes(element)), type.base?.ref];
@@ -750,7 +794,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         return ['Smp/Publication/ITypeRegistry.h', 'Smp/PrimitiveTypes.h'];
     }
     headerIncludesComponent(type: ast.Component): Include[] {
-        return ['Smp/Publication/ITypeRegistry.h', ...type.elements.flatMap(element => this.headerIncludes(element)), type.base?.ref, ...type.interface.map(inter => inter.ref)];
+        return ['Smp/Publication/ITypeRegistry.h', ...type.elements.flatMap(element => this.headerIncludes(element)), type.base?.ref, ...type.interface.map(inter => inter.ref), ForwardedType.create(type)];
     }
     headerIncludesModel(type: ast.Model): Include[] {
         return this.headerIncludesComponent(type);
@@ -800,7 +844,9 @@ export abstract class CppGenerator implements XsmpGenerator {
             default: return [];
         }
     }
-    sourceIncludesAssociation(_element: ast.Association): Include[] {
+    sourceIncludesAssociation(element: ast.Association): Include[] {
+        if (isByPointer(element) && this.isForwardable(element.type.ref))
+            return [element.type.ref];
         return [];
     }
     sourceIncludesConstant(_element: ast.Constant): Include[] {
@@ -821,23 +867,31 @@ export abstract class CppGenerator implements XsmpGenerator {
     sourceIncludesField(_element: ast.Field): Include[] {
         return [];
     }
-    sourceIncludesOperation(_element: ast.Operation): Include[] {
+    sourceIncludesParameter(element: ast.Parameter | ast.ReturnParameter | undefined): Include[] {
+        if (element && isByPointer(element) && this.isForwardable(element.type.ref))
+            return [element.type.ref];
         return [];
     }
-    sourceIncludesProperty(_element: ast.Property): Include[] {
+    sourceIncludesOperation(element: ast.Operation): Include[] {
+        return [...this.sourceIncludesParameter(element.returnParameter), ...element.parameter.flatMap(param => this.sourceIncludesParameter(param), this)];
+    }
+    sourceIncludesProperty(element: ast.Property): Include[] {
+        if (isByPointer(element) && this.isForwardable(element.type.ref))
+            return [element.type.ref];
         return [];
     }
     sourceIncludesReference(_element: ast.Reference_): Include[] {
         return [];
     }
-    sourceIncludesClass(_type: ast.Class): Include[] {
-        return ['cstddef'];
+    sourceIncludesClass(type: ast.Class): Include[] {
+        return this.sourceIncludesStructure(type);
     }
-    sourceIncludesException(_type: ast.Exception): Include[] {
-        return ['cstddef'];
+    sourceIncludesException(type: ast.Exception): Include[] {
+        return this.sourceIncludesClass(type);
     }
-    sourceIncludesStructure(_type: ast.Structure): Include[] {
-        return ['cstddef'];
+    sourceIncludesStructure(type: ast.Structure): Include[] {
+        //offsetof needs cstddef
+        return ['cstddef', ...type.elements.flatMap(element => this.sourceIncludes(element))];
     }
 
     expressionIncludes(expr: ast.Expression | undefined): Include[] {
@@ -860,8 +914,8 @@ export abstract class CppGenerator implements XsmpGenerator {
         ];
         return (type.minimum === undefined || type.maximum === undefined) ? ['limits', ...includes] : includes;
     }
-    sourceIncludesComponent(_type: ast.Component): Include[] {
-        return [];
+    sourceIncludesComponent(type: ast.Component): Include[] {
+        return [...type.elements.flatMap(element => this.sourceIncludes(element))];
     }
     sourceIncludesModel(type: ast.Model): Include[] {
         return this.sourceIncludesComponent(type);
@@ -869,8 +923,8 @@ export abstract class CppGenerator implements XsmpGenerator {
     sourceIncludesService(type: ast.Service): Include[] {
         return this.sourceIncludesComponent(type);
     }
-    sourceIncludesInterface(_type: ast.Interface): Include[] {
-        return [];
+    sourceIncludesInterface(type: ast.Interface): Include[] {
+        return [...type.elements.flatMap(element => this.sourceIncludes(element))];
     }
     sourceIncludesArray(type: ast.ArrayType): Include[] {
         return this.expressionIncludes(type.size);
@@ -979,8 +1033,11 @@ export abstract class CppGenerator implements XsmpGenerator {
     protected initializeContainer(_element: ast.Container): string | undefined {
         return undefined;
     }
-    protected finalizeContainer(_element: ast.Container): string | undefined {
-        return undefined;
+    protected finalizeContainer(element: ast.Container): string | undefined {
+        return s`
+            delete ${element.name};
+            ${element.name} = nullptr;
+            `;
     }
 
     protected declareEntryPoint(_element: ast.EntryPoint): string | undefined {
@@ -1070,8 +1127,11 @@ export abstract class CppGenerator implements XsmpGenerator {
     protected initializeReference(_element: ast.Reference_): string | undefined {
         return undefined;
     }
-    protected finalizeReference(_element: ast.Reference_): string | undefined {
-        return undefined;
+    protected finalizeReference(element: ast.Reference_): string | undefined {
+        return s`
+            delete ${element.name};
+            ${element.name} = nullptr;
+            `;
     }
 
     protected isInvokable(element: ast.Invokable): boolean {

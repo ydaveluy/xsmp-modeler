@@ -1,4 +1,4 @@
-import { type DocumentBuilder, DocumentState, type AstNode, type Cancellation, type LangiumDocument, type MaybePromise } from 'langium';
+import { type AstNode, type Cancellation, type LangiumDocument, type MaybePromise, type WorkspaceLock } from 'langium';
 import type { DocumentSymbolProvider, NodeKindProvider } from 'langium/lsp';
 import type { DocumentSymbol, DocumentSymbolParams } from 'vscode-languageserver';
 import * as ast from '../generated/ast.js';
@@ -10,22 +10,21 @@ import type { XsmpNodeInfoProvider } from './node-info-provider.js';
 export class XsmpDocumentSymbolProvider implements DocumentSymbolProvider {
 
     protected readonly nodeKindProvider: NodeKindProvider;
-    protected readonly documentBuilder: DocumentBuilder;
     protected readonly nodeInfoProvider: XsmpNodeInfoProvider;
+    protected readonly workspaceManager: WorkspaceLock;
 
     constructor(services: XsmpcatServices | XsmpprojectServices) {
         this.nodeKindProvider = services.shared.lsp.NodeKindProvider;
-        this.documentBuilder = services.shared.workspace.DocumentBuilder;
         this.nodeInfoProvider = services.shared.lsp.NodeInfoProvider;
+        this.workspaceManager = services.shared.workspace.WorkspaceLock;
     }
-    getSymbols(document: LangiumDocument, _params: DocumentSymbolParams, cancelToken?: Cancellation.CancellationToken): MaybePromise<DocumentSymbol[]> {
-        return this.documentBuilder.waitUntil(DocumentState.ComputedScopes, document.uri, cancelToken)
-            .then(() => this.getSymbol(document, document.parseResult.value));
+    getSymbols(document: LangiumDocument, _params: DocumentSymbolParams, _cancelToken?: Cancellation.CancellationToken): MaybePromise<DocumentSymbol[]> {
+        return this.workspaceManager.read(() => this.getSymbol(document, document.parseResult.value));
     }
 
     protected getSymbol(document: LangiumDocument, astNode: AstNode): DocumentSymbol[] {
-        const node = astNode.$cstNode;
 
+        const node = astNode.$cstNode;
         const name = this.getSymbolName(astNode);
         if (node && name) {
             return [{
@@ -42,11 +41,11 @@ export class XsmpDocumentSymbolProvider implements DocumentSymbolProvider {
 
     }
 
-    protected getChildSymbols(document: LangiumDocument, astNode: AstNode): DocumentSymbol[] | undefined {
+    protected getChildSymbols(document: LangiumDocument, astNode: AstNode): DocumentSymbol[] {
         if ('elements' in astNode) {
             return (astNode.elements as AstNode[]).flatMap(e => this.getSymbol(document, e));
         }
-        return undefined;
+        return [];
     }
     protected getSymbolName(node: AstNode): string | undefined {
         if (!ast.isNamedElement(node)) {

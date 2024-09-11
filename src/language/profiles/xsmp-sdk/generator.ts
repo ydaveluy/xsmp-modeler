@@ -57,22 +57,19 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         return [...super.headerIncludesString(type), 'Xsmp/String.h'];
     }
 
+    override headerIncludesContainer(element: ast.Container): Include[] {
+        return ['Xsmp/Container.h', ...super.headerIncludesContainer(element)];
+    }
+
     protected override declareContainerGen(element: ast.Container): string | undefined {
         return s`
         ${this.comment(element)}::Xsmp::Container<${this.fqn(element.type.ref)}> ${element.name};
         `;
     }
-    override headerIncludesContainer(element: ast.Container): Include[] {
-        return ['Xsmp/Container.h', element.type.ref];
-    }
-    protected override finalizeContainer(_element: ast.Container): string | undefined {
-        return undefined;
-    }
-
     protected override initializeContainer(element: ast.Container): string | undefined {
         return s`
         // Container ${element.name}
-        ${element.name} {
+        ${element.name} { 
             "${element.name}", // Name
             ${this.description(element)}, // Description
             this, // Parent
@@ -88,10 +85,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         `;
     }
     override headerIncludesReference(element: ast.Reference_): Include[] {
-        return ['Xsmp/Reference.h', element.interface.ref];
-    }
-    protected override finalizeReference(_element: ast.Reference_): string | undefined {
-        return undefined;
+        return ['Xsmp/Reference.h', ...super.headerIncludesReference(element)];
     }
 
     protected override initializeReference(element: ast.Reference_): string | undefined {
@@ -139,8 +133,8 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         virtual void _${element.name}(::Smp::IObject* sender${eventType ? `, ${this.fqn(eventType)}` : ''})${gen ? ' = 0' : ''};
         `;
     }
-    override headerIncludesEventSink(_element: ast.EventSink): Include[] {
-        return ['Xsmp/EventSink.h'];
+    override headerIncludesEventSink(element: ast.EventSink): Include[] {
+        return ['Xsmp/EventSink.h', ...super.headerIncludesEventSink(element)];
     }
     protected override initializeEventSink(element: ast.EventSink, _gen: boolean): string | undefined {
         const eventType = this.eventType(element);
@@ -179,8 +173,8 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         ${this.comment(element)}::Xsmp::EventSource<${this.fqn(eventType)}> ${element.name};
         `;
     }
-    override headerIncludesEventSource(_element: ast.EventSource): Include[] {
-        return ['Xsmp/EventSource.h'];
+    override headerIncludesEventSource(element: ast.EventSource): Include[] {
+        return ['Xsmp/EventSource.h', ...super.headerIncludesEventSource(element)];
     }
     protected override initializeEventSource(element: ast.EventSource, _gen: boolean): string | undefined {
         const eventType = this.eventType(element);
@@ -334,7 +328,6 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         const name = this.name(type, gen);
         const bases = this.componentBases(type);
         return s`
-            ${gen ? `// forward declaration of user class\nclass ${type.name};` : ''}
             ${this.uuidDeclaration(type)}
             
             ${this.comment(type)}class ${name}${bases.length > 0 ? ':' : ''} ${bases.join(', ')}
@@ -524,7 +517,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
 
             `;
     }
-    protected override isInvokable(element: ast.Invokable): boolean {
+    /*protected override isInvokable(element: ast.Invokable): boolean {
         if (ast.isOperation(element)) {
             if (element.returnParameter && !ast.isSimpleType(element.returnParameter.type.ref)) {
                 return false;
@@ -532,7 +525,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
             return element.parameter.every(param => ast.isValueType(param.type.ref) && !ast.isClass(param.type.ref));
         }
         return super.isInvokable(element);
-    }
+    }*/
 
     initParameter(param: ast.Parameter): string {
         switch (param.direction) {

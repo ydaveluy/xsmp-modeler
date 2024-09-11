@@ -19,10 +19,10 @@ Features status:
 - [x] SMP Tool - generator
 - [x] Python Tool - generator
 - [x] xsmp-sdk Profile - generator
-- [ ] SMP Tool - import
-- [ ] AsciiDoc Tool - generator
+- [ ] AsciiDoc Tool - generator (in progress)
 - [ ] esa-cdk Profile - generator
 - [ ] esa-cdk-legacy Profile - generator
+- [ ] SMP Tool - import
 - [ ] Command Line Interface
 
 # XSMP Modeler
