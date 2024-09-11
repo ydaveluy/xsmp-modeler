@@ -587,3 +587,7 @@ export function getKeywordForType(type: ast.Type): string | undefined {
     }
     return undefined;
 }
+
+export function capitalizeFirstLetter(string:string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}

@@ -1071,7 +1071,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
 
     protected initializeMembers(container: ast.WithBody, gen: boolean): string[] {
         const buffer: Array<string | undefined> = [];
-        for (const c of container.elements.filter(ast.isConstant)) // TODO sort constants
+        for (const c of this.constants(container) )
             buffer.push(this.initializeConstant(c, gen));
         for (const c of container.elements.filter(ast.isProperty))
             buffer.push(this.initializeProperty(c, gen));
@@ -1106,7 +1106,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     protected declareMembers(container: ast.WithBody, initialVisibility: VisibilityKind): string {
         const buffer: string[] = [];
         let current = initialVisibility;
-        for (const c of container.elements.filter(ast.isConstant)) // TODO sort constants
+        for (const c of this.constants(container) )
             current = this.declareMember(c, current, this.declareConstant(c), buffer);
         for (const c of container.elements.filter(ast.isProperty))
             current = this.declareMember(c, current, this.declareProperty(c), buffer);
@@ -1132,7 +1132,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     protected declareMembersGen(container: ast.WithBody, initialVisibility: VisibilityKind, gen: boolean): string {
         const buffer: string[] = [];
         let current = initialVisibility;
-        for (const c of container.elements.filter(ast.isConstant)) // TODO sort constants
+        for (const c of this.constants(container) )
             current = this.declareMember(c, current, this.declareConstantGen(c, gen), buffer);
         for (const c of container.elements.filter(ast.isProperty))
             current = this.declareMember(c, current, this.declarePropertyGen(c, gen), buffer);

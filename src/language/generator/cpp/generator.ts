@@ -180,6 +180,37 @@ export abstract class CppGenerator implements XsmpGenerator {
         return result;
     }
 
+    protected constants(type: ast.WithBody): ast.Constant[] {
+        const key = { id: 'constants', value: type };
+        return this.cache.get(key, () => { return this.sortedConstants(type); }) as ast.Constant[];
+    }
+
+    private sortedConstants(type: ast.WithBody): ast.Constant[] {
+        // collect all constants
+        const constants: ast.Constant[] = type.elements.filter(ast.isConstant);
+
+        // compute the list of dependencies for each constant
+        const deps = new Map<ast.Constant, ast.Constant[]>();
+
+        constants.forEach(constant => {
+            deps.set(constant, AstUtils.streamAst(constant.value).filter(ast.isNamedElementReference).map(ref => ref.value.ref).filter(ast.isConstant).filter(c => constants.includes(c)).toArray());
+        });
+
+        const result: ast.Constant[] = [];
+        while (deps.size > 0) {
+            const iterator = deps.entries();
+            for (const [type, typeDeps] of iterator) {
+                // Check if all dependencies are already in result
+                if (typeDeps.every(dep => result.includes(dep))) {
+                    result.push(type);
+                    // Remove the current entry
+                    deps.delete(type);
+                }
+            }
+        }
+        return result;
+    }
+
     protected registerType(type: ast.Type): string | undefined {
         if (ast.isStructure(type)) {
             return s`
@@ -742,7 +773,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         return [element.type.ref, ...this.expressionIncludes(element.value)];
     }
     headerIncludesContainer(element: ast.Container): Include[] {
-        return [ForwardedType.create(element.type.ref!), element.type.ref];
+        return [element.type.ref];
     }
     headerIncludesEntryPoint(_element: ast.EntryPoint): Include[] {
         return [];
@@ -776,7 +807,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         return [element.type.ref];
     }
     headerIncludesReference(element: ast.Reference_): Include[] {
-        return [ForwardedType.create(element.interface.ref!), element.interface.ref];
+        return [element.interface.ref];
     }
     headerIncludesClass(type: ast.Class): Include[] {
         return ['Smp/Publication/ITypeRegistry.h', ...type.elements.flatMap(element => this.headerIncludes(element)), type.base?.ref];
@@ -803,7 +834,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         return this.headerIncludesComponent(type);
     }
     headerIncludesInterface(type: ast.Interface): Include[] {
-        return ['Smp/Uuid.h', ...type.elements.flatMap(element => this.headerIncludes(element)), ...type.base.map(inter => inter.ref)];
+        return ['Smp/Uuid.h', ...type.elements.flatMap(element => this.headerIncludes(element)), ...type.base.map(inter => inter.ref), ForwardedType.create(type)];
     }
     headerIncludesArray(type: ast.ArrayType): Include[] {
         return ['Smp/Publication/ITypeRegistry.h', type.itemType.ref];
