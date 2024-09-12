@@ -4,12 +4,22 @@ import * as XsmpUtils from '../utils/xsmp-utils.js';
 import * as ast from '../generated/ast.js';
 import { PTK } from '../utils/primitive-type-kind.js';
 import { getValueAs } from '../utils/solver.js';
+import { type XsmpSharedServices } from '../xsmp-module.js';
+import { type DocumentationHelper } from '../utils/documentation-helper.js';
+import { type AttributeHelper } from '../utils/attribute-helper.js';
 
 export class XsmpNodeInfoProvider {
 
+    protected readonly docHelper: DocumentationHelper;
+    protected readonly attrHelper: AttributeHelper;
+    constructor(services: XsmpSharedServices) {
+        this.docHelper = services.DocumentationHelper;
+        this.attrHelper = services.AttributeHelper;
+    }
+
     getDetails(node: AstNode): string | undefined {
         switch (node.$type) {
-            case ast.Association: return (node as ast.Association).type?.$refText + (XsmpUtils.isByPointer(node as ast.Association) ? '*' : '');
+            case ast.Association: return (node as ast.Association).type?.$refText + (this.attrHelper.isByPointer(node as ast.Association) ? '*' : '');
             case ast.Constant: return (node as ast.Constant).type?.$refText;
             case ast.Container: return (node as ast.Container).type?.$refText + this.getMultiplicity(node as ast.NamedElementWithMultiplicity);
             case ast.EventSink: return `EventSink<${(node as ast.EventSink).type?.$refText}>`;
@@ -63,7 +73,7 @@ export class XsmpNodeInfoProvider {
     }
 
     getTags(node: AstNode): SymbolTag[] | undefined {
-        if (ast.isNamedElement(node) && XsmpUtils.IsDeprecated(node)) {
+        if (ast.isNamedElement(node) && this.docHelper.IsDeprecated(node)) {
             return [SymbolTag.Deprecated];
         }
         return undefined;

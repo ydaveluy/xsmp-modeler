@@ -1,19 +1,9 @@
-import type { AstNode, CstNode, JSDocComment, JSDocParagraph, JSDocTag, Stream } from 'langium';
-import { AstUtils, CstUtils, isJSDoc, isLeafCstNode, isRootCstNode, parseJSDoc, stream } from 'langium';
+import type { AstNode, CstNode } from 'langium';
+import { AstUtils, CstUtils, isJSDoc, isLeafCstNode, isRootCstNode } from 'langium';
 import * as ast from '../generated/ast.js';
 import * as Solver from './solver.js';
 import { PTK } from './primitive-type-kind.js';
 import { VisibilityKind } from './visibility-kind.js';
-import { OperatorKind } from './operator-kind.js';
-
-export type Attributes = 'Attributes.Static'
-    | 'Attributes.Const' | 'Attributes.Mutable'
-    | 'Attributes.ByPointer' | 'Attributes.ByReference'
-    | 'Attributes.Abstract' | 'Attributes.Virtual'
-    | 'Attributes.Constructor' | 'Attributes.Forcible'
-    | 'Attributes.Failure' | 'Attributes.ConstGetter'
-    | 'Attributes.NoConstructor' | 'Attributes.NoDestructor'
-    | 'Attributes.SimpleArray' | 'Attributes.Operator' | 'Attributes.View';
 
 /**
  * Get the full qualified name of an element
@@ -69,10 +59,6 @@ export function getAccessKind(node: ast.Property): ast.AccessKind | undefined {
     if (node.modifiers.includes('readWrite')) { return 'readWrite'; }
     if (node.modifiers.includes('writeOnly')) { return 'writeOnly'; }
     return undefined;
-}
-
-export function getViewKind(node: ast.Property | ast.Field | ast.Operation | ast.EntryPoint): ast.Expression | undefined {
-    return attribute(node, 'Attributes.View')?.value;
 }
 
 export function isAbstractType(node: ast.Class | ast.Component): boolean {
@@ -151,229 +137,6 @@ function isCommentNode(cstNode: CstNode): boolean {
     return isLeafCstNode(cstNode) && 'ML_COMMENT' === cstNode.tokenType.name && isJSDoc(cstNode);
 }
 
-export function getJSDoc(element: AstNode): JSDocComment | undefined {
-    const comment = findCommentNode(element.$cstNode);
-    if (comment && isJSDoc(comment)) {
-        return parseJSDoc(comment);
-    }
-    return undefined;
-}
-
-function getTag(element: AstNode, tagName: string): JSDocParagraph | undefined {
-    const tag = getJSDoc(element)?.getTag(tagName);
-    return tag?.inline ? undefined : tag?.content;
-}
-
-function getTags(element: AstNode, tagName: string): JSDocParagraph[] | undefined {
-    return getJSDoc(element)?.getTags(tagName).filter(t => !t.inline).map(t => t.content);
-}
-
-export function getUsages(element: ast.AttributeType): JSDocParagraph[] | undefined {
-    return getTags(element, 'usage');
-}
-
-export function getId(element: ast.NamedElement | ast.ReturnParameter): string | undefined {
-    return getTag(element, 'id')?.toString().trim();
-}
-export function getNativeType(element: ast.NativeType): string | undefined {
-    return getTag(element, 'type')?.toString().trim();
-}
-export function getNativeNamespace(element: ast.NativeType): string | undefined {
-    return getTag(element, 'namespace')?.toString().trim();
-}
-export function getNativeLocation(element: ast.NativeType): string | undefined {
-    return getTag(element, 'location')?.toString().trim();
-}
-export function isMulticast(element: ast.EventSource): boolean {
-    return getTag(element, 'singlecast') === undefined;
-}
-
-export function getPropertyCategory(element: ast.Property): string | undefined {
-    return getTag(element, 'category')?.toString().trim();
-}
-export function getUnit(element: ast.Integer | ast.Float): string | undefined {
-    return getTag(element, 'unit')?.toString().trim();
-}
-
-export function getTitle(element: ast.Document): string | undefined {
-    return getTag(element, 'title')?.toString().trim();
-}
-export function getDate(element: ast.Document): JSDocParagraph | undefined {
-    return getTag(element, 'date');
-}
-
-export function getCreator(element: ast.Document): string | undefined {
-    return getTags(element, 'creator')?.map(e => e.toString().trim()).join(', ');
-}
-export function getVersion(element: ast.Document): string | undefined {
-    return getTag(element, 'version')?.toString().trim();
-}
-
-export function getUuid(type: ast.Type): JSDocParagraph | undefined {
-    return getTag(type, 'uuid');
-}
-
-export function getDeprecated(element: ast.NamedElement): JSDocParagraph | undefined {
-    return getTag(element, 'deprecated');
-}
-
-export function IsDeprecated(element: ast.NamedElement): boolean {
-    return getDeprecated(element) !== undefined;
-}
-
-export function attribute(element: ast.NamedElement | ast.ReturnParameter, id: Attributes): ast.Attribute | undefined {
-    return element.attributes.find(a => a.type.ref && fqn(a.type.ref) === id);
-}
-export function isAttributeTrue(attribute: ast.Attribute | undefined): boolean | undefined {
-    if (!attribute) {
-        return undefined;
-    }
-    if (attribute.value) {
-        return Solver.getValue(attribute.value)?.boolValue()?.getValue();
-    }
-    if (ast.isAttributeType(attribute.type.ref)) {
-        return Solver.getValue(attribute.type.ref.default)?.boolValue()?.getValue();
-    }
-    return undefined;
-}
-
-function attributeBoolValue(element: ast.NamedElement | ast.ReturnParameter, id: Attributes): boolean | undefined {
-    return isAttributeTrue(attribute(element, id));
-}
-
-export function getDescription(element: ast.NamedElement | ast.ReturnParameter): string | undefined {
-    if (ast.Parameter === element.$type) {
-        const regex = new RegExp(`^${element.name}\\s`);
-        return getJSDoc(element.$container as AstNode)?.getTags('param').find(t => regex.test(t.content.toString()))?.content.toString().slice(element.name.length).trim();
-    }
-    if (ast.ReturnParameter === element.$type) {
-        return getJSDoc(element.$container)?.getTag('return')?.content.toString().trim();
-    }
-    const jsDoc = getJSDoc(element);
-    if (!jsDoc) {
-        return undefined;
-    }
-
-    const result: string[] = [];
-    for (const e of jsDoc.elements) {
-        if (typeof (e as JSDocTag).name === 'string' && !(e as JSDocTag).inline) {
-            break;
-        }
-        result.push(e.toString());
-    }
-    return result.length > 0 ? result.join('\n').trim() : undefined;
-}
-export function isConstructor(element: ast.NamedElement | ast.ReturnParameter): boolean | undefined {
-    return attributeBoolValue(element, 'Attributes.Constructor');
-}
-export function operatorKind(op: ast.Operation): OperatorKind {
-    const attr = attribute(op, 'Attributes.Operator');
-    if (!attr?.value) {
-        return OperatorKind.NONE;
-    }
-    const value = Solver.getValueAs(attr.value, (attr.type.ref as ast.AttributeType).type.ref!)?.enumerationLiteral()?.getValue();
-    switch (value?.name) {
-        case 'Positive': return OperatorKind.POSITIVE;
-        case 'Negative': return OperatorKind.NEGATIVE;
-        case 'Assign': return OperatorKind.ASSIGN;
-        case 'Add': return OperatorKind.ADD;
-        case 'Subtract': return OperatorKind.SUBTRACT;
-        case 'Multiply': return OperatorKind.MULTIPLY;
-        case 'Divide': return OperatorKind.DIVIDE;
-        case 'Remainder': return OperatorKind.REMAINDER;
-        case 'Greater': return OperatorKind.GREATER;
-        case 'Less': return OperatorKind.LESS;
-        case 'Equal': return OperatorKind.EQUAL;
-        case 'NotGreater': return OperatorKind.NOT_GREATER;
-        case 'NotLess': return OperatorKind.NOT_LESS;
-        case 'NotEqual': return OperatorKind.NOT_EQUAL;
-        case 'Indexer': return OperatorKind.INDEXER;
-        case 'Sum': return OperatorKind.SUM;
-        case 'Difference': return OperatorKind.DIFFERENCE;
-        case 'Product': return OperatorKind.PRODUCT;
-        case 'Quotient': return OperatorKind.QUOTIENT;
-        case 'Module': return OperatorKind.MODULE;
-        case 'None':
-        default:
-            return OperatorKind.NONE;
-    }
-}
-export function isFailure(element: ast.Field): boolean | undefined {
-    return attributeBoolValue(element, 'Attributes.Failure');
-}
-export function isForcible(element: ast.Field): boolean | undefined {
-    return attributeBoolValue(element, 'Attributes.Forcible');
-}
-export function isStatic(element: ast.Operation | ast.Property | ast.Field | ast.Association): boolean | undefined {
-    return !isConstructor(element) && attributeBoolValue(element, 'Attributes.Static');
-}
-export function isAbstract(element: ast.Operation | ast.Property): boolean {
-    return !isStatic(element)
-        && (ast.isInterface(element.$container) || (attributeBoolValue(element, 'Attributes.Abstract') ?? false));
-}
-export function isVirtual(element: ast.Operation | ast.Property): boolean {
-    return !isConstructor(element) && (isAbstract(element) || (attributeBoolValue(element, 'Attributes.Virtual') ?? (ast.isReferenceType(element.$container) && !isStatic(element))));
-}
-
-export function isMutable(element: ast.Field | ast.Association): boolean | undefined {
-    return attributeBoolValue(element, 'Attributes.Mutable');
-}
-export function isConst(element: ast.Parameter | ast.ReturnParameter | ast.Association | ast.Operation | ast.Property): boolean | undefined {
-    if (isConstructor(element)) {
-        return false;
-    }
-    return attributeBoolValue(element, 'Attributes.Const') ?? (ast.isParameter(element) && (!element.direction || element.direction === 'in') && !ast.isValueType(element.type.ref));
-}
-export function isConstGetter(element: ast.Property): boolean | undefined {
-    return attributeBoolValue(element, 'Attributes.ConstGetter');
-}
-
-function kind(parameter: ast.Parameter | ast.ReturnParameter): ArgKind {
-    if (ast.isReferenceType(parameter.type.ref)) {
-        if (ast.isParameter(parameter) && (parameter.direction === undefined || parameter.direction === 'in')) {
-            return ArgKind.BY_REF;
-        }
-        return ArgKind.BY_PTR;
-    }
-    if ((ast.isNativeType(parameter.type.ref) || ast.isValueType(parameter.type.ref)) && ast.isParameter(parameter) && (parameter.direction === 'inout' || parameter.direction === 'out')) {
-        return ArgKind.BY_PTR;
-    }
-    return ArgKind.BY_VALUE;
-}
-
-enum ArgKind {
-    BY_VALUE, BY_PTR, BY_REF
-}
-
-export function isByPointer(element: ast.Parameter | ast.ReturnParameter | ast.Association | ast.Property): boolean {
-    const value = attributeBoolValue(element, 'Attributes.ByPointer');
-    switch (element.$type) {
-        case ast.Association: return value ?? ast.isReferenceType(element.type.ref);
-        case ast.Property: return value ?? (ast.isReferenceType(element.type.ref) && !isByReference(element));
-        case ast.Parameter:
-        case ast.ReturnParameter:
-            return value ?? (kind(element) === ArgKind.BY_PTR && !(attributeBoolValue(element, 'Attributes.ByReference') ?? false));
-    }
-
-}
-export function isByReference(element: ast.Parameter | ast.ReturnParameter | ast.Property): boolean {
-    const value = attributeBoolValue(element, 'Attributes.ByReference');
-    switch (element.$type) {
-        case ast.Property: return value ?? false;
-        case ast.Parameter:
-        case ast.ReturnParameter:
-            return value ?? (kind(element) === ArgKind.BY_REF && !(attributeBoolValue(element, 'Attributes.ByPointer') ?? false));
-    }
-}
-
-export function isSimpleArray(element: ast.ArrayType): boolean | undefined {
-    return attributeBoolValue(element, 'Attributes.SimpleArray');
-}
-
-export function allowMultiple(element: ast.AttributeType): boolean {
-    return getTag(element, 'allowMultiple') !== undefined;
-}
-
 export function isAncestor(ancestor: AstNode | undefined, element: AstNode | undefined): boolean {
     return AstUtils.hasContainerOfType(element, c => c === ancestor);
 }
@@ -402,15 +165,6 @@ export function getUpper(element: ast.NamedElementWithMultiplicity): bigint | un
         return element.multiplicity.aux ? BigInt(-1) : Solver.getValue(element.multiplicity.lower)?.integralValue(PTK.Int64)?.getValue() ?? BigInt(0);
     }
     return Solver.getValue(element.multiplicity.upper)?.integralValue(PTK.Int64)?.getValue();
-}
-
-export function getAllFields(element: ast.Structure): Stream<ast.Field> {
-    // Return non static and public fields from element's base if any and current element
-    const result = stream(element.elements).filter(ast.isField).filter(f => isStatic(f) !== true && getRealVisibility(f) === VisibilityKind.public);
-    if (ast.isClass(element) && ast.isStructure(element.base)) {
-        return getAllFields(element.base).concat(result);
-    }
-    return result;
 }
 
 function checkIsBaseOfInterface(parent: ast.Interface, base: ast.Type | undefined, visited: Set<ast.Type>): boolean {
@@ -515,41 +269,6 @@ export function isTypeVisibleFrom(from: AstNode, element: ast.Type): boolean {
 
 }
 
-/**
- * Compute the signature of an element
- *
- * @param op
- *          the input Operation
- * @return the signature
- */
-export function getSignature(element: ast.NamedElement): string {
-    if (ast.Operation === element.$type) {
-        return `${element.name}(${(element as ast.Operation).parameter.map(getParameterSignature).join(',')})`;
-    }
-    return element.name;
-}
-
-/**
- * Get the signature of a parameter
- *
- * @param p
- *          the input Parameter
- * @return the signature of the parameter
- */
-export function getParameterSignature(p: ast.Parameter) {
-    let signature = '';
-    if (isConst(p)) {
-        signature += 'const ';
-    }
-    signature += p.type.ref ? fqn(p.type.ref) : p.type.$refText;
-    if (isByPointer(p)) {
-        signature += '*';
-    }
-    if (isByReference(p)) {
-        signature += '&';
-    }
-    return signature;
-}
 export function getNodeType(node: AstNode): string {
     switch (node.$type) {
 
@@ -588,6 +307,6 @@ export function getKeywordForType(type: ast.Type): string | undefined {
     return undefined;
 }
 
-export function capitalizeFirstLetter(string:string) {
+export function capitalizeFirstLetter(string: string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
 }

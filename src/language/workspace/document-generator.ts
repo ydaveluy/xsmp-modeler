@@ -25,9 +25,9 @@ export class XsmpDocumentGenerator {
         this.langiumDocuments = services.workspace.LangiumDocuments;
         this.indexManager = services.workspace.IndexManager;
         this.serviceRegistry = services.ServiceRegistry;
-        this.smpGenerator = new SmpGenerator();
+        this.smpGenerator = new SmpGenerator(services);
         this.xsmpSdkGenerator = new XsmpSdkGenerator(services);
-        this.pythonGenerator = new PythonGenerator();
+        this.pythonGenerator = new PythonGenerator(services);
         this.builder = services.workspace.DocumentBuilder;
     }
 

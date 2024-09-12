@@ -13,6 +13,9 @@ import { isBuiltinLibrary } from '../builtins.js';
 import { isFloatingType, PTK } from '../utils/primitive-type-kind.js';
 import { DiagnosticTag, Location } from 'vscode-languageserver';
 import { VisibilityKind } from '../utils/visibility-kind.js';
+import { type DocumentationHelper } from '../utils/documentation-helper.js';
+import { type AttributeHelper } from '../utils/attribute-helper.js';
+
 /**
  * Register custom validation checks.
  */
@@ -91,19 +94,23 @@ export class XsmpcatValidator {
 
     protected readonly globalCache: WorkspaceCache<string, MultiMap<string, AstNodeDescription>>;
     protected readonly visibleCache: WorkspaceCache<URI, MultiMap<string, AstNodeDescription>>;
+    protected readonly docHelper: DocumentationHelper;
+    protected readonly attrHelper: AttributeHelper;
 
     constructor(services: XsmpcatServices) {
         this.indexManager = services.shared.workspace.IndexManager;
         this.documents = services.shared.workspace.LangiumDocuments;
         this.globalCache = new WorkspaceCache<string, MultiMap<string, AstNodeDescription>>(services.shared);
         this.visibleCache = new WorkspaceCache<URI, MultiMap<string, AstNodeDescription>>(services.shared);
+        this.docHelper = services.shared.DocumentationHelper;
+        this.attrHelper = services.shared.AttributeHelper;
     }
 
     private computeUuidsForTypes(): MultiMap<string, AstNodeDescription> {
         const map = new MultiMap<string, AstNodeDescription>();
         for (const type of this.indexManager.allElements(ast.Type)) {
             if (type.node) {
-                const uuid = XsmpUtils.getUuid(type.node as ast.Type)?.toString().trim();
+                const uuid = this.docHelper.getUuid(type.node as ast.Type)?.toString().trim();
                 if (uuid) {
                     map.add(uuid, type);
                 }
@@ -152,14 +159,14 @@ export class XsmpcatValidator {
         for (const attribute of element.attributes) {
             if (this.checkTypeReference(accept, attribute, attribute.type, 'type')) {
                 const type = attribute.type.ref as ast.AttributeType,
-                    usages = XsmpUtils.getUsages(type);
+                    usages = this.docHelper.getUsages(type);
 
                 if (usages?.every(t => !ast.reflection.isSubtype(XsmpUtils.getNodeType(element), t.toString().trim()))) {
                     accept('warning', `This annotation is disallowed for element of type ${XsmpUtils.getNodeType(element)}.`,
                         { node: attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
                 }
 
-                if (!XsmpUtils.allowMultiple(type) && visited.has(type)) {
+                if (!this.docHelper.allowMultiple(type) && visited.has(type)) {
                     accept('warning', 'Duplicated annotation of a non-repeatable type. Only annotation types marked with \'@allowMultiple\' can be used multiple times on a single target.',
                         { node: attribute, data: diagnosticData(IssueCodes.InvalidAttribute) });
                 }
@@ -234,7 +241,7 @@ export class XsmpcatValidator {
             accept('error', `The ${reference.ref.$type} ${XsmpUtils.fqn(reference.ref)} is not visible.`,
                 { node, property, index, data: diagnosticData(IssueCodes.TypeNotVisible) });
         }
-        const deprecated = XsmpUtils.getDeprecated(reference.ref);
+        const deprecated = this.docHelper.getDeprecated(reference.ref);
         if (deprecated) {
             accept('warning', deprecated.toString().length > 0 ? `Deprecated: ${deprecated.toString()}` : 'Deprecated.', { node, property, index, tags: [DiagnosticTag.Deprecated] });
         }
@@ -252,7 +259,7 @@ export class XsmpcatValidator {
 
         if (node.$container !== field.$container && XsmpUtils.getRealVisibility(field) === VisibilityKind.private) { accept('error', 'The Field is not visible.', { node, property, index, data: diagnosticData(IssueCodes.FieldNotVisible) }); }
 
-        const deprecated = XsmpUtils.getDeprecated(field);
+        const deprecated = this.docHelper.getDeprecated(field);
         if (deprecated) {
             accept('warning', deprecated.toString().length > 0 ? `Deprecated: ${deprecated.toString()}` : 'Deprecated.', { node, property, index, tags: [DiagnosticTag.Deprecated] });
         }
@@ -282,7 +289,7 @@ export class XsmpcatValidator {
 
         else if (ast.isStructure(type)) {
             if (ast.isCollectionLiteral(expression)) {
-                const fields = XsmpUtils.getAllFields(type).toArray(),
+                const fields = this.attrHelper.getAllFields(type).toArray(),
                     fieldCount = fields.length,
                     collectionSize = expression.elements.length,
                     size = collectionSize < fieldCount ? collectionSize : fieldCount;
@@ -400,11 +407,11 @@ export class XsmpcatValidator {
 
     checkType(type: ast.Type, accept: ValidationAcceptor): void {
 
-        const uuid = XsmpUtils.getUuid(type);
+        const uuid = this.docHelper.getUuid(type);
         if (uuid === undefined) {
             accept('error', 'Missing Type UUID.', {
                 node: type, keyword: XsmpUtils.getKeywordForType(type),
-                data: { code: IssueCodes.MissingUuid, actionRange: XsmpUtils.getJSDoc(type)?.range ?? { start: type.$cstNode?.range.start, end: type.$cstNode?.range.start } }
+                data: { code: IssueCodes.MissingUuid, actionRange: this.docHelper.getJSDoc(type)?.range ?? { start: type.$cstNode?.range.start, end: type.$cstNode?.range.start } }
             });
         }
         else if (!uuidRegex.test(uuid.toString().trim())) {
@@ -478,8 +485,8 @@ export class XsmpcatValidator {
         const duplicates = members.get(member.name);
         if (duplicates.length > 0) {
             if (ast.isOperation(member)) {
-                const sig = XsmpUtils.getSignature(member);
-                if (duplicates.some(d => !ast.isOperation(d) || (sig === XsmpUtils.getSignature(d) && member.$container === d.$container))) {
+                const sig = this.attrHelper.getSignature(member);
+                if (duplicates.some(d => !ast.isOperation(d) || (sig === this.attrHelper.getSignature(d) && member.$container === d.$container))) {
                     accept('error', 'Duplicated identifier.', { node: member, property: 'name' });
                 }
             }
@@ -586,7 +593,7 @@ export class XsmpcatValidator {
         }
 
         if (!component.modifiers.includes('abstract') &&
-            component.elements.some(e => (ast.isOperation(e) || ast.isProperty(e)) && XsmpUtils.isAbstract(e))) { accept('warning', `The ${component.$type} shall be abstract.`, { node: component, keyword: component.$type === ast.Model ? 'model' : 'service', data: diagnosticData(IssueCodes.MissingAbstract) }); }
+            component.elements.some(e => (ast.isOperation(e) || ast.isProperty(e)) && this.attrHelper.isAbstract(e), this)) { accept('warning', `The ${component.$type} shall be abstract.`, { node: component, keyword: component.$type === ast.Model ? 'model' : 'service', data: diagnosticData(IssueCodes.MissingAbstract) }); }
     }
 
     checkStructure(structure: ast.Structure, accept: ValidationAcceptor): void {
@@ -636,7 +643,7 @@ export class XsmpcatValidator {
             }
         }
         if (!clazz.modifiers.includes('abstract') &&
-            clazz.elements.some(e => (ast.isOperation(e) || ast.isProperty(e)) && XsmpUtils.isAbstract(e))) {
+            clazz.elements.some(e => (ast.isOperation(e) || ast.isProperty(e)) && this.attrHelper.isAbstract(e), this)) {
             accept('warning', `The ${clazz.$type} shall be abstract.`, { node: clazz, keyword: clazz.$type === ast.Class ? 'class' : 'exception', data: diagnosticData(IssueCodes.MissingAbstract) });
         }
     }
@@ -650,7 +657,7 @@ export class XsmpcatValidator {
 
     checkNativeType(nativeType: ast.NativeType, accept: ValidationAcceptor): void {
         this.checkModifier(nativeType, [ast.isVisibilityModifiers], accept);
-        if (!XsmpUtils.getNativeType(nativeType)) {
+        if (!this.docHelper.getNativeType(nativeType)) {
             accept('error', 'The javadoc \'@type\' tag shall be defined with the C++ type name.', { node: nativeType, property: 'name' });
         }
     }
@@ -686,7 +693,7 @@ export class XsmpcatValidator {
                 accept('error', 'Recursive Array Type.', { node: array, property: 'itemType' });
             }
 
-            if (!ast.isSimpleType(type) && XsmpUtils.isSimpleArray(array)) {
+            if (!ast.isSimpleType(type) && this.attrHelper.isSimpleArray(array)) {
                 accept('error', 'An array annotated with \'@SimpleArray\' requires a SimpleType item type.', { node: array, property: 'itemType', data: diagnosticData(IssueCodes.NonSimpleArray) });
             }
         }
@@ -702,7 +709,7 @@ export class XsmpcatValidator {
                 this.checkExpression(attribute.type.ref, attribute.default, accept);
             }
 
-            const usages = XsmpUtils.getUsages(attribute);
+            const usages = this.docHelper.getUsages(attribute);
 
             if (!usages)
                 return;
@@ -742,7 +749,7 @@ export class XsmpcatValidator {
     }
 
     checkCatalogue(catalogue: ast.Catalogue, accept: ValidationAcceptor): void {
-        const date = XsmpUtils.getDate(catalogue);
+        const date = this.docHelper.getDate(catalogue);
         if (date && isNaN(Date.parse(date.toString().trim()))) {
             accept('warning', 'Invalid date format (e.g: 1970-01-01T00:00:00Z).', { node: catalogue, range: date.range });
         }
@@ -792,30 +799,30 @@ export class XsmpcatValidator {
                 }
             }
         }
-        const isStatic = XsmpUtils.attribute(property, 'Attributes.Static');
-        if (XsmpUtils.isAttributeTrue(isStatic)) {
+        const isStatic = this.attrHelper.attribute(property, 'Attributes.Static');
+        if (this.attrHelper.isAttributeTrue(isStatic)) {
             if (ast.isInterface(property.$container)) {
                 accept('error', 'A Property of an Interface shall not be static.', { node: isStatic!, data: diagnosticData(IssueCodes.InvalidAttribute) });
             }
 
-            const isVirtual = XsmpUtils.attribute(property, 'Attributes.Virtual');
-            if (XsmpUtils.isAttributeTrue(isVirtual)) {
+            const isVirtual = this.attrHelper.attribute(property, 'Attributes.Virtual');
+            if (this.attrHelper.isAttributeTrue(isVirtual)) {
                 accept('error', 'A Property shall not be both Static and Virtual.', { node: isVirtual!, data: diagnosticData(IssueCodes.InvalidAttribute) });
             }
 
-            const isAbstract = XsmpUtils.attribute(property, 'Attributes.Abstract');
-            if (XsmpUtils.isAttributeTrue(isAbstract)) {
+            const isAbstract = this.attrHelper.attribute(property, 'Attributes.Abstract');
+            if (this.attrHelper.isAttributeTrue(isAbstract)) {
                 accept('error', 'A Property shall not be both Static and Abstract.', { node: isAbstract!, data: diagnosticData(IssueCodes.InvalidAttribute) });
             }
 
-            if (property.attachedField?.ref && XsmpUtils.isStatic(property.attachedField.ref) !== true) {
+            if (property.attachedField?.ref && !this.attrHelper.isStatic(property.attachedField.ref)) {
                 accept('error', 'A Property shall not be Static if the attached field is not Static.', { node: isStatic!, data: diagnosticData(IssueCodes.InvalidAttribute) });
             }
         }
 
         // An element shall not be both byPointer and ByReference
-        const isByPointer = XsmpUtils.attribute(property, 'Attributes.ByPointer');
-        if (XsmpUtils.isAttributeTrue(isByPointer) && XsmpUtils.isAttributeTrue(XsmpUtils.attribute(property, 'Attributes.ByReference'))) {
+        const isByPointer = this.attrHelper.attribute(property, 'Attributes.ByPointer');
+        if (this.attrHelper.isAttributeTrue(isByPointer) && this.attrHelper.isAttributeTrue(this.attrHelper.attribute(property, 'Attributes.ByReference'))) {
             accept('error', 'A Property shall not be both ByPointer and ByReference.', { node: isByPointer!, data: diagnosticData(IssueCodes.InvalidAttribute) });
         }
     }
@@ -839,26 +846,26 @@ export class XsmpcatValidator {
             }
         }
 
-        const isStatic = XsmpUtils.attribute(operation, 'Attributes.Static');
-        if (XsmpUtils.isAttributeTrue(isStatic)) {
+        const isStatic = this.attrHelper.attribute(operation, 'Attributes.Static');
+        if (this.attrHelper.isAttributeTrue(isStatic)) {
             if (ast.isInterface(operation.$container)) { accept('error', 'An Operation of an Interface shall not be static.', { node: isStatic!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
 
-            const isVirtual = XsmpUtils.attribute(operation, 'Attributes.Virtual');
-            if (XsmpUtils.isAttributeTrue(isVirtual)) { accept('error', 'An Operation shall not be both Static and Virtual.', { node: isVirtual!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
+            const isVirtual = this.attrHelper.attribute(operation, 'Attributes.Virtual');
+            if (this.attrHelper.isAttributeTrue(isVirtual)) { accept('error', 'An Operation shall not be both Static and Virtual.', { node: isVirtual!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
 
-            const isAbstract = XsmpUtils.attribute(operation, 'Attributes.Abstract');
-            if (XsmpUtils.isAttributeTrue(isAbstract)) { accept('error', 'An Operation shall not be both Static and Abstract.', { node: isAbstract!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
+            const isAbstract = this.attrHelper.attribute(operation, 'Attributes.Abstract');
+            if (this.attrHelper.isAttributeTrue(isAbstract)) { accept('error', 'An Operation shall not be both Static and Abstract.', { node: isAbstract!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
         }
 
-        const isConstructor = XsmpUtils.attribute(operation, 'Attributes.Constructor');
-        if (XsmpUtils.isAttributeTrue(isConstructor)) {
-            if (XsmpUtils.isAttributeTrue(isStatic)) { accept('error', 'A Constructor shall not be Static .', { node: isStatic!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
+        const isConstructor = this.attrHelper.attribute(operation, 'Attributes.Constructor');
+        if (this.attrHelper.isAttributeTrue(isConstructor)) {
+            if (this.attrHelper.isAttributeTrue(isStatic)) { accept('error', 'A Constructor shall not be Static .', { node: isStatic!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
 
-            const isVirtual = XsmpUtils.attribute(operation, 'Attributes.Virtual');
-            if (XsmpUtils.isAttributeTrue(isVirtual)) { accept('error', 'A Constructor shall not be Virtual.', { node: isVirtual!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
+            const isVirtual = this.attrHelper.attribute(operation, 'Attributes.Virtual');
+            if (this.attrHelper.isAttributeTrue(isVirtual)) { accept('error', 'A Constructor shall not be Virtual.', { node: isVirtual!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
 
-            const isConst = XsmpUtils.attribute(operation, 'Attributes.Const');
-            if (XsmpUtils.isAttributeTrue(isConst)) { accept('warning', 'Const attribute is ignored for a Constructor.', { node: isConst!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
+            const isConst = this.attrHelper.attribute(operation, 'Attributes.Const');
+            if (this.attrHelper.isAttributeTrue(isConst)) { accept('warning', 'Const attribute is ignored for a Constructor.', { node: isConst!, data: diagnosticData(IssueCodes.InvalidAttribute) }); }
 
             if (operation.returnParameter) { accept('error', 'A Constructors shall not have any return parameters.', { node: operation, property: 'returnParameter' }); }
         }
@@ -880,8 +887,8 @@ export class XsmpcatValidator {
     checkParameter(parameter: ast.Parameter, accept: ValidationAcceptor): void {
         if (this.checkTypeReference(accept, parameter, parameter.type, 'type')) { this.checkExpression(parameter.type.ref, parameter.default, accept); } //TODO isByPointer
 
-        const isByPointer = XsmpUtils.attribute(parameter, 'Attributes.ByPointer');
-        if (XsmpUtils.isAttributeTrue(isByPointer) && XsmpUtils.isAttributeTrue(XsmpUtils.attribute(parameter, 'Attributes.ByReference'))) {
+        const isByPointer = this.attrHelper.attribute(parameter, 'Attributes.ByPointer');
+        if (this.attrHelper.isAttributeTrue(isByPointer) && this.attrHelper.isAttributeTrue(this.attrHelper.attribute(parameter, 'Attributes.ByReference'))) {
             accept('error', 'A Parameter shall not be both ByPointer and ByReference.', { node: isByPointer!, data: diagnosticData(IssueCodes.InvalidAttribute) });
         }
     }
@@ -889,8 +896,8 @@ export class XsmpcatValidator {
     checkReturnParameter(parameter: ast.ReturnParameter, accept: ValidationAcceptor): void {
         this.checkTypeReference(accept, parameter, parameter.type, 'type');
 
-        const isByPointer = XsmpUtils.attribute(parameter, 'Attributes.ByPointer');
-        if (XsmpUtils.isAttributeTrue(isByPointer) && XsmpUtils.isAttributeTrue(XsmpUtils.attribute(parameter, 'Attributes.ByReference'))) {
+        const isByPointer = this.attrHelper.attribute(parameter, 'Attributes.ByPointer');
+        if (this.attrHelper.isAttributeTrue(isByPointer) && this.attrHelper.isAttributeTrue(this.attrHelper.attribute(parameter, 'Attributes.ByReference'))) {
             accept('error', 'A Parameter shall not be both ByPointer and ByReference.', { node: isByPointer!, data: diagnosticData(IssueCodes.InvalidAttribute) });
         }
         this.checkAttributes(parameter, accept);

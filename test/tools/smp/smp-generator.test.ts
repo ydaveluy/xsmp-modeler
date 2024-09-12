@@ -25,7 +25,7 @@ describe('SMP generator tests', () => {
 
   test('test catalogue', async () => {
 
-    const generator = new SmpGenerator();
+    const generator = new SmpGenerator(services.shared);
     document = await parse(fs.readFileSync(path.resolve(__dirname, 'test.xsmpcat')).toString(), { documentUri: 'test.xsmpcat' });
 
     // check for absensce of parser errors the classic way:

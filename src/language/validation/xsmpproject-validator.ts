@@ -3,8 +3,8 @@ import type { XsmpprojectServices } from '../xsmpproject-module.js';
 import * as fs from 'node:fs';
 import * as ProjectUtils from '../utils/project-utils.js';
 import * as ast from '../generated/ast.js';
-import * as XsmpUtils from '../utils/xsmp-utils.js';
 import { DiagnosticTag, Location } from 'vscode-languageserver';
+import { type DocumentationHelper } from '../utils/documentation-helper.js';
 
 /**
  * Register custom validation checks.
@@ -24,10 +24,12 @@ export function registerXsmpprojectValidationChecks(services: XsmpprojectService
 export class XsmpprojectValidator {
     protected readonly indexManager: IndexManager;
     protected readonly globalCache: WorkspaceCache<string, MultiMap<string, AstNodeDescription>>;
+    protected readonly docHelper: DocumentationHelper;
 
     constructor(services: XsmpprojectServices) {
         this.indexManager = services.shared.workspace.IndexManager;
         this.globalCache = new WorkspaceCache<string, MultiMap<string, AstNodeDescription>>(services.shared);
+        this.docHelper = services.shared.DocumentationHelper;
     }
 
     private computeNamesForProjects(): MultiMap<string, AstNodeDescription> {
@@ -42,7 +44,7 @@ export class XsmpprojectValidator {
         if (!reference.ref) {
             return false;
         }
-        const deprecated = XsmpUtils.getDeprecated(reference.ref);
+        const deprecated = this.docHelper.getDeprecated(reference.ref);
         if (deprecated) {
             accept('warning', deprecated.toString().length > 0 ? `Deprecated: ${deprecated.toString()}` : 'Deprecated.', { node, property, index, tags: [DiagnosticTag.Deprecated] });
         }

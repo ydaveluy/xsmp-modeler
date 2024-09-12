@@ -16,18 +16,27 @@ import type { TaskAcceptor, XsmpGenerator } from '../../generator/generator.js';
 import { create } from 'xmlbuilder2';
 import { type FloatingPTK, type IntegralPTK, PTK } from '../../utils/primitive-type-kind.js';
 import { VisibilityKind } from '../../utils/visibility-kind.js';
+import { type XsmpSharedServices } from '../../xsmp-module.js';
+import { type DocumentationHelper } from '../../utils/documentation-helper.js';
+import { type AttributeHelper } from '../../utils/attribute-helper.js';
 
 export class SmpGenerator implements XsmpGenerator {
 
+    protected readonly docHelper: DocumentationHelper;
+    protected readonly attrHelper: AttributeHelper;
+    constructor(services:XsmpSharedServices){
+        this.docHelper = services.DocumentationHelper;
+        this.attrHelper = services.AttributeHelper;
+    }
     protected getId(element: ast.NamedElement | ast.ReturnParameter): string {
-        return XsmpUtils.getId(element) ?? XsmpUtils.fqn(element);
+        return this.docHelper.getId(element) ?? XsmpUtils.fqn(element);
     }
 
     protected convertNamedElement(element: ast.NamedElement): Elements.NamedElement {
         return {
             '@Id': this.getId(element),
             '@Name': element.name,
-            Description: XsmpUtils.getDescription(element),
+            Description: this.docHelper.getDescription(element),
             Metadata: element.attributes.map(this.convertAttribute, this),
         };
     }
@@ -108,7 +117,7 @@ export class SmpGenerator implements XsmpGenerator {
         return {
             '@xsi:type': id,
             ...this.convertVisibilityElement(type),
-            '@Uuid': XsmpUtils.getUuid(type)?.toString().trim() ?? '',
+            '@Uuid': this.docHelper.getUuid(type)?.toString().trim() ?? '',
         };
     }
     protected convertValueReference(valueReference: ast.ValueReference): Types.ValueReference {
@@ -132,9 +141,9 @@ export class SmpGenerator implements XsmpGenerator {
             ...this.convertType(nativeType, 'Types:NativeType'),
             Platform: [{
                 '@Name': 'cpp',
-                '@Type': XsmpUtils.getNativeType(nativeType) ?? '',
-                '@Namespace': XsmpUtils.getNativeNamespace(nativeType),
-                '@Location': XsmpUtils.getNativeLocation(nativeType),
+                '@Type': this.docHelper.getNativeType(nativeType) ?? '',
+                '@Namespace': this.docHelper.getNativeNamespace(nativeType),
+                '@Location': this.docHelper.getNativeLocation(nativeType),
             }],
         };
     }
@@ -177,7 +186,7 @@ export class SmpGenerator implements XsmpGenerator {
             GetRaises: property.getRaises.map(e => this.convertXlink(e, property)),
             SetRaises: property.setRaises.map(e => this.convertXlink(e, property)),
             '@Access': XsmpUtils.getAccessKind(property),
-            '@Category': XsmpUtils.getPropertyCategory(property),
+            '@Category': this.docHelper.getPropertyCategory(property),
         };
     }
     protected convertReference(reference: ast.Reference_): Catalogue.Reference {
@@ -198,7 +207,7 @@ export class SmpGenerator implements XsmpGenerator {
         return {
             ...this.convertNamedElement(eventSource),
             Type: this.convertXlink(eventSource.type, eventSource),
-            '@Multicast': XsmpUtils.isMulticast(eventSource),
+            '@Multicast': this.docHelper.isMulticast(eventSource),
         };
     }
     protected convertFloat(float: ast.Float): Types.Float {
@@ -210,7 +219,7 @@ export class SmpGenerator implements XsmpGenerator {
             '@Maximum': Solver.getValue(float.maximum)?.floatValue(XsmpUtils.getPTK(float) as FloatingPTK)?.getValue(),
             '@MinInclusive': float.range === '...' || float.range === '..<' ? true : range,
             '@MaxInclusive': float.range === '...' || float.range === '<..' ? true : range,
-            '@Unit': XsmpUtils.getUnit(float),
+            '@Unit': this.docHelper.getUnit(float),
         };
     }
     protected convertInteger(integer: ast.Integer): Types.Integer {
@@ -220,7 +229,7 @@ export class SmpGenerator implements XsmpGenerator {
             PrimitiveType: integer.primitiveType ? this.convertXlink(integer.primitiveType, integer) : undefined,
             '@Minimum': Solver.getValue(integer.minimum)?.integralValue(XsmpUtils.getPTK(integer) as IntegralPTK)?.getValue(),
             '@Maximum': Solver.getValue(integer.maximum)?.integralValue(XsmpUtils.getPTK(integer) as IntegralPTK)?.getValue(),
-            '@Unit': XsmpUtils.getUnit(integer),
+            '@Unit': this.docHelper.getUnit(integer),
         };
     }
     protected convertEventType(eventType: ast.EventType): Catalogue.EventType {
@@ -319,7 +328,7 @@ export class SmpGenerator implements XsmpGenerator {
     }
 
     protected convertStructureValue(type: ast.Structure, expression: ast.CollectionLiteral): Types.StructureValue {
-        const fields = XsmpUtils.getAllFields(type).toArray();
+        const fields = this.attrHelper.getAllFields(type).toArray();
         return { '@xsi:type': 'Types:StructureValue', FieldValue: expression.elements.map((e, index) => this.convertValue(fields.at(index)?.type.ref, e), this) };
     }
 
@@ -329,8 +338,8 @@ export class SmpGenerator implements XsmpGenerator {
             ...this.convertType(attributeType, 'Types:AttributeType'),
             Type: this.convertXlink(attributeType.type, attributeType),
             Default: attributeType.default ? this.convertValue(attributeType.type.ref, attributeType.default) : undefined,
-            '@AllowMultiple': XsmpUtils.allowMultiple(attributeType),
-            Usage: XsmpUtils.getUsages(attributeType)?.map(t => t.toString()),
+            '@AllowMultiple': this.docHelper.allowMultiple(attributeType),
+            Usage: this.docHelper.getUsages(attributeType)?.map(t => t.toString()),
         };
     }
     protected convertArrayType(arrayType: ast.ArrayType): Types.Array {
@@ -373,7 +382,7 @@ export class SmpGenerator implements XsmpGenerator {
             const refDoc = AstUtils.getDocument(link.ref),
                 doc = AstUtils.getDocument(context);
 
-            let href = `#${XsmpUtils.getId(link.ref) ?? XsmpUtils.fqn(link.ref)}`;
+            let href = `#${this.docHelper.getId(link.ref) ?? XsmpUtils.fqn(link.ref)}`;
             if (doc !== refDoc) {
                 let fileName = UriUtils.basename(refDoc.uri).replace(/\.xsmpcat$/, '.smpcat');
                 if (fileName === 'ecss.smp.smpcat') { fileName = 'http://www.ecss.nl/smp/2019/Smdl'; }
@@ -387,7 +396,7 @@ export class SmpGenerator implements XsmpGenerator {
 
     }
     protected convertOperation(operation: ast.Operation): Types.Operation {
-        const id = XsmpUtils.getId(operation) ?? XsmpUtils.fqn(operation) + (operation.parameter.length > 0 ? '-' : '') + operation.parameter.map(p => p.type.ref?.name).join('-');
+        const id = this.docHelper.getId(operation) ?? XsmpUtils.fqn(operation) + (operation.parameter.length > 0 ? '-' : '') + operation.parameter.map(p => p.type.ref?.name).join('-');
         return {
             ...this.convertVisibilityElement(operation),
             '@Id': id,
@@ -401,7 +410,7 @@ export class SmpGenerator implements XsmpGenerator {
         return {
             '@Id': `${id}.${parameter.name ?? 'return'}`,
             '@Name': parameter.name ?? 'return',
-            Description: XsmpUtils.getDescription(parameter),
+            Description: this.docHelper.getDescription(parameter),
             Metadata: parameter.attributes.map(this.convertAttribute, this),
             Type: this.convertXlink(parameter.type, parameter),
             '@Direction': 'return',
@@ -411,7 +420,7 @@ export class SmpGenerator implements XsmpGenerator {
         return {
             '@Id': `${id}.${parameter.name}`,
             '@Name': parameter.name,
-            Description: XsmpUtils.getDescription(parameter),
+            Description: this.docHelper.getDescription(parameter),
             Metadata: parameter.attributes.map(this.convertAttribute, this),
             Type: this.convertXlink(parameter.type, parameter),
             Default: parameter.default ? this.convertValue(parameter.type.ref, parameter.default) : undefined,
@@ -472,7 +481,7 @@ export class SmpGenerator implements XsmpGenerator {
     }
 
     protected async convertCatalogue(catalogue: ast.Catalogue): Promise<Catalogue.Catalogue> {
-        const id = XsmpUtils.getId(catalogue) ?? `_${XsmpUtils.fqn(catalogue)}`;
+        const id = this.docHelper.getId(catalogue) ?? `_${XsmpUtils.fqn(catalogue)}`;
 
         return {
             '@xmlns:Elements': 'http://www.ecss.nl/smp/2019/Core/Elements',
@@ -483,17 +492,17 @@ export class SmpGenerator implements XsmpGenerator {
             '@xmlns:xlink': 'http://www.w3.org/1999/xlink',
             '@Id': id,
             '@Name': catalogue.name,
-            '@Title': XsmpUtils.getTitle(catalogue),
-            '@Date': this.convertDate(XsmpUtils.getDate(catalogue)),
-            '@Creator': XsmpUtils.getCreator(catalogue),
-            '@Version': XsmpUtils.getVersion(catalogue),
-            Description: XsmpUtils.getDescription(catalogue),
+            '@Title': this.docHelper.getTitle(catalogue),
+            '@Date': this.convertDate(this.docHelper.getDate(catalogue)),
+            '@Creator': this.docHelper.getCreator(catalogue),
+            '@Version': this.docHelper.getVersion(catalogue),
+            Description: this.docHelper.getDescription(catalogue),
             Metadata: catalogue.attributes.map(this.convertAttribute, this),
             Namespace: catalogue.elements.map(this.convertNamespace, this),
         };
     }
     protected async convertPackage(catalogue: ast.Catalogue): Promise<Package.Package> {
-        const id = XsmpUtils.getId(catalogue) ?? `_${XsmpUtils.fqn(catalogue)}`,
+        const id = this.docHelper.getId(catalogue) ?? `_${XsmpUtils.fqn(catalogue)}`,
             doc = AstUtils.getDocument(catalogue),
             prefix = `${UriUtils.basename(doc.uri).replace(/\.xsmpcat$/, '.smpcat')}#`,
             dependencies = doc.references.map(e => e.ref ? AstUtils.getDocument(e.ref).parseResult.value : undefined).filter(ast.isCatalogue)
@@ -508,11 +517,11 @@ export class SmpGenerator implements XsmpGenerator {
             '@xmlns:xlink': 'http://www.w3.org/1999/xlink',
             '@Id': id,
             '@Name': catalogue.name,
-            '@Title': XsmpUtils.getTitle(catalogue),
-            '@Date': this.convertDate(XsmpUtils.getDate(catalogue)),
-            '@Creator': XsmpUtils.getCreator(catalogue),
-            '@Version': XsmpUtils.getVersion(catalogue),
-            Description: XsmpUtils.getDescription(catalogue),
+            '@Title': this.docHelper.getTitle(catalogue),
+            '@Date': this.convertDate(this.docHelper.getDate(catalogue)),
+            '@Creator': this.docHelper.getCreator(catalogue),
+            '@Version': this.docHelper.getVersion(catalogue),
+            Description: this.docHelper.getDescription(catalogue),
             Metadata: catalogue.attributes.map(this.convertAttribute, this),
             Dependency: dependencies.map(e => this.convertXlink({ ref: e, $refText: e.name }, catalogue)),
             Implementation: AstUtils.streamAllContents(catalogue).filter(ast.isType).filter(e => !ast.isInterface(e)).map(e =>

@@ -2,7 +2,7 @@ import * as ast from '../../generated/ast.js';
 import { type AstNode, AstUtils, type JSDocElement, type JSDocTag, type URI, UriUtils, WorkspaceCache } from 'langium';
 import * as fs from 'fs';
 import type { TaskAcceptor, XsmpGenerator } from '../generator.js';
-import { escape, fqn, getAccessKind, getAllFields, getDescription, getJSDoc, getNativeLocation, getPTK, getUuid, getViewKind, isAbstractType, isByPointer, isByReference, isConst, isInput, isOutput, isState, operatorKind } from '../../utils/xsmp-utils.js';
+import { escape, fqn, getAccessKind, getPTK,  isAbstractType,  isInput, isOutput, isState } from '../../utils/xsmp-utils.js';
 import * as CopyrightNoticeProvider from '../copyright-notice-provider.js';
 import { expandToString as s } from 'langium/generate';
 import * as Path from 'path';
@@ -13,6 +13,8 @@ import * as Solver from '../../utils/solver.js';
 import { PTK } from '../../utils/primitive-type-kind.js';
 import { xsmpVersion } from '../../version.js';
 import { OperatorKind } from '../../utils/operator-kind.js';
+import { type DocumentationHelper } from '../../utils/documentation-helper.js';
+import { type AttributeHelper } from '../../utils/attribute-helper.js';
 
 export enum CxxStandard { CXX_STD_11 = 0, CXX_STD_14 = 1, CXX_STD_17 = 2 }
 
@@ -39,11 +41,15 @@ export abstract class CppGenerator implements XsmpGenerator {
     protected readonly cxxStandard: CxxStandard;
     protected readonly typeProvider: XsmpTypeProvider;
     protected readonly cache: WorkspaceCache<unknown, unknown>;
+    protected readonly docHelper: DocumentationHelper;
+    protected readonly attrHelper: AttributeHelper;
 
     constructor(services: XsmpSharedServices, cxxStandard: CxxStandard) {
         this.cxxStandard = cxxStandard;
         this.typeProvider = services.TypeProvider;
         this.cache = new WorkspaceCache(services);
+        this.docHelper = services.DocumentationHelper;
+        this.attrHelper = services.AttributeHelper;
     }
 
     clean(_projectUri: URI) {
@@ -153,7 +159,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         const computeDeps = (type: ast.Type) => {
             if (ast.isArrayType(type)) return [type.itemType.ref];
             if (ast.isValueReference(type)) return [type.type.ref];
-            if (ast.isStructure(type)) return getAllFields(type).map(field => field.type.ref).toArray();
+            if (ast.isStructure(type)) return this.attrHelper.getAllFields(type).map(field => field.type.ref).toArray();
             return [];
         };
 
@@ -429,7 +435,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         }
     }
     protected comment(element: ast.NamedElement): string {
-        const comment = getJSDoc(element);
+        const comment = this.docHelper.getJSDoc(element);
         if (!comment)
             return '';
         const newLine = '\n///';
@@ -474,11 +480,11 @@ export abstract class CppGenerator implements XsmpGenerator {
     }
 
     protected description(element: ast.NamedElement | ast.ReturnParameter): string {
-        return `"${escape(getDescription(element))}"`;
+        return `"${escape(this.docHelper.getDescription(element))}"`;
     }
 
     protected viewKind(element: ast.Property | ast.Field | ast.Operation | ast.EntryPoint, defaultViewKind: string = '::Smp::ViewKind::VK_All'): string {
-        const vk = getViewKind(element);
+        const vk = this.attrHelper.getViewKind(element);
         if (vk) {
             return this.expression(vk);
         }
@@ -577,7 +583,7 @@ export abstract class CppGenerator implements XsmpGenerator {
     protected uuidDeclaration(type: ast.Type): string | undefined {
         return s`
             /// Universally unique identifier of type ${type.name}.
-            ${this.cxxStandard >= CxxStandard.CXX_STD_17 ? 'inline ' : ''}constexpr ::Smp::Uuid Uuid_${type.name} { ${getUuid(type)?.toString().trim().split('-').map(u => `0x${u}U`).join(', ')} };
+            ${this.cxxStandard >= CxxStandard.CXX_STD_17 ? 'inline ' : ''}constexpr ::Smp::Uuid Uuid_${type.name} { ${this.docHelper.getUuid(type)?.toString().trim().split('-').map(u => `0x${u}U`).join(', ')} };
             `;
     }
     protected uuidDefinition(_type: ast.Type): string | undefined {
@@ -765,7 +771,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         return type !== undefined && (ast.isStructure(type) || ast.isReferenceType(type));
     }
     headerIncludesAssociation(element: ast.Association): Include[] {
-        if (isByPointer(element) && this.isForwardable(element.type.ref))
+        if (this.attrHelper.isByPointer(element) && this.isForwardable(element.type.ref))
             return [ForwardedType.create(element.type.ref)];
         return [element.type.ref];
     }
@@ -794,7 +800,7 @@ export abstract class CppGenerator implements XsmpGenerator {
     headerIncludesParameter(element: ast.Parameter | ast.ReturnParameter | undefined): Include[] {
         if (!element)
             return [];
-        return [isByPointer(element) && this.isForwardable(element.type.ref) ? ForwardedType.create(element.type.ref) : element.type.ref,
+        return [this.attrHelper.isByPointer(element) && this.isForwardable(element.type.ref) ? ForwardedType.create(element.type.ref) : element.type.ref,
         ...ast.isParameter(element) ? this.expressionIncludes(element.default) : []];
     }
 
@@ -802,7 +808,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         return [...this.headerIncludesParameter(element.returnParameter), ...element.parameter.flatMap(param => this.headerIncludesParameter(param), this)];
     }
     headerIncludesProperty(element: ast.Property): Include[] {
-        if (isByPointer(element) && this.isForwardable(element.type.ref))
+        if (this.attrHelper.isByPointer(element) && this.isForwardable(element.type.ref))
             return [ForwardedType.create(element.type.ref)];
         return [element.type.ref];
     }
@@ -846,7 +852,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         return ['Smp/Publication/ITypeRegistry.h'];
     }
     headerIncludesNativeType(type: ast.NativeType): Include[] {
-        return ['Smp/Publication/ITypeRegistry.h', getNativeLocation(type)];
+        return ['Smp/Publication/ITypeRegistry.h', this.docHelper.getNativeLocation(type)];
     }
     protected sourceIncludes(element: ast.NamedElement): Include[] {
         switch (element.$type) {
@@ -876,7 +882,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         }
     }
     sourceIncludesAssociation(element: ast.Association): Include[] {
-        if (isByPointer(element) && this.isForwardable(element.type.ref))
+        if (this.attrHelper.isByPointer(element) && this.isForwardable(element.type.ref))
             return [element.type.ref];
         return [];
     }
@@ -899,7 +905,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         return [];
     }
     sourceIncludesParameter(element: ast.Parameter | ast.ReturnParameter | undefined): Include[] {
-        if (element && isByPointer(element) && this.isForwardable(element.type.ref))
+        if (element && this.attrHelper.isByPointer(element) && this.isForwardable(element.type.ref))
             return [element.type.ref];
         return [];
     }
@@ -907,7 +913,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         return [...this.sourceIncludesParameter(element.returnParameter), ...element.parameter.flatMap(param => this.sourceIncludesParameter(param), this)];
     }
     sourceIncludesProperty(element: ast.Property): Include[] {
-        if (isByPointer(element) && this.isForwardable(element.type.ref))
+        if (this.attrHelper.isByPointer(element) && this.isForwardable(element.type.ref))
             return [element.type.ref];
         return [];
     }
@@ -1335,7 +1341,7 @@ export abstract class CppGenerator implements XsmpGenerator {
 
     protected type(elem: ast.Parameter | ast.ReturnParameter | ast.Association | ast.Property | undefined): string {
         if (!elem) { return 'void'; }
-        return `${isConst(elem) ? 'const ' : ''}${this.fqn(elem.type.ref)}${isByPointer(elem) ? '*' : ''}${!ast.isAssociation(elem) && isByReference(elem) ? '&' : ''}`;
+        return `${this.attrHelper.isConst(elem) ? 'const ' : ''}${this.fqn(elem.type.ref)}${this.attrHelper.isByPointer(elem) ? '*' : ''}${!ast.isAssociation(elem) && this.attrHelper.isByReference(elem) ? '&' : ''}`;
     }
 
     protected getDefaultValueForType(type: ast.Type | undefined): string {
@@ -1348,7 +1354,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             return value ? `{${new Array(Number(value)).fill(this.getDefaultValueForType(type.itemType.ref)).join(', ')}}` : '{}';
         }
         if (ast.isStructure(type)) {
-            return `{${getAllFields(type).map(f => `/*.${f.name} = */${this.getDefaultValueForType(f.type.ref)}`).join(', ')}}`;
+            return `{${this.attrHelper.getAllFields(type).map(f => `/*.${f.name} = */${this.getDefaultValueForType(f.type.ref)}`).join(', ')}}`;
         }
 
         if (ast.isEnumeration(type)) {
@@ -1386,7 +1392,7 @@ export abstract class CppGenerator implements XsmpGenerator {
     }
 
     protected operationName(op: ast.Operation): string {
-        switch (operatorKind(op)) {
+        switch (this.attrHelper.operatorKind(op)) {
             case OperatorKind.NONE:
                 return op.name;
             case OperatorKind.ADD:

@@ -1,8 +1,8 @@
 import type { AstNode } from 'langium';
 import { WorkspaceCache } from 'langium';
 import * as ast from '../generated/ast.js';
-import * as XsmpUtils from '../utils/xsmp-utils.js';
 import type { XsmpSharedServices } from '../xsmp-module.js';
+import { type AttributeHelper } from '../utils/attribute-helper.js';
 
 /**
  * Provide the the type of any Expression in the AST.
@@ -11,8 +11,10 @@ import type { XsmpSharedServices } from '../xsmp-module.js';
 export class XsmpTypeProvider {
 
     protected readonly typeCache: WorkspaceCache<AstNode, ast.Type | undefined>;
+    protected readonly attrHelper: AttributeHelper;
     constructor(services: XsmpSharedServices) {
         this.typeCache = new WorkspaceCache<AstNode, ast.Type | undefined>(services);
+        this.attrHelper = services.AttributeHelper;
     }
 
     /** Get the type of the expression or undefined if no type can be found */
@@ -27,7 +29,7 @@ export class XsmpTypeProvider {
         else if (ast.isCollectionLiteral(node.$container)) {
             const type = this.getType(node.$container);
             if (ast.isStructure(type)) {
-                const field = XsmpUtils.getAllFields(type).toArray().at(node.$containerIndex!);
+                const field = this.attrHelper.getAllFields(type).toArray().at(node.$containerIndex!);
                 if (field) { return field.type.ref; }
             }
             else if (ast.isArrayType(type)) {

@@ -18,6 +18,8 @@ import { XsmpDocumentUpdateHandler } from './lsp/document-update-handler.js';
 import { XsmpTypeProvider } from './references/type-provider.js';
 import { XsmpNodeInfoProvider } from './lsp/node-info-provider.js';
 import { XsmpServiceRegistry } from './lsp/service-registry.js';
+import { DocumentationHelper } from './utils/documentation-helper.js';
+import { AttributeHelper } from './utils/attribute-helper.js';
 
 /**
  * Create the full set of services required by Langium.
@@ -78,6 +80,8 @@ export interface XsmpAddedSharedServices {
     readonly lsp: {
         readonly NodeInfoProvider: XsmpNodeInfoProvider,
     },
+    readonly DocumentationHelper: DocumentationHelper,
+    readonly AttributeHelper: AttributeHelper,
 }
 
 /**
@@ -86,11 +90,13 @@ export interface XsmpAddedSharedServices {
 export type XsmpSharedServices = LangiumSharedServices & XsmpAddedSharedServices;
 
 export const XsmpSharedModule: Module<XsmpSharedServices, DeepPartial<XsmpSharedServices>> = {
+    AttributeHelper: (services) => new AttributeHelper(services),
     DocumentGenerator: (services) => new XsmpDocumentGenerator(services),
+    DocumentationHelper: (services) => new DocumentationHelper(services),
     TypeProvider: (services) => new XsmpTypeProvider(services),
     lsp: {
         DocumentUpdateHandler: (services) => new XsmpDocumentUpdateHandler(services),
-        NodeInfoProvider: () => new XsmpNodeInfoProvider(),
+        NodeInfoProvider: (services) => new XsmpNodeInfoProvider(services),
         NodeKindProvider: () => new XsmpNodeKindProvider(),
     },
     workspace: {

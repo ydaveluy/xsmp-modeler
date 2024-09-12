@@ -3,7 +3,7 @@ import type { XsmpSharedServices } from '../../xsmp-module.js';
 import { CxxStandard, type Include } from '../../generator/cpp/generator.js';
 import * as ast from '../../generated/ast.js';
 import { expandToString as s } from 'langium/generate';
-import { getAccessKind, isByPointer, isFailure, isForcible, isInput, isMutable, isOutput, isSimpleArray, isState, isStatic } from '../../utils/xsmp-utils.js';
+import { getAccessKind, isInput, isOutput, isState } from '../../utils/xsmp-utils.js';
 import { VisibilityKind } from '../../utils/visibility-kind.js';
 import { xsmpVersion } from '../../version.js';
 
@@ -33,7 +33,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
 
     override async generateArrayHeaderGen(type: ast.ArrayType, gen: boolean): Promise<string | undefined> {
         return s`
-        ${this.comment(type)}using ${this.name(type, gen)} = ::Xsmp::Array<${this.fqn(type.itemType.ref)}, ${this.expression(type.size)}>${isSimpleArray(type) ? '::simple' : ''};
+        ${this.comment(type)}using ${this.name(type, gen)} = ::Xsmp::Array<${this.fqn(type.itemType.ref)}, ${this.expression(type.size)}>${this.attrHelper.isSimpleArray(type) ? '::simple' : ''};
 
         ${this.uuidDeclaration(type)}
         
@@ -192,7 +192,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         return undefined;
     }
     override async generateStructureHeaderGen(type: ast.Structure, gen: boolean): Promise<string | undefined> {
-        const fields = type.elements.filter(ast.isField).filter(field => !isStatic(field));
+        const fields = type.elements.filter(ast.isField).filter(field => !this.attrHelper.isStatic(field));
         const rawFqn = this.name(this.fqn(type), gen);
         return s`
         ${this.comment(type)}struct ${this.name(type, gen)} {
@@ -234,7 +234,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
                 }
                 
                 ${fields.length === 0 ? '' : '// Fields declaration'}
-                ${fields.map(field => `${this.comment(field)}${isMutable(field) ? 'mutable ' : ''}typename _BASE::template Field<${this.fqn(field.type.ref)}>${isState(field) ? '' : '::transient'}${isInput(field) ? '::input' : ''}${isOutput(field) ? '::output' : ''}${isForcible(field) ? '::forcible' : ''}${isFailure(field) ? '::failure' : ''} ${field.name};`).join('\n')}
+                ${fields.map(field => `${this.comment(field)}${this.attrHelper.isMutable(field) ? 'mutable ' : ''}typename _BASE::template Field<${this.fqn(field.type.ref)}>${isState(field) ? '' : '::transient'}${isInput(field) ? '::input' : ''}${isOutput(field) ? '::output' : ''}${this.attrHelper.isForcible(field) ? '::forcible' : ''}${this.attrHelper.isFailure(field) ? '::failure' : ''} ${field.name};`, this).join('\n')}
                };
         };
         
@@ -281,7 +281,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         if (type.elements.some(ast.isEntryPoint)) {
             includes.push('Xsmp/EntryPointPublisher.h');
         }
-        if (type.$type === ast.Model && type.elements.some(element => ast.isField(element) && isFailure(element) === true)) {
+        if (type.$type === ast.Model && type.elements.some(element => ast.isField(element) && this.attrHelper.isFailure(element), this)) {
             includes.push('Xsmp/FallibleModel.h');
         }
         return includes;
@@ -419,7 +419,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
             bases.push('public virtual ::Xsmp::EventConsumer');
         if (type.elements.some(ast.isEntryPoint))
             bases.push('public virtual ::Xsmp::EntryPointPublisher');
-        if (type.$type === ast.Model && type.elements.filter(ast.isField).some(isFailure))
+        if (type.$type === ast.Model && type.elements.filter(ast.isField).some(field => this.attrHelper.isFailure(field), this))
             bases.push('public virtual ::Xsmp::FallibleModel');
         return bases;
     }
@@ -505,7 +505,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
 
     protected generateRqHandlerOperation(op: ast.Operation, gen: boolean): string {
         const r = op.returnParameter;
-        const invokation = `component->${this.operationName(op)}(${op.parameter.map(param => `${isByPointer(param) ? '&' : ''}p_${param.name}`).join(', ')})`;
+        const invokation = `component->${this.operationName(op)}(${op.parameter.map(param => `${this.attrHelper.isByPointer(param) ? '&' : ''}p_${param.name}`, this).join(', ')})`;
         return s`
             // Handler for Operation ${op.name}
             {"${op.name}",
@@ -590,7 +590,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
 
     protected override isCdkField(field: ast.Field): boolean {
         const key = { id: 'isCdkField', value: field };
-        return this.cache.get(key, () => ast.isComponent(field.$container) && !isStatic(field) && !ast.isClass(field.type.ref) && (isOutput(field) || isFailure(field) || isForcible(field) || this.isCdkFieldType(field.type.ref))) as boolean;
+        return this.cache.get(key, () => ast.isComponent(field.$container) && !this.attrHelper.isStatic(field) && !ast.isClass(field.type.ref) && (isOutput(field) || this.attrHelper.isFailure(field) || this.attrHelper.isForcible(field) || this.isCdkFieldType(field.type.ref))) as boolean;
     }
     override headerIncludesField(field: ast.Field): Include[] {
         if (this.isCdkField(field)) {
@@ -601,7 +601,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
     protected override declareFieldGen(field: ast.Field, _gen: boolean): string | undefined {
         if (this.isCdkField(field)) {
             return s`
-                ${this.comment(field)}${isMutable(field) ? 'mutable ' : ''}::Xsmp::Field<${this.fqn(field.type.ref)}>${isState(field) ? '' : '::transient'}${isInput(field) ? '::input' : ''}${isOutput(field) ? '::output' : ''}${isForcible(field) ? '::forcible' : ''}${isFailure(field) ? '::failure' : ''} ${field.name};
+                ${this.comment(field)}${this.attrHelper.isMutable(field) ? 'mutable ' : ''}::Xsmp::Field<${this.fqn(field.type.ref)}>${isState(field) ? '' : '::transient'}${isInput(field) ? '::input' : ''}${isOutput(field) ? '::output' : ''}${this.attrHelper.isForcible(field) ? '::forcible' : ''}${this.attrHelper.isFailure(field) ? '::failure' : ''} ${field.name};
                 `;
         }
         return super.declareFieldGen(field, _gen);

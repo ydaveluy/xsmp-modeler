@@ -12,26 +12,33 @@ import type { XsmpTypeProvider } from '../references/type-provider.js';
 import * as Solver from '../utils/solver.js';
 import { PTK } from '../utils/primitive-type-kind.js';
 import { VisibilityKind } from '../utils/visibility-kind.js';
+import { type DocumentationHelper } from '../utils/documentation-helper.js';
+import { type AttributeHelper } from '../utils/attribute-helper.js';
 
 export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
 
     protected readonly typeProvider: XsmpTypeProvider;
+    protected readonly docHelper: DocumentationHelper;
+    protected readonly attrHelper: AttributeHelper;
+
     constructor(services: XsmpcatServices) {
         super(services);
         this.typeProvider = services.shared.TypeProvider;
+        this.docHelper = services.shared.DocumentationHelper;
+        this.attrHelper = services.shared.AttributeHelper;
     }
 
     private isValidAttributeType(desc: AstNodeDescription, attribute: ast.Attribute): boolean {
         if (!ast.isAttributeType(desc.node)) { return false; }
 
-        const usages = XsmpUtils.getUsages(desc.node),
+        const usages = this.docHelper.getUsages(desc.node),
             elementType = XsmpUtils.getNodeType(attribute.$container);
 
         if (!usages?.find(u => u.toString() === elementType)) {
             return false;
         }
 
-        if (attribute.$container.attributes.some(a => a.type.ref === desc.node) && !XsmpUtils.allowMultiple(desc.node)) {
+        if (attribute.$container.attributes.some(a => a.type.ref === desc.node) && !this.docHelper.allowMultiple(desc.node)) {
             return false;
         }
         return XsmpUtils.isTypeVisibleFrom(attribute, desc.node);
@@ -149,7 +156,7 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
         };
     }
     getCompletionTags(nodeDescription: AstNodeDescription): CompletionItemTag[] | undefined {
-        if (ast.isNamedElement(nodeDescription.node) && XsmpUtils.IsDeprecated(nodeDescription.node))
+        if (ast.isNamedElement(nodeDescription.node) && this.docHelper.IsDeprecated(nodeDescription.node))
             return [CompletionItemTag.Deprecated];
         return undefined;
     }
@@ -245,7 +252,7 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
             return value ? `{${new Array(Number(value)).fill(this.getDefaultValueForType(type.itemType.ref)).join(', ')}}` : '{}';
         }
         if (ast.isStructure(type)) {
-            return `{${XsmpUtils.getAllFields(type).map(f => `.${f.name} = ${this.getDefaultValueForType(f.type.ref)}`).join(', ')}}`;
+            return `{${this.attrHelper.getAllFields(type).map(f => `.${f.name} = ${this.getDefaultValueForType(f.type.ref)}`).join(', ')}}`;
         }
 
         if (ast.isEnumeration(type)) {

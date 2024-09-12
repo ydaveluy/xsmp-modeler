@@ -7,9 +7,14 @@ import * as fs from 'fs';
 import * as Path from 'path';
 import type { TaskAcceptor, XsmpGenerator } from '../../generator/generator.js';
 import { xsmpVersion } from '../../version.js';
-import { getUuid } from '../../utils/xsmp-utils.js';
+import { type XsmpSharedServices } from '../../xsmp-module.js';
+import { type DocumentationHelper } from '../../utils/documentation-helper.js';
 
 export class PythonGenerator implements XsmpGenerator {
+    protected readonly docHelper: DocumentationHelper;
+    constructor(services: XsmpSharedServices) {
+        this.docHelper = services.DocumentationHelper;
+    }
 
     generate(node: AstNode, projectUri: URI, acceptTask: TaskAcceptor) {
         if (ast.isCatalogue(node)) {
@@ -105,8 +110,8 @@ export class PythonGenerator implements XsmpGenerator {
 
                 ${components.map(type => s`
                 class ${type.name}:
-                    uuid: ecss_smp.Smp.Uuid = ecss_smp.Smp.Uuid("${getUuid(type)}")
-                `).join('\n')}
+                    uuid: ecss_smp.Smp.Uuid = ecss_smp.Smp.Uuid("${this.docHelper.getUuid(type)}")
+                `, this).join('\n')}
 
                 `: undefined}
                 

@@ -2,7 +2,7 @@ import * as ast from '../../generated/ast.js';
 import * as fs from 'fs';
 import { expandToString as s } from 'langium/generate';
 import { type URI, UriUtils } from 'langium';
-import { fqn, getAccessKind, getNativeNamespace, getNativeType, getRealVisibility, getUnit, isAbstract, isByPointer, isConst, isConstGetter, isConstructor, isInput, isMutable, isOutput, isSimpleArray, isState, isStatic, isString8, isVirtual } from '../../utils/xsmp-utils.js';
+import { fqn, getAccessKind, getRealVisibility, isInput, isOutput, isState, isString8} from '../../utils/xsmp-utils.js';
 import { CppGenerator, CxxStandard } from './generator.js';
 import type { TaskAcceptor } from '../generator.js';
 import type { XsmpSharedServices } from '../../xsmp-module.js';
@@ -320,8 +320,8 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
         return undefined;
     }
     async generateNativeTypeHeaderGen(type: ast.NativeType, gen: boolean): Promise<string | undefined> {
-        const namespace = getNativeNamespace(type);
-        return `using ${this.name(type, gen)} = ${namespace ? namespace + '::' : ''}${getNativeType(type)};`;
+        const namespace = this.docHelper.getNativeNamespace(type);
+        return `using ${this.name(type, gen)} = ${namespace ? namespace + '::' : ''}${this.docHelper.getNativeType(type)};`;
     }
     async generateNativeTypeSourceGen(_type: ast.NativeType, _gen: boolean): Promise<string | undefined> {
         return undefined;
@@ -365,7 +365,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     }
 
     async generateClassSourceGen(type: ast.Class, gen: boolean): Promise<string | undefined> {
-        const fields = type.elements.filter(ast.isField).filter(field => !isStatic(field) && !isString8(field.type.ref));
+        const fields = type.elements.filter(ast.isField).filter(field => !this.attrHelper.isStatic(field) && !isString8(field.type.ref));
         return s`
         ${this.defineMembersGen(type, gen)}
         void ${this.name(type, gen)}::_Register(::Smp::Publication::ITypeRegistry* registry) 
@@ -437,7 +437,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     }
 
     async generateStructureSourceGen(type: ast.Structure, gen: boolean): Promise<string | undefined> {
-        const fields = type.elements.filter(ast.isField).filter(field => !isStatic(field) && !isString8(field.type.ref));
+        const fields = type.elements.filter(ast.isField).filter(field => !this.attrHelper.isStatic(field) && !isString8(field.type.ref));
         return s`
         ${this.defineMembersGen(type, gen)}
         void ${this.name(type, gen)}::_Register(::Smp::Publication::ITypeRegistry* registry) 
@@ -490,7 +490,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
                 ${this.uuid(type)}, // UUID
                 ${type.minimum ? this.expression(type.minimum) : `std::numeric_limits<${this.fqn(type.primitiveType?.ref, '::Smp::Int32')}>::min()`}, // Minimum
                 ${type.maximum ? this.expression(type.maximum) : `std::numeric_limits<${this.fqn(type.primitiveType?.ref, '::Smp::Int32')}>::max()`}, // Maximum
-                "${getUnit(type)}", // Unit
+                "${this.docHelper.getUnit(type)}", // Unit
                 ${this.primitiveTypeKind(type)} // Primitive Type Kind
             );
         }
@@ -525,7 +525,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
             ${type.maximum ? this.expression(type.maximum) : `std::numeric_limits<${this.fqn(type.primitiveType?.ref, '::Smp::Float64')}>::max()`}, // Maximum
             ${minInclusive}, // Minimum ${minInclusive ? 'inclusive' : 'exclusive'}
             ${maxInclusive}, // Maximum ${maxInclusive ? 'inclusive' : 'exclusive'}
-            "${getUnit(type)}", // Unit
+            "${this.docHelper.getUnit(type)}", // Unit
             ${this.primitiveTypeKind(type)} // Primitive Type Kind
         );  
     }
@@ -624,7 +624,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
                 ${this.uuid(type.itemType.ref)}, // Item Type UUID
                 sizeof(${this.fqn(type.itemType.ref)}), // Item Type size
                 ${this.expression(type.size)}, // Number of elements
-                ${isSimpleArray(type) === true} // Simple array
+                ${this.attrHelper.isSimpleArray(type)} // Simple array
             );
         }
         ${this.uuidDefinition(type)}
@@ -744,7 +744,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
         }
     }
     protected override initializeAssociation(element: ast.Association, _gen: boolean = false): string | undefined {
-        if (isStatic(element) !== true)
+        if (!this.attrHelper.isStatic(element))
             return s`
                 // Association ${element.name}
                 ${element.name}{ }
@@ -810,7 +810,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
 
     protected declareAssociationGen(element: ast.Association, _gen: boolean): string | undefined {
         return s`
-            ${this.comment(element)}${isStatic(element) ? 'static ' : ''}${isMutable(element) ? 'mutable ' : ''}${this.type(element)} ${element.name};
+            ${this.comment(element)}${this.attrHelper.isStatic(element) ? 'static ' : ''}${this.attrHelper.isMutable(element) ? 'mutable ' : ''}${this.type(element)} ${element.name};
             `;
     }
     protected defineAssociationGen(_element: ast.Association, _gen: boolean): string | undefined {
@@ -927,11 +927,11 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
 
     protected declareFieldGen(element: ast.Field, _gen: boolean): string | undefined {
         return s`
-            ${this.comment(element)}${isStatic(element) ? 'static ' : ''}${isMutable(element) ? 'mutable ' : ''}${this.fqn(element.type.ref)} ${element.name}${element.default && !isStatic(element) ? this.directListInitializer(element.default) : ''};
+            ${this.comment(element)}${this.attrHelper.isStatic(element) ? 'static ' : ''}${this.attrHelper.isMutable(element) ? 'mutable ' : ''}${this.fqn(element.type.ref)} ${element.name}${element.default && !this.attrHelper.isStatic(element) ? this.directListInitializer(element.default) : ''};
             `;
     }
     protected defineFieldGen(element: ast.Field, gen: boolean): string | undefined {
-        if (isStatic(element))
+        if (this.attrHelper.isStatic(element))
             return `
                 // Field ${element.name}
                 ${this.fqn(element.type.ref)} ${this.name(element.$container, gen)}::${element.name}${this.directListInitializer(element.default)};
@@ -939,7 +939,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
         return undefined;
     }
     protected override initializeField(element: ast.Field, _gen: boolean = false): string | undefined {
-        if (!isStatic(element)) {
+        if (!this.attrHelper.isStatic(element)) {
             return s`
                 // Field ${element.name}
                 ${element.name} ${this.directListInitializer(element.default)}
@@ -949,28 +949,28 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     }
 
     protected declareOperationGen(op: ast.Operation, gen: boolean): string | undefined {
-        if (isConstructor(op)) // a constructor
+        if (this.attrHelper.isConstructor(op)) // a constructor
             return `${this.comment(op)}${this.name(op.$container, gen)}(${op.parameter.map(param => this.declareParameter(param)).join(', ')});`;
-        else if (isStatic(op)) // a static method
+        else if (this.attrHelper.isStatic(op)) // a static method
             return `${this.comment(op)}static ${this.type(op.returnParameter)} ${this.operationName(op)}(${op.parameter.map(param => this.declareParameter(param)).join(', ')});`;
-        else if (isVirtual(op)) // a virtual method
-            return `${this.comment(op)}virtual ${this.type(op.returnParameter)} ${this.operationName(op)}(${op.parameter.map(param => this.declareParameter(param)).join(', ')})${isConst(op) ? ' const' : ''}${isAbstract(op) || gen ? '=0' : ''};`;
+        else if (this.attrHelper.isVirtual(op)) // a virtual method
+            return `${this.comment(op)}virtual ${this.type(op.returnParameter)} ${this.operationName(op)}(${op.parameter.map(param => this.declareParameter(param)).join(', ')})${this.attrHelper.isConst(op) ? ' const' : ''}${this.attrHelper.isAbstract(op) || gen ? '=0' : ''};`;
 
-        return `${this.comment(op)}${this.type(op.returnParameter)} ${this.operationName(op)}(${op.parameter.map(param => this.declareParameter(param)).join(', ')})${isConst(op) ? ' const' : ''};`;
+        return `${this.comment(op)}${this.type(op.returnParameter)} ${this.operationName(op)}(${op.parameter.map(param => this.declareParameter(param)).join(', ')})${this.attrHelper.isConst(op) ? ' const' : ''};`;
 
     }
     protected defineOperationGen(_element: ast.Operation, _gen: boolean): string | undefined {
         return undefined;
     }
     protected override declareOperation(op: ast.Operation): string | undefined {
-        if (isConstructor(op)) // constructor declared in gen folder
+        if (this.attrHelper.isConstructor(op)) // constructor declared in gen folder
             return `using ${op.$container.name}::${op.$container.name};`;
-        if (isVirtual(op) && !isAbstract(op)) // override virtual methods
-            return `${this.comment(op)}${this.type(op.returnParameter)} ${this.operationName(op)}(${op.parameter.map(param => this.declareParameter(param)).join(', ')})${isConst(op) ? ' const' : ''} override;`;
+        if (this.attrHelper.isVirtual(op) && !this.attrHelper.isAbstract(op)) // override virtual methods
+            return `${this.comment(op)}${this.type(op.returnParameter)} ${this.operationName(op)}(${op.parameter.map(param => this.declareParameter(param)).join(', ')})${this.attrHelper.isConst(op) ? ' const' : ''} override;`;
         return undefined;
     }
     defaultReturn(param: ast.ReturnParameter): string {
-        if (isByPointer(param)) {
+        if (this.attrHelper.isByPointer(param)) {
             if (param.type.ref === param.$container.$container)
                 return 'this';
             return 'nullptr';
@@ -980,16 +980,16 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
         return this.getDefaultValueForType(param.type.ref);
     }
     protected override defineOperation(op: ast.Operation): string | undefined {
-        if (isConstructor(op)) // constructor declared in gen folder
+        if (this.attrHelper.isConstructor(op)) // constructor declared in gen folder
             return undefined;
-        else if (isStatic(op) || !isVirtual(op)) // static or not virtual method declared in gen folder
-            return `${this.type(op.returnParameter)} ${op.$container.name}::${this.operationName(op)}(${op.parameter.map(param => this.defineParameter(param)).join(', ')})${isConst(op) ? ' const' : ''} {
+        else if (this.attrHelper.isStatic(op) || !this.attrHelper.isVirtual(op)) // static or not virtual method declared in gen folder
+            return `${this.type(op.returnParameter)} ${op.$container.name}::${this.operationName(op)}(${op.parameter.map(param => this.defineParameter(param)).join(', ')})${this.attrHelper.isConst(op) ? ' const' : ''} {
                     // TODO
                     ${op.returnParameter ? `return ${this.defaultReturn(op.returnParameter)};` : ''}
                 }
                 `;
-        else if (!isAbstract) // override virtual method
-            return `${this.type(op.returnParameter)} ${op.$container.name}::${this.operationName(op)}(${op.parameter.map(param => this.defineParameter(param)).join(', ')})${isConst(op) ? ' const' : ''} {
+        else if (!this.attrHelper.isAbstract) // override virtual method
+            return `${this.type(op.returnParameter)} ${op.$container.name}::${this.operationName(op)}(${op.parameter.map(param => this.defineParameter(param)).join(', ')})${this.attrHelper.isConst(op) ? ' const' : ''} {
                     // TODO
                     ${op.returnParameter ? `return ${this.defaultReturn(op.returnParameter)};` : ''}
                 }
@@ -1012,19 +1012,19 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
         }
     }
     protected declarePropertySetterGen(element: ast.Property, gen: boolean): string | undefined {
-        const abstract = isAbstract(element) || (isVirtual(element) && gen && !element.attachedField);
+        const abstract = this.attrHelper.isAbstract(element) || (this.attrHelper.isVirtual(element) && gen && !element.attachedField);
         return s`
             /// Set ${element.name}.
             ${this.comment(element)}/// @param value New value of property ${element.name} to set.
-            ${isVirtual(element) ? 'virtual ' : ''}${isStatic(element) ? 'static ' : ''}void set_${element.name}(${this.type(element)} value)${abstract ? '=0' : ''};
+            ${this.attrHelper.isVirtual(element) ? 'virtual ' : ''}${this.attrHelper.isStatic(element) ? 'static ' : ''}void set_${element.name}(${this.type(element)} value)${abstract ? '=0' : ''};
             `;
     }
     protected declarePropertyGetterGen(element: ast.Property, gen: boolean): string | undefined {
-        const abstract = isAbstract(element) || (isVirtual(element) && gen && !element.attachedField);
+        const abstract = this.attrHelper.isAbstract(element) || (this.attrHelper.isVirtual(element) && gen && !element.attachedField);
         return s`
             /// Get ${element.name}.
             ${this.comment(element)}/// @return Current value of property ${element.name}.
-            ${isVirtual(element) ? 'virtual ' : ''}${isStatic(element) ? 'static ' : ''}${this.type(element)} get_${element.name}()${isConstGetter(element) ? ' const' : ''}${abstract ? '=0' : ''};
+            ${this.attrHelper.isVirtual(element) ? 'virtual ' : ''}${this.attrHelper.isStatic(element) ? 'static ' : ''}${this.type(element)} get_${element.name}()${this.attrHelper.isConstGetter(element) ? ' const' : ''}${abstract ? '=0' : ''};
             `;
     }
     protected definePropertyGen(element: ast.Property, gen: boolean): string | undefined {
@@ -1048,14 +1048,14 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     protected definePropertySetterGen(element: ast.Property, gen: boolean): string | undefined {
         return s`
         void ${this.name(element.$container, gen)}::set_${element.name}(${this.type(element)} value) {
-            ${isStatic(element) ? `${this.name(element.$container, gen)}::` : 'this->'}${element.attachedField?.ref?.name} = value;
+            ${this.attrHelper.isStatic(element) ? `${this.name(element.$container, gen)}::` : 'this->'}${element.attachedField?.ref?.name} = value;
         }
         `;
     }
     protected definePropertyGetterGen(element: ast.Property, gen: boolean): string | undefined {
         return s`
-            ${this.type(element)} ${this.name(element.$container, gen)}::get_${element.name}()${isConstGetter(element) ? ' const' : ''}{
-                return ${isStatic(element) ? `${this.name(element.$container, gen)}::` : 'this->'}${element.attachedField?.ref?.name};
+            ${this.type(element)} ${this.name(element.$container, gen)}::get_${element.name}()${this.attrHelper.isConstGetter(element) ? ' const' : ''}{
+                return ${this.attrHelper.isStatic(element) ? `${this.name(element.$container, gen)}::` : 'this->'}${element.attachedField?.ref?.name};
             }
             `;
     }
@@ -1163,7 +1163,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     }
 
     protected override declareProperty(element: ast.Property): string | undefined {
-        if (!element.attachedField && isVirtual(element) && !isAbstract(element)) {
+        if (!element.attachedField && this.attrHelper.isVirtual(element) && !this.attrHelper.isAbstract(element)) {
             switch (getAccessKind(element)) {
                 case 'readOnly':
                     return this.declarePropertyGetter(element);
@@ -1181,15 +1181,15 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     }
 
     protected declarePropertySetter(element: ast.Property): string | undefined {
-        return `void set_${element.name}(${this.type(element)} value)${isConst(element) ? ' const' : ''} override;`;
+        return `void set_${element.name}(${this.type(element)} value)${this.attrHelper.isConst(element) ? ' const' : ''} override;`;
     }
 
     protected declarePropertyGetter(element: ast.Property): string | undefined {
-        return `${this.type(element)} get_${element.name}()${isConstGetter(element) ? ' const' : ''} override;`;
+        return `${this.type(element)} get_${element.name}()${this.attrHelper.isConstGetter(element) ? ' const' : ''} override;`;
     }
 
     protected override defineProperty(element: ast.Property): string | undefined {
-        if (!element.attachedField && isVirtual(element) && !isAbstract(element)) {
+        if (!element.attachedField && this.attrHelper.isVirtual(element) && !this.attrHelper.isAbstract(element)) {
             switch (getAccessKind(element)) {
                 case 'readOnly':
                     return this.definePropertyGetter(element);
@@ -1208,7 +1208,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
 
     protected definePropertySetter(element: ast.Property): string | undefined {
         return s`
-            void ${element.$container.name}::set_${element.name}(${this.type(element)} value)${isConst(element) ? ' const' : ''}{
+            void ${element.$container.name}::set_${element.name}(${this.type(element)} value)${this.attrHelper.isConst(element) ? ' const' : ''}{
                 // TODO
             }
             `;
@@ -1216,7 +1216,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
 
     protected definePropertyGetter(element: ast.Property): string | undefined {
         return s`
-            ${this.type(element)} ${element.$container.name}::get_${element.name}()${isConstGetter(element) ? ' const' : ''}{
+            ${this.type(element)} ${element.$container.name}::get_${element.name}()${this.attrHelper.isConstGetter(element) ? ' const' : ''}{
                 ${this.type(element)} ret {};
                 return ret;
             }
