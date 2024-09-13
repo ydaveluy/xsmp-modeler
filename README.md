@@ -1,7 +1,12 @@
+# XSMP Modeler
+
+[![CI](https://github.com/ydaveluy/xsmp-modeler/actions/workflows/action.yml/badge.svg)](https://github.com/ydaveluy/xsmp-modeler/actions/workflows/action.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ydaveluy_xsmp-modeler&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ydaveluy_xsmp-modeler)
 
 > ⚠️ **Warning:** This project is a work in progress conversion of [XSMP-Modeler-Core](https://github.com/ThalesGroup/xsmp-modeler-core) from [Xtext](https://eclipse.dev/Xtext/documentation/index.html) to [Langium](https://langium.org/docs/introduction/).
 
 Features status:
+
 - [x] xsmp.project - Grammar
 - [x] xsmp.project - Scoping
 - [x] xsmp.project - Validation
@@ -24,18 +29,12 @@ Features status:
 - [ ] esa-cdk-legacy Profile - generator
 - [ ] SMP Tool - import
 - [ ] Command Line Interface
-
-# XSMP Modeler
-
-[![CI](https://github.com/ydaveluy/xsmp-modeler/actions/workflows/action.yml/badge.svg)](https://github.com/ydaveluy/xsmp-modeler/actions/workflows/action.yml)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ydaveluy_xsmp-modeler&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ydaveluy_xsmp-modeler)
-
-
+- [ ] Documentation
 
 XSMP Modeler is a framework for the development of SMDL (Simulation Model Definition Language) as defined in the [ECSS SMP standard](https://ecss.nl/standard/ecss-e-st-40-07c-simulation-modelling-platform-2-march-2020/).
 
-
 It includes:
+
 - An integrated text editor with syntax highlighting, error checking, auto-completion, formatting, hover information, outline, quick fixes, and more.
 - Specific profiles for each framework.
 - Additional tools for extended capabilities.
@@ -63,7 +62,6 @@ XSMP Modeler provides additional tools to extend its functionality:
 
 - **SMP Tool**: Generates SMP modeling files (smpcat, smppkg) from XSMP textual modeling files.
 - **AsciiDoc Tool**: Generates AsciiDoc documentation from XSMP modeling files.
-
 
 ## License
 

@@ -39,7 +39,7 @@ export class XsmpNodeInfoProvider {
             case ast.Class:
             case ast.Exception:
             case ast.EntryPoint:
-                return node.$type;
+                return XsmpUtils.getNodeType(node);
             default: return undefined;
         }
     }
@@ -73,7 +73,7 @@ export class XsmpNodeInfoProvider {
     }
 
     getTags(node: AstNode): SymbolTag[] | undefined {
-        if (ast.isNamedElement(node) && this.docHelper.IsDeprecated(node)) {
+        if (ast.reflection.isSubtype(node.$type, ast.NamedElement) && this.docHelper.IsDeprecated(node as ast.NamedElement)) {
             return [SymbolTag.Deprecated];
         }
         return undefined;

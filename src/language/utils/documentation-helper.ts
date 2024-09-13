@@ -1,19 +1,22 @@
 import type { AstNode, JSDocComment, JSDocParagraph, JSDocTag } from 'langium';
-import { AstUtils, DocumentCache, isJSDoc, parseJSDoc } from 'langium';
+import { isAstNodeWithComment, isJSDoc, parseJSDoc, WorkspaceCache } from 'langium';
 import * as ast from '../generated/ast.js';
 import { type XsmpSharedServices } from '../xsmp-module.js';
 import { findCommentNode } from './xsmp-utils.js';
 
 export class DocumentationHelper {
-    protected readonly cache: DocumentCache<AstNode, JSDocComment | undefined>;
+    protected readonly cache: WorkspaceCache<AstNode, JSDocComment | undefined>;
     constructor(services: XsmpSharedServices) {
-        this.cache = new DocumentCache(services);
+        this.cache = new WorkspaceCache(services);
     }
     getJSDoc(element: AstNode): JSDocComment | undefined {
-        return this.cache.get(AstUtils.getDocument(element).uri.toString(), element, () => {
+        return this.cache.get(element, () => {
             const comment = findCommentNode(element.$cstNode);
             if (comment && isJSDoc(comment)) {
                 return parseJSDoc(comment);
+            }
+            if (isAstNodeWithComment(element) && element.$comment) {
+                return parseJSDoc(element.$comment);
             }
             return undefined;
         });

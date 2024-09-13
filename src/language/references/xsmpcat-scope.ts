@@ -39,11 +39,11 @@ export class XsmpcatScopeComputation implements ScopeComputation {
             if (element.name) {
                 await interruptAndCheck(cancelToken);
                 const elementName = `${baseName}.${element.name}`;
-                if (ast.isType(element)) {
-                    this.computeTypeExports(document, element, exportedDescriptions, elementName);
+                if (element.$type === ast.Namespace) {
+                    await this.computeNamespaceExports(document, element, exportedDescriptions, elementName, cancelToken);
                 }
                 else {
-                    await this.computeNamespaceExports(document, element, exportedDescriptions, elementName, cancelToken);
+                    this.computeTypeExports(document, element, exportedDescriptions, elementName);
                 }
             }
         }
@@ -51,20 +51,27 @@ export class XsmpcatScopeComputation implements ScopeComputation {
     computeTypeExports(document: LangiumDocument, type: ast.Type, exportedDescriptions: AstNodeDescription[], typeName: string) {
         //Export the Type
         exportedDescriptions.push(this.descriptions.createDescription(type, typeName, document));
-
-        if (ast.isEnumeration(type)) {
-            const elementBaseName = `${typeName}.`;
-            for (const literal of type.literal) { // Export the literals
-                if (literal.name) {
-                    exportedDescriptions.push(this.descriptions.createDescription(literal, elementBaseName + literal.name, document));
+        switch (type.$type) {
+            case ast.Enumeration: {
+                const elementBaseName = `${typeName}.`;
+                for (const literal of (type as ast.Enumeration).literal) { // Export the literals
+                    if (literal.name) {
+                        exportedDescriptions.push(this.descriptions.createDescription(literal, elementBaseName + literal.name, document));
+                    }
                 }
+                break;
             }
-
-        } else if (ast.isStructure(type) || ast.isReferenceType(type)) {
-            const elementBaseName = `${typeName}.`;
-            for (const member of type.elements) {
-                if (member.name && ast.isConstant(member) && XsmpUtils.getRealVisibility(member) === VisibilityKind.public) { // Export only public constants
-                    exportedDescriptions.push(this.descriptions.createDescription(member, elementBaseName + member.name, document));
+            case ast.Structure:
+            case ast.Class:
+            case ast.Exception:
+            case ast.Interface:
+            case ast.Model:
+            case ast.Service: {
+                const elementBaseName = `${typeName}.`;
+                for (const member of (type as ast.WithBody).elements) {
+                    if (member.name && ast.Constant === member.$type && XsmpUtils.getRealVisibility(member) === VisibilityKind.public) { // Export only public constants
+                        exportedDescriptions.push(this.descriptions.createDescription(member, elementBaseName + member.name, document));
+                    }
                 }
             }
         }
@@ -99,30 +106,39 @@ export class XsmpcatScopeComputation implements ScopeComputation {
         for (const element of namespace.elements) {
             if (!element.name) { continue; }
             await interruptAndCheck(cancelToken);
-            if (ast.isType(element)) {
-                // Add the type to local scope
-                localDescriptions.push(this.descriptions.createDescription(element, element.name, document));
-
-                if (ast.isEnumeration(element)) {
-
-                    const nestedDescriptions = element.literal.map(literal =>
-                        this.descriptions.createDescription(literal, literal.name, document)
-                    );
-                    scopes.addAll(element, nestedDescriptions);
-
+            switch (element.$type) {
+                case ast.Namespace: {
+                    const nestedDescriptions = await this.computeNamespaceLocalScopes(element, scopes, document, cancelToken);
                     nestedDescriptions.forEach(description => {
                         localDescriptions.push(this.createAliasDescription(element, description));
                     });
-                } else if (ast.isStructure(element) || ast.isReferenceType(element)) {
+                    continue;
+                }
+                case ast.Enumeration: {
+                    const nestedDescriptions = (element as ast.Enumeration).literal.map(literal =>
+                        this.descriptions.createDescription(literal, literal.name, document)
+                    );
+                    scopes.addAll(element, nestedDescriptions);
+                    nestedDescriptions.forEach(description => {
+                        localDescriptions.push(this.createAliasDescription(element, description));
+                    });
+                    break;
+                }
+                case ast.Structure:
+                case ast.Class:
+                case ast.Exception:
+                case ast.Interface:
+                case ast.Model:
+                case ast.Service: {
                     const nestedDescriptions: AstNodeDescription[] = [],
                         internalDescriptions: AstNodeDescription[] = [];
 
                     // Constants are exported to parent scopes whereas fields are local
-                    element.elements.forEach(member => {
-                        if (ast.isConstant(member) && member.name) {
+                    (element as ast.WithBody).elements.forEach(member => {
+                        if (ast.Constant === member.$type && member.name) {
                             nestedDescriptions.push(this.descriptions.createDescription(member, member.name, document));
                         }
-                        else if (ast.isField(member) && member.name) {
+                        else if (ast.Field === member.$type && member.name) {
                             internalDescriptions.push(this.descriptions.createDescription(member, member.name, document));
                         }
                     });
@@ -131,13 +147,11 @@ export class XsmpcatScopeComputation implements ScopeComputation {
                     nestedDescriptions.forEach(nestedDescription => {
                         localDescriptions.push(this.createAliasDescription(element, nestedDescription));
                     });
+                    break;
                 }
-            } else {
-                const nestedDescriptions = await this.computeNamespaceLocalScopes(element, scopes, document, cancelToken);
-                nestedDescriptions.forEach(description => {
-                    localDescriptions.push(this.createAliasDescription(element, description));
-                });
             }
+            // Add the type to local scope
+            localDescriptions.push(this.descriptions.createDescription(element, element.name, document));
         }
 
         scopes.addAll(namespace, localDescriptions);
@@ -181,17 +195,27 @@ export class XsmpcatScopeProvider implements ScopeProvider {
         if (precomputed.size > 0) {
             scopes.push(precomputed);
         }
-        if (ast.isComponent(node)) {
-            if (node.base) {
-                this.collectScopesFromReference(node.base, scopes);
+        switch (node.$type) {
+            case ast.Model:
+            case ast.Service: {
+                const component = node as ast.Component;
+                if (component.base) {
+                    this.collectScopesFromReference(component.base, scopes);
+                }
+                component.interface.forEach(i => this.collectScopesFromReference(i, scopes));
+                break;
             }
-            node.interface.forEach(i => { this.collectScopesFromReference(i, scopes); });
-        }
-        else if (ast.isClass(node) && node.base) {
-            this.collectScopesFromReference(node.base, scopes);
-        }
-        else if (ast.isInterface(node)) {
-            node.base.forEach(i => { this.collectScopesFromReference(i, scopes); });
+            case ast.Interface: {
+                (node as ast.Interface).base.forEach(i => this.collectScopesFromReference(i, scopes));
+                break;
+            }
+            case ast.Class:
+            case ast.Exception: {
+                const clazz = node as ast.Class;
+                if (clazz.base)
+                    this.collectScopesFromReference(clazz.base, scopes);
+                break;
+            }
         }
     }
     protected collectScopesFromReference(node: Reference, scopes: Array<Map<string, AstNodeDescription>>) {
@@ -225,16 +249,17 @@ export class XsmpcatScopeProvider implements ScopeProvider {
 
         const scopes: Array<Map<string, AstNodeDescription>> = [];
 
-        if (ast.isDesignatedInitializer(context.container) && context.property === 'field') {
+        if (ast.DesignatedInitializer === context.container.$type && context.property === 'field') {
             if (context.container.$container) {
                 const type = this.typeProvider.getType(context.container.$container);
-
-                if (ast.isStructure(type)) {
-                    this.collectScopesFromNode(type, scopes, AstUtils.getDocument(type));
-                    parent = EMPTY_SCOPE;
-                }
-                else {
-                    return EMPTY_SCOPE;
+                switch (type?.$type) {
+                    case ast.Structure:
+                    case ast.Class:
+                    case ast.Exception:
+                        this.collectScopesFromNode(type, scopes, AstUtils.getDocument(type));
+                        parent = EMPTY_SCOPE;
+                        break;
+                    default: return EMPTY_SCOPE;
                 }
             }
             else {
@@ -270,19 +295,15 @@ export class XsmpcatScopeProvider implements ScopeProvider {
     }
 
     protected getPrecomputedScope(node: AstNode, document: LangiumDocument): Map<string, AstNodeDescription> {
-
-        let precomputed = this.precomputedCache.get(document.uri, node);
-        if (precomputed) {
-            return precomputed;
-        }
-        precomputed = new Map();
-        if (document.precomputedScopes) {
-            for (const element of document.precomputedScopes.get(node)) {
-                precomputed.set(element.name, element);
+        return this.precomputedCache.get(document.uri, node, () => {
+            const precomputed = new Map<string, AstNodeDescription>();
+            if (document.precomputedScopes) {
+                for (const element of document.precomputedScopes.get(node)) {
+                    precomputed.set(element.name, element);
+                }
             }
-        }
-        this.precomputedCache.set(document.uri, node, precomputed);
-        return precomputed;
+            return precomputed;
+        });
     }
 }
 

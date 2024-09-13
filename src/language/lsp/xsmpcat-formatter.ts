@@ -108,7 +108,8 @@ export class XsmpcatFormatter extends AbstractFormatter {
     }
 
     formatNamespace(node: ast.Namespace, formatter: NodeFormatter<ast.Namespace>) {
-        formatter.property('name').prepend(Formatting.oneSpace());
+        formatter.keyword('namespace').append(Formatting.oneSpace());
+        formatter.keyword('::').surround(Formatting.noSpace());
         this.formatBody(node, formatter);
     }
 

@@ -52,7 +52,7 @@ Namespace returns Namespace:
      */
     'namespace' name=ValidID  
     (
-    elements+=NestedNamespace
+    '::' elements+=NestedNamespace
     |
     '{'
         elements+=(Namespace|Type)*
@@ -62,9 +62,9 @@ Namespace returns Namespace:
 
 NestedNamespace returns Namespace:
     attributes+=Attribute*
-    '::' name=ValidID
+     name=ValidID
     (
-    elements+=NestedNamespace
+    '::' elements+=NestedNamespace
     |
     '{'
         elements+=(Namespace|Type)*
@@ -522,7 +522,7 @@ Container returns Container:
 	 * Furthermore, a container may specify a default implementation of the container type via the DefaultComponentl link.
 	 * Remark : SMDL support tools may use this during instantiation (i.e. during model integration) to select an initial implementation for newly created contained components. 
      */
-    'container' type=[ReferenceType:QualifiedName ] MultiplicityDeclaration name=ValidID  ('=' defaultComponent=[Component:QualifiedName ] )?  
+    'container' type=[ReferenceType:QualifiedName] MultiplicityDeclaration name=ValidID  ('=' defaultComponent=[Component:QualifiedName ] )?  
 ;
 
 Reference returns Reference_:
@@ -544,7 +544,7 @@ Reference returns Reference_:
 	 * The Lower and Upper attributes specify the multiplicity, i.e. the number of possibly held references to components implementing this interface. 
 	 * Therein the upper bound may be unlimited, which is represented by Upper=-1.
      */
-    'reference' interface=[Interface:QualifiedName ] MultiplicityDeclaration name=ValidID   
+    'reference' interface=[Interface:QualifiedName] MultiplicityDeclaration name=ValidID   
 ;
 fragment MultiplicityDeclaration*:
     optional?='?'  | multiplicity=Multiplicity ? 

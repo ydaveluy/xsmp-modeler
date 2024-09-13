@@ -26,9 +26,7 @@ export class XsmpDocumentSymbolProvider implements DocumentSymbolProvider {
     }
 
     protected async getSymbol(document: LangiumDocument, astNode: AstNode, cancelToken: Cancellation.CancellationToken): Promise<DocumentSymbol[]> {
-        if (cancelToken) {
-            await interruptAndCheck(cancelToken);
-        }
+        await interruptAndCheck(cancelToken);
         const node = astNode.$cstNode;
         const name = this.getSymbolName(astNode);
 
@@ -57,9 +55,9 @@ export class XsmpDocumentSymbolProvider implements DocumentSymbolProvider {
     }
 
     protected getSymbolName(node: AstNode): string | undefined {
-        if (!ast.isNamedElement(node)) {
+        if (!ast.reflection.isSubtype(node.$type, ast.NamedElement)) {
             return undefined;
         }
-        return this.attrHelper.getSignature(node);
+        return this.attrHelper.getSignature(node as ast.NamedElement);
     }
 }
