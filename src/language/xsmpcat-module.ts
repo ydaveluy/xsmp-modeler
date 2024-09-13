@@ -14,6 +14,7 @@ import { XsmpcatTypeDefinitionProvider } from './lsp/xsmpcat-type-provider.js';
 import { XsmpcatTypeHierarchyProvider } from './lsp/xsmpcat-type-hierarchy-provider.js';
 import type { XsmpSharedServices } from './xsmp-module.js';
 import { XsmpDocumentationProvider } from './lsp/documentation-provider.js';
+import { XsmpcatFoldingRangeProvider } from './lsp/xsmpcat-folding-range-provider.js';
 
 /**
  * Declaration of Xsmp services.
@@ -50,6 +51,7 @@ export const XsmpcatModule: Module<XsmpcatServices, PartialLangiumServices & Xsm
         CodeActionProvider: (services) => new XsmpcatCodeActionProvider(services),
         TypeProvider: (services) => new XsmpcatTypeDefinitionProvider(services),
         TypeHierarchyProvider: (services) => new XsmpcatTypeHierarchyProvider(services),
+        FoldingRangeProvider: (services) => new XsmpcatFoldingRangeProvider(services),
     },
     parser:
     {
