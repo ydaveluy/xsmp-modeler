@@ -121,9 +121,6 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         }
         `;
     }
-    protected override finalizeEntryPoint(_element: ast.EntryPoint): string | undefined {
-        return undefined;
-    }
 
     protected override declareEventSinkGen(element: ast.EventSink, gen: boolean): string | undefined {
         const eventType = this.eventType(element);
@@ -163,9 +160,6 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         `;
         }
     }
-    protected override finalizeEventSink(_element: ast.EventSink): string | undefined {
-        return undefined;
-    }
 
     protected override declareEventSourceGen(element: ast.EventSource, _gen: boolean): string | undefined {
         const eventType = this.eventType(element);
@@ -188,9 +182,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         `;
 
     }
-    protected override finalizeEventSource(_element: ast.EventSource): string | undefined {
-        return undefined;
-    }
+
     override async generateStructureHeaderGen(type: ast.Structure, gen: boolean): Promise<string | undefined> {
         const fields = type.elements.filter(ast.isField).filter(field => !this.attrHelper.isStatic(field));
         const rawFqn = this.name(this.fqn(type), gen);

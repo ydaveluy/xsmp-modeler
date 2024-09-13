@@ -8,6 +8,7 @@ import { XsmpDocumentSymbolProvider } from './lsp/document-symbol-provider.js';
 import { XsmpprojectCompletionProvider } from './lsp/xsmpproject-completion-provider.js';
 import { XsmpCommentProvider } from './lsp/comment-provider.js';
 import type { XsmpSharedServices } from './xsmp-module.js';
+import { XsmpprojectTokenBuilder } from './parser/xsmpproject-token-builder.js';
 
 /**
  * Declaration of custom services.
@@ -40,5 +41,8 @@ export const XsmpprojectModule: Module<XsmpprojectServices, PartialLangiumServic
     },
     documentation: {
         CommentProvider: (services) => new XsmpCommentProvider(services),
-    }
+    },
+    parser: {
+        TokenBuilder: () => new XsmpprojectTokenBuilder(),
+    },
 };

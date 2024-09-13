@@ -727,7 +727,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     async generateComponentSourceGen(_type: ast.Component, _gen: boolean): Promise<string | undefined> {
         return undefined;
     }
-
+/*
     protected override initialize(element: ast.NamedElement, gen: boolean = false): string | undefined {
         switch (element.$type) {
             case ast.Association: return this.initializeAssociation(element as ast.Association, gen);
@@ -742,7 +742,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
             case ast.Reference_: return this.initializeReference(element as ast.Reference_, gen);
             default: return undefined;
         }
-    }
+    }*/
     protected override initializeAssociation(element: ast.Association, _gen: boolean = false): string | undefined {
         if (!this.attrHelper.isStatic(element))
             return s`
@@ -848,9 +848,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
         ${this.comment(element)}::Smp::IContainer* ${element.name};
         `;
     }
-    protected override finalizeContainer(element: ast.Container): string | undefined {
-        return this.finalizePointer(element);
-    }
+
     protected defineContainerGen(_element: ast.Container, _gen: boolean): string | undefined {
         return undefined;
     }
@@ -874,15 +872,6 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     }
     protected defineEntryPointGen(_element: ast.EntryPoint, _gen: boolean): string | undefined {
         return undefined;
-    }
-    protected finalizePointer(element: ast.NamedElement): string | undefined {
-        return s`
-            delete ${element.name};
-            ${element.name} = nullptr;
-            `;
-    }
-    protected override finalizeEntryPoint(element: ast.EntryPoint): string | undefined {
-        return this.finalizePointer(element);
     }
 
     protected override declareEventSink(element: ast.EventSink): string | undefined {
@@ -909,9 +898,6 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     protected defineEventSinkGen(_element: ast.EventSink, _gen: boolean): string | undefined {
         return undefined;
     }
-    protected override finalizeEventSink(element: ast.EventSink): string | undefined {
-        return this.finalizePointer(element);
-    }
 
     protected declareEventSourceGen(element: ast.EventSource, _gen: boolean): string | undefined {
         return s`
@@ -920,9 +906,6 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     }
     protected defineEventSourceGen(_element: ast.EventSource, _gen: boolean): string | undefined {
         return undefined;
-    }
-    protected override finalizeEventSource(element: ast.EventSource): string | undefined {
-        return this.finalizePointer(element);
     }
 
     protected declareFieldGen(element: ast.Field, _gen: boolean): string | undefined {

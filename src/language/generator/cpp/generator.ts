@@ -975,7 +975,7 @@ export abstract class CppGenerator implements XsmpGenerator {
     sourceIncludesNativeType(_type: ast.NativeType): Include[] {
         return [];
     }
-    protected declare(element: ast.NamedElement): string | undefined {
+    /*protected declare(element: ast.NamedElement): string | undefined {
         switch (element.$type) {
             case ast.Association: return this.declareAssociation(element as ast.Association);
             case ast.Constant: return this.declareConstant(element as ast.Constant);
@@ -989,7 +989,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             case ast.Reference_: return this.declareReference(element as ast.Reference_);
             default: return undefined;
         }
-    }
+    }*/
     protected define(element: ast.NamedElement): string | undefined {
         switch (element.$type) {
             case ast.Association: return this.defineAssociation(element as ast.Association);
@@ -1005,7 +1005,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             default: return undefined;
         }
     }
-    protected initialize(element: ast.NamedElement): string | undefined {
+    /*protected initialize(element: ast.NamedElement): string | undefined {
         switch (element.$type) {
             case ast.Association: return this.initializeAssociation(element as ast.Association);
             case ast.Constant: return this.initializeConstant(element as ast.Constant);
@@ -1019,7 +1019,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             case ast.Reference_: return this.initializeReference(element as ast.Reference_);
             default: return undefined;
         }
-    }
+    }*/
     protected finalize(element: ast.NamedElement): string | undefined {
         switch (element.$type) {
             case ast.Association: return this.finalizeAssociation(element as ast.Association);
@@ -1034,6 +1034,12 @@ export abstract class CppGenerator implements XsmpGenerator {
             case ast.Reference_: return this.finalizeReference(element as ast.Reference_);
             default: return undefined;
         }
+    }
+    protected finalizePointer(element: ast.NamedElement): string | undefined {
+        return s`
+            delete ${element.name};
+            ${element.name} = nullptr;
+            `;
     }
     protected declareAssociation(_element: ast.Association): string | undefined {
         return undefined;
@@ -1071,10 +1077,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         return undefined;
     }
     protected finalizeContainer(element: ast.Container): string | undefined {
-        return s`
-            delete ${element.name};
-            ${element.name} = nullptr;
-            `;
+        return this.finalizePointer(element);
     }
 
     protected declareEntryPoint(_element: ast.EntryPoint): string | undefined {
@@ -1086,8 +1089,8 @@ export abstract class CppGenerator implements XsmpGenerator {
     protected initializeEntryPoint(_element: ast.EntryPoint): string | undefined {
         return undefined;
     }
-    protected finalizeEntryPoint(_element: ast.EntryPoint): string | undefined {
-        return undefined;
+    protected finalizeEntryPoint(element: ast.EntryPoint): string | undefined {
+        return this.finalizePointer(element);
     }
 
     protected declareEventSink(_element: ast.EventSink): string | undefined {
@@ -1099,8 +1102,8 @@ export abstract class CppGenerator implements XsmpGenerator {
     protected initializeEventSink(_element: ast.EventSink): string | undefined {
         return undefined;
     }
-    protected finalizeEventSink(_element: ast.EventSink): string | undefined {
-        return undefined;
+    protected finalizeEventSink(element: ast.EventSink): string | undefined {
+        return this.finalizePointer(element);
     }
 
     protected declareEventSource(_element: ast.EventSource): string | undefined {
@@ -1112,8 +1115,8 @@ export abstract class CppGenerator implements XsmpGenerator {
     protected initializeEventSource(_element: ast.EventSource): string | undefined {
         return undefined;
     }
-    protected finalizeEventSource(_element: ast.EventSource): string | undefined {
-        return undefined;
+    protected finalizeEventSource(element: ast.EventSource): string | undefined {
+        return this.finalizePointer(element);
     }
 
     protected declareField(_element: ast.Field): string | undefined {
@@ -1165,10 +1168,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         return undefined;
     }
     protected finalizeReference(element: ast.Reference_): string | undefined {
-        return s`
-            delete ${element.name};
-            ${element.name} = nullptr;
-            `;
+        return this.finalizePointer(element);
     }
 
     protected isInvokable(element: ast.Invokable): boolean {
