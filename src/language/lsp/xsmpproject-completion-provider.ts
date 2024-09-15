@@ -1,4 +1,4 @@
-import type { AstNodeDescription, ReferenceInfo, Stream } from 'langium';
+import { UriUtils, type AstNodeDescription, type GrammarAST, type ReferenceInfo, type Stream } from 'langium';
 import type { CompletionContext, CompletionValueItem } from 'langium/lsp';
 import { DefaultCompletionProvider } from 'langium/lsp';
 import * as ast from '../generated/ast.js';
@@ -39,5 +39,16 @@ export class XsmpprojectCompletionProvider extends DefaultCompletionProvider {
             detail: nodeDescription.type,
             sortText: '0'
         };
+    }
+    protected override filterKeyword(context: CompletionContext, keyword: GrammarAST.Keyword): boolean {
+        if (!context.node) {
+            switch (keyword.value) {
+                case 'project':
+                case 'profile':
+                case 'tool':
+                    return UriUtils.extname(context.document.uri) === `.${keyword.value}`;
+            }
+        }
+        return super.filterKeyword(context, keyword);
     }
 }

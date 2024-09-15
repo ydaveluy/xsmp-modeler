@@ -30,7 +30,7 @@ describe('Validating', () => {
             tool "smp"
             tool "adoc"
 
-        `);
+        `, { documentUri: 'xsmp.project' });
 
 
         expect(checkDocumentValid(document) ?? document.diagnostics?.map(diagnosticToString)?.join('\n')).toHaveLength(0)
@@ -56,13 +56,14 @@ describe('Validating', () => {
             dependency "project-name"
             dependency "project-name"
             dependency "dep"
-        `, { documentUri: 'test/ns/xsmp.project'});
+        `, { documentUri: 'test/ns/xsmp2.project'});
 
         expect(
             checkDocumentValid(document) ?? document.diagnostics?.map(diagnosticToString)?.join('\n')
         ).toBe(s`
             [9:17..9:26]: Could not resolve reference to Tool named 'unknown'.
             [16:23..16:28]: Could not resolve reference to Project named 'dep'.
+            [1:12..1:19]: A project file name shall be 'xsmp.project'.
             [3:20..3:55]: Deprecated: Use the "xsmp-sdk" profile instead.
             [4:20..4:55]: Deprecated: Use the "xsmp-sdk" profile instead.
             [4:20..4:55]: A profile is already defined.

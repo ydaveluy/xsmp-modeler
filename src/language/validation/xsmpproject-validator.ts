@@ -1,4 +1,4 @@
-import { type AstNode, type IndexManager, MultiMap, type Properties, type Reference, type ValidationAcceptor, type ValidationChecks, UriUtils, WorkspaceCache, type AstNodeDescription } from 'langium';
+import { type AstNode, type IndexManager, MultiMap, type Properties, type Reference, type ValidationAcceptor, type ValidationChecks, UriUtils, WorkspaceCache, type AstNodeDescription, AstUtils } from 'langium';
 import type { XsmpprojectServices } from '../xsmpproject-module.js';
 import * as fs from 'node:fs';
 import * as ProjectUtils from '../utils/project-utils.js';
@@ -13,7 +13,9 @@ export function registerXsmpprojectValidationChecks(services: XsmpprojectService
     const registry = services.validation.ValidationRegistry,
         validator = services.validation.XsmpprojectValidator,
         checks: ValidationChecks<ast.XsmpAstType> = {
-            Project: validator.checkProject
+            Project: validator.checkProject,
+            Profile: validator.checkProfile,
+            Tool: validator.checkTool
         };
     registry.register(checks, validator);
 }
@@ -51,7 +53,30 @@ export class XsmpprojectValidator {
         return true;
     }
 
+    checkProfile(profile: ast.Profile, accept: ValidationAcceptor): void {
+        if (UriUtils.extname(AstUtils.getDocument(profile).uri) !== '.profile') {
+            accept('error', 'A profile file shall have \'.profile\' file extension.', {
+                node: profile,
+                keyword: 'profile',
+            });
+        }
+    }
+    checkTool(tool: ast.Tool, accept: ValidationAcceptor): void {
+        if (UriUtils.extname(AstUtils.getDocument(tool).uri) !== '.tool') {
+            accept('error', 'A tool file shall have \'.tool\' file extension.', {
+                node: tool,
+                keyword: 'tool',
+            });
+        }
+    }
     checkProject(project: ast.Project, accept: ValidationAcceptor): void {
+        if (UriUtils.basename(AstUtils.getDocument(project).uri) !== 'xsmp.project') {
+            accept('error', 'A project file name shall be \'xsmp.project\'.', {
+                node: project,
+                keyword: 'project',
+            });
+        }
+
         const duplicates = this.globalCache.get('projects', () => this.computeNamesForProjects()).get(project.name);
         if (duplicates.length > 1) {
             accept('error', 'Duplicated project name', {
