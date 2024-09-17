@@ -200,7 +200,7 @@
       <Field Id="ns.AnAbstractModel.hidden_field" Name="hidden_field">
         <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.hidden_field.View.0" Name="View">
           <Type xlink:title="View" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Attributes.View"/>
-          <Value xsi:type="Types:EnumerationValue" Value="0"/>
+          <Value xsi:type="Types:EnumerationValue" Value="0" Literal="VK_None"/>
         </Metadata>
         <Type xlink:title="Bool" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Bool"/>
         <Default xsi:type="Types:BoolValue" Value="false"/>
@@ -208,7 +208,7 @@
       <Field Id="ns.AnAbstractModel.debug_field" Name="debug_field">
         <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.debug_field.View.0" Name="View">
           <Type xlink:title="View" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Attributes.View"/>
-          <Value xsi:type="Types:EnumerationValue" Value="1"/>
+          <Value xsi:type="Types:EnumerationValue" Value="1" Literal="VK_Debug"/>
         </Metadata>
         <Type xlink:title="Bool" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Bool"/>
         <Default xsi:type="Types:BoolValue" Value="false"/>
@@ -216,7 +216,7 @@
       <Field Id="ns.AnAbstractModel.expert_field" Name="expert_field">
         <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.expert_field.View.0" Name="View">
           <Type xlink:title="View" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Attributes.View"/>
-          <Value xsi:type="Types:EnumerationValue" Value="2"/>
+          <Value xsi:type="Types:EnumerationValue" Value="2" Literal="VK_Expert"/>
         </Metadata>
         <Type xlink:title="Bool" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Bool"/>
         <Default xsi:type="Types:BoolValue" Value="false"/>
@@ -224,7 +224,7 @@
       <Field Id="ns.AnAbstractModel.all_field" Name="all_field">
         <Metadata xsi:type="Types:Attribute" Id="ns.AnAbstractModel.all_field.View.0" Name="View">
           <Type xlink:title="View" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Attributes.View"/>
-          <Value xsi:type="Types:EnumerationValue" Value="3"/>
+          <Value xsi:type="Types:EnumerationValue" Value="3" Literal="VK_All"/>
         </Metadata>
         <Type xlink:title="Bool" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Bool"/>
         <Default xsi:type="Types:BoolValue" Value="false"/>
@@ -364,7 +364,7 @@
       </Field>
       <Field Id="ns.AModel.anEnum" Name="anEnum">
         <Type xlink:title="AnEnum" xlink:href="#ns.AnEnum"/>
-        <Default xsi:type="Types:EnumerationValue" Value="0"/>
+        <Default xsi:type="Types:EnumerationValue" Value="0" Literal="L1"/>
       </Field>
       <Field Id="ns.AModel.aString" Name="aString">
         <Type xlink:title="AString" xlink:href="#ns.AString"/>

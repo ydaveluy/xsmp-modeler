@@ -1,21 +1,24 @@
-import { Cancellation, DefaultDocumentBuilder } from 'langium';
-import type { BuildOptions, LangiumDocument } from 'langium';
+import { DefaultDocumentBuilder } from 'langium';
+import type { BuildOptions, LangiumDocument, Cancellation } from 'langium';
 import * as ast from '../generated/ast.js';
 
 export class XsmpDocumentBuilder extends DefaultDocumentBuilder {
     /**
      * Build first all project files to ensure that dependencies are properly linked before building other documents
      */
-    protected override async buildDocuments(documents: LangiumDocument[], options: BuildOptions, cancelToken = Cancellation.CancellationToken.None): Promise<void> {
+    protected override async buildDocuments(documents: LangiumDocument[], options: BuildOptions, cancelToken: Cancellation.CancellationToken): Promise<void> {
         const projects: LangiumDocument[] = [],
             others: LangiumDocument[] = [];
 
         documents.forEach(doc => {
-            if (ast.isProject(doc.parseResult.value) || ast.isProfile(doc.parseResult.value) || ast.isTool(doc.parseResult.value)) {
-                projects.push(doc);
-            }
-            else {
-                others.push(doc);
+            switch (doc.parseResult.value.$type) {
+                case ast.Project:
+                case ast.Profile:
+                case ast.Tool:
+                    projects.push(doc); break;
+                default:
+                    others.push(doc);
+                    break;
             }
         });
 

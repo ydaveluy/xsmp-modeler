@@ -160,7 +160,7 @@ export interface DurationValue extends SimpleValue {
 
 export interface EnumerationValue extends SimpleValue {
     '@Value': bigint;
-    Literal?: string;
+    '@Literal'?: string;
 }
 
 export interface Float32Value extends SimpleValue {

@@ -264,7 +264,7 @@ export class SmpGenerator implements XsmpGenerator {
         return Duration.serialize(duration);
     }
     private toEnumerationValue(expression: ast.Expression): bigint | undefined {
-        return Solver.getValue(Solver.getValue(expression)?.enumerationLiteral()?.getValue().value)?.integralValue(PTK.Int32)?.getValue();
+        return Solver.getValue(Solver.getValue(expression)?.enumerationLiteral()?.getValue().value ?? expression)?.integralValue(PTK.Int32)?.getValue();
     }
     private toString8(expression: ast.Expression): string {
         return XsmpUtils.escape(Solver.getValue(expression)?.stringValue()?.getValue());
@@ -286,7 +286,7 @@ export class SmpGenerator implements XsmpGenerator {
                 case PTK.UInt16: return { '@xsi:type': 'Types:UInt16Value', '@Value': Solver.getValue(expression)?.integralValue(PTK.UInt16)?.getValue() } as Types.UInt16Value;
                 case PTK.UInt32: return { '@xsi:type': 'Types:UInt32Value', '@Value': Solver.getValue(expression)?.integralValue(PTK.UInt32)?.getValue() } as Types.UInt32Value;
                 case PTK.UInt64: return { '@xsi:type': 'Types:UInt64Value', '@Value': Solver.getValue(expression)?.integralValue(PTK.UInt64)?.getValue() } as Types.UInt64Value;
-                case PTK.Enum: return { '@xsi:type': 'Types:EnumerationValue', '@Value': this.toEnumerationValue(expression) } as Types.EnumerationValue;
+                case PTK.Enum: return { '@xsi:type': 'Types:EnumerationValue', '@Value': this.toEnumerationValue(expression), '@Literal': Solver.getValue(expression)?.enumerationLiteral()?.getValue().name } as Types.EnumerationValue;
                 case PTK.DateTime: return { '@xsi:type': 'Types:DateTimeValue', '@Value': this.toDateTime(expression) } as Types.DateTimeValue;
                 case PTK.Duration: return { '@xsi:type': 'Types:DurationValue', '@Value': this.toDuration(expression) } as Types.DurationValue;
                 case PTK.String8: return { '@xsi:type': 'Types:String8Value', '@Value': this.toString8(expression) } as Types.String8Value;
@@ -320,7 +320,7 @@ export class SmpGenerator implements XsmpGenerator {
                 case PTK.UInt16: return { '@xsi:type': 'Types:UInt16ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue(PTK.UInt16)?.getValue() })) } as Types.UInt16ArrayValue;
                 case PTK.UInt32: return { '@xsi:type': 'Types:UInt32ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue(PTK.UInt32)?.getValue() })) } as Types.UInt32ArrayValue;
                 case PTK.UInt64: return { '@xsi:type': 'Types:UInt64ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': Solver.getValue(e)?.integralValue(PTK.UInt64)?.getValue() })) } as Types.UInt64ArrayValue;
-                case PTK.Enum: return { '@xsi:type': 'Types:EnumerationArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': this.toEnumerationValue(e) })) } as Types.EnumerationArrayValue;
+                case PTK.Enum: return { '@xsi:type': 'Types:EnumerationArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': this.toEnumerationValue(e), '@Literal': Solver.getValue(expression)?.enumerationLiteral()?.getValue().name })) } as Types.EnumerationArrayValue;
                 case PTK.DateTime: return { '@xsi:type': 'Types:DateTimeArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': this.toDateTime(e) })) } as Types.DateTimeArrayValue;
                 case PTK.Duration: return { '@xsi:type': 'Types:DurationArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': this.toDuration(e) })) } as Types.DurationArrayValue;
                 case PTK.String8: return { '@xsi:type': 'Types:String8ArrayValue', ItemValue: expression.elements.map(e => ({ '@Value': this.toString8(e) })) } as Types.String8ArrayValue;
