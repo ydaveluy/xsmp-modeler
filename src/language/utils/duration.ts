@@ -6,6 +6,7 @@ const SECONDS_PER_DAY = SECONDS_PER_HOUR * HOURS_PER_DAY;
 const NANOS_PER_SECOND = BigInt(1000000000);
 const NANOS_PER_MINUTE = NANOS_PER_SECOND * BigInt(SECONDS_PER_MINUTE);
 const NANOS_PER_HOUR = NANOS_PER_MINUTE * BigInt(MINUTES_PER_HOUR);
+const NANOS_PER_DAY = NANOS_PER_HOUR * BigInt(HOURS_PER_DAY);
 const ZERO = BigInt(0);
 
 /**
@@ -67,6 +68,9 @@ export function serialize(value: bigint) {
 
     let nanos = value;
 
+    const days = nanos / NANOS_PER_DAY;
+    nanos %= NANOS_PER_DAY;
+
     const hours = nanos / NANOS_PER_HOUR;
     nanos %= NANOS_PER_HOUR;
 
@@ -76,7 +80,11 @@ export function serialize(value: bigint) {
     const secs = nanos / NANOS_PER_SECOND;
     nanos %= NANOS_PER_SECOND;
 
-    let rval = 'PT';
+    let rval = 'P';
+    if (days !== ZERO) {
+        rval += `${days}D`;
+    }
+    rval += 'T';
     if (hours !== ZERO) {
         rval += `${hours}H`;
     }
@@ -86,25 +94,21 @@ export function serialize(value: bigint) {
     if (secs === ZERO && nanos === ZERO && rval.length > 2) {
         return rval;
     }
-    if (secs < 0 && nanos > ZERO) {
-        if (secs === BigInt(-1)) {
-            rval += '-0';
-        } else {
-            rval += secs + BigInt(1);
-        }
+    if (secs < ZERO || nanos < ZERO) {
+        rval += '-' + (secs < ZERO ? -secs : secs);
     } else {
         rval += secs;
     }
-    if (nanos > ZERO) {
+    if (nanos !== ZERO) {
         rval += '.';
-        let nanoString;
-        if (secs < ZERO) {
-            nanoString = `${BigInt(2) * NANOS_PER_SECOND - nanos}`;
+        let nanoString: string;
+        if (nanos < ZERO) {
+            nanoString = '00000000' + (-nanos).toString();
         } else {
-            nanoString = `${NANOS_PER_SECOND + nanos}`;
+            nanoString = '00000000' + nanos.toString();
         }
         // remove the leading '1'
-        nanoString = nanoString.slice(1, nanoString.length);
+        nanoString = nanoString.slice(nanoString.length - 9, nanoString.length);
         rval += nanoString;
         while (rval.endsWith('0')) {
             rval = rval.slice(0, rval.length - 1);
