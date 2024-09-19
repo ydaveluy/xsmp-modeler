@@ -2,11 +2,7 @@
     "compilerOptions": {
         "target": "ES2017",
         "module": "Node16",
-        "lib": [
-            "ESNext",
-            "DOM",
-            "WebWorker"
-        ],
+        "lib": ["ESNext"],
         "sourceMap": true,
         "outDir": "out",
         "strict": true,
@@ -17,14 +13,13 @@
         "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
-        "rootDir": ".",
         "noEmit": true
     },
     "include": [
-        "src/**/*.ts",
-        "test/**/*.ts"
+        "src/**/*.ts"
     ],
     "exclude": [
+        "out",
         "node_modules"
     ]
 }

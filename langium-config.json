@@ -10,5 +10,6 @@
         "grammar": "src/language/xsmpcat.langium",
         "fileExtensions": [".xsmpcat"]
     }],
-    "out": "src/language/generated"
+    "out": "src/language/generated",
+    "mode": "production"
 }

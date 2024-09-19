@@ -27,8 +27,7 @@ jobs:
       shell: bash
       run: |
         npm ci
-        npm run langium:generate
-        npm run build:clean
+        npm run langium:generate:production
         npm run build
     - name: Test
       if: success() || failure()
