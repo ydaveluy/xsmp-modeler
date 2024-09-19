@@ -30,9 +30,7 @@ terminal fragment FRACTIONALCONSTANT:DIGITSEQUENCE? '.' DIGITSEQUENCE  | DIGITSE
 terminal fragment DIGITSEQUENCE:/[0-9][0-9']*/;
 terminal fragment EXPONENTPART:/[eE][+-]?[0-9][0-9']*/;
 terminal fragment FLOATINGSUFFIX:/[fF]/;
-
-//terminal INTEGER_LITERAL:(DECIMAL_LITERAL  | OCTAL_LITERAL  | HEXADECIMAL_LITERAL  | BINARY_LITERAL) INTEGER_SUFFIX?;
-terminal INTEGER_LITERAL:/(?:[1-9][0-9']*|0[0-7']*|0[xX][0-9a-fA-F][0-9a-fA-F']*|0[bB][01]['01]*)(?:[uU][lL]?|[lL][uU]?)?/;
+terminal INTEGER_LITERAL:/(?:[1-9][0-9']*|0[0-7']*)(?:ns|us|ms|s|mn|h|d|[uU][lL]?|[lL][uU]?)?|(?:0[xX][0-9a-fA-F][0-9a-fA-F']*|0[bB][01]['01]*)(?:[uU][lL]?|[lL][uU]?)?/;
 
 ValidID returns string:
     ID | 'extends' | 'implements' | 'in' | 'out' | 'inout' | 'class' | 'struct' | 'exception' | 'model' | 'service' | 'interface' | 'string' | 'native' | 'primitive' | 'attribute' | 'integer' | 'catalogue' | 'entrypoint' | 'field' | 'container' | 'reference' | 'eventsink' | 'eventsource' | 'property' | 'association' | 'constant' | 'input' | 'output' | 'transient' | 'event' | 'def' | 'abstract' | 'get' | 'set' | 'readWrite' | 'readOnly' | 'writeOnly' | 'array' | 'enum' | 'namespace' | 'throws' 

@@ -2,7 +2,7 @@ import * as ast from '../../generated/ast.js';
 import { type AstNode, AstUtils, type JSDocElement, type JSDocTag, type URI, UriUtils, WorkspaceCache } from 'langium';
 import * as fs from 'fs';
 import type { TaskAcceptor, XsmpGenerator } from '../generator.js';
-import { escape, fqn, getAccessKind, getPTK,  isAbstractType,  isInput, isOutput, isState } from '../../utils/xsmp-utils.js';
+import { escape, fqn, getAccessKind, getPTK, isAbstractType, isInput, isOutput, isState } from '../../utils/xsmp-utils.js';
 import * as CopyrightNoticeProvider from '../copyright-notice-provider.js';
 import { expandToString as s } from 'langium/generate';
 import * as Path from 'path';
@@ -521,6 +521,9 @@ export abstract class CppGenerator implements XsmpGenerator {
                     if (value !== undefined) {
                         return this.fqn(value);
                     }
+                }
+                if (this.cxxStandard >= CxxStandard.CXX_STD_14) {
+                    return (expr as ast.IntegerLiteral).text;
                 }
                 return (expr as ast.IntegerLiteral).text.replaceAll("'", '');
             }
