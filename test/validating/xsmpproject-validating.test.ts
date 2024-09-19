@@ -18,7 +18,7 @@ beforeAll(async () => {
     await services.shared.workspace.WorkspaceManager.initializeWorkspace([]);
 });
 
-describe('Validating', () => {
+describe('Validating Xsmpproject', () => {
 
     test('check no errors', async () => {
         document = await parse(`

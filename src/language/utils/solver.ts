@@ -269,15 +269,39 @@ export class FloatValue extends Value<FloatValue> {
     override divide(val: FloatValue): FloatValue { return new FloatValue(this.value / val.value, val.type === PTK.Float64 || this.type === PTK.Float64 ? PTK.Float64 : PTK.Float32); }
     override multiply(val: FloatValue): FloatValue { return new FloatValue(this.value * val.value, val.type === PTK.Float64 || this.type === PTK.Float64 ? PTK.Float64 : PTK.Float32); }
 }
+type BuiltInConstants = 'PI' | 'E';
+const builtInConstants: string[] = [
+    'PI', 'E'
+];
+type BuiltInFloat64Functions =
+    'cos' | 'sin' | 'tan' | 'acos' | 'asin' | 'atan' | 'cosh' | 'sinh' | 'tanh' | 'exp' | 'log' | 'log10' | 'expm1' | 'log1p' | 'sqrt' | 'ceil' | 'floor' | 'abs';
+
+const builtInFloat64Functions: string[] = [
+    'cos', 'sin', 'tan', 'acos', 'asin', 'atan', 'cosh', 'sinh', 'tanh',
+    'exp', 'log', 'log10', 'expm1', 'log1p', 'sqrt', 'ceil', 'floor', 'abs'
+];
+
+const builtInFloat32Functions: string[] = [
+    'cosf', 'sinf', 'tanf', 'acosf', 'asinf', 'atanf', 'coshf', 'sinhf', 'tanhf',
+    'expf', 'logf', 'log10f', 'expm1f', 'log1pf', 'sqrtf', 'ceilf', 'floorf', 'absf'];
 
 function convertBuiltinFunction<T>(func: ast.BuiltInFunction, accept?: ValidationAcceptor): Value<T> | undefined {
     if (func.name.endsWith('f')) {
+        if (!builtInFloat32Functions.includes(func.name)) {
+            if (accept)
+                accept('error', `Unknown built-in function '${func.name}'.`, { node: func, property: 'name' });
+            return undefined;
+        }
         const value = getValueAs(func.argument, PTK.Float32, accept)?.floatValue(PTK.Float32);
-        return value ? new FloatValue(Math[func.name.substring(0, -1) as ast.BuiltInFloat64Functions](value.getValue()), PTK.Float32) : undefined;
+        return value ? new FloatValue(Math[func.name.substring(0, -1) as BuiltInFloat64Functions](value.getValue()), PTK.Float32) : undefined;
     }
-
+    if (!builtInFloat64Functions.includes(func.name)) {
+        if (accept)
+            accept('error', `Unknown built-in function '${func.name}'.`, { node: func, property: 'name' });
+        return undefined;
+    }
     const value = getValueAs(func.argument, PTK.Float64, accept)?.floatValue(PTK.Float64);
-    return value ? new FloatValue(Math[func.name as ast.BuiltInFloat64Functions](value.getValue()), PTK.Float64) : undefined;
+    return value ? new FloatValue(Math[func.name as BuiltInFloat64Functions](value.getValue()), PTK.Float64) : undefined;
 
 }
 export function getValue<T>(expression: ast.Expression | undefined, accept?: ValidationAcceptor): Value<T> | undefined {
@@ -291,7 +315,15 @@ export function getValue<T>(expression: ast.Expression | undefined, accept?: Val
             case ast.UnaryOperation: return unaryOperation(expression as ast.UnaryOperation, accept);
             case ast.BinaryOperation: return binaryOperation(expression as ast.BinaryOperation, accept);
             case ast.ParenthesizedExpression: return getValue((expression as ast.ParenthesizedExpression).expr, accept);
-            case ast.BuiltInConstant: return new FloatValue(Math[(expression as ast.BuiltInConstant).name], PTK.Float64);
+            case ast.BuiltInConstant: {
+                const cst = expression as ast.BuiltInConstant;
+                if (!builtInConstants.includes(cst.name)) {
+                    if (accept)
+                        accept('error', `Unknown built-in constant '${cst.name}'.`, { node: cst, property: 'name' });
+                    return undefined;
+                }
+                return new FloatValue(Math[cst.name as BuiltInConstants], PTK.Float64);
+            }
             case ast.BuiltInFunction:
                 if (!(expression as ast.BuiltInFunction).argument && accept) {
                     accept('error', 'Missing argument.', { node: expression, property: 'argument' });

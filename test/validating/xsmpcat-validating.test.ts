@@ -20,7 +20,7 @@ beforeAll(async () => {
     await services.shared.workspace.WorkspaceManager.initializeWorkspace([]);
 });
 
-describe('Validating', () => {
+describe('Validating Xsmpcat', () => {
 
     test('check validation issues', async () => {
 

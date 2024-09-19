@@ -2,6 +2,23 @@ grammar Xsmpcat
 
 import 'xsmp-types'
 
+hidden terminal WS: /\s+/;
+terminal ID: /[_a-zA-Z]\w*/;
+hidden terminal ML_COMMENT: /\/\*[\s\S]*?\*\//;
+hidden terminal SL_COMMENT: /\/\/[^\n\r]*/;
+terminal STRING: /"(?:\\(?:[abfnrtv\\\"\'\?]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})|[^"\n])*"/;
+terminal CHAR:   /'(?:\\(?:[abfnrtv\\\"\'\?]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})|[^'\n])*'/;
+terminal FLOATING_LITERAL:FRACTIONALCONSTANT EXPONENTPART? FLOATINGSUFFIX?  | DIGITSEQUENCE EXPONENTPART FLOATINGSUFFIX?;
+terminal fragment FRACTIONALCONSTANT:DIGITSEQUENCE? '.' DIGITSEQUENCE  | DIGITSEQUENCE '.';
+terminal fragment DIGITSEQUENCE:/[0-9][0-9']*/;
+terminal fragment EXPONENTPART:/[eE][+-]?[0-9][0-9']*/;
+terminal fragment FLOATINGSUFFIX:/[fF]/;
+terminal INTEGER_LITERAL:/(?:[1-9][0-9']*|0[0-7']*)(?:ns|us|ms|s|mn|h|d|[uU][lL]?|[lL][uU]?)?|(?:0[xX][0-9a-fA-F][0-9a-fA-F']*|0[bB][01]['01]*)(?:[uU][lL]?|[lL][uU]?)?/;
+
+ValidID returns string:
+    ID | 'extends' | 'implements' | 'in' | 'out' | 'inout' | 'class' | 'struct' | 'exception' | 'model' | 'service' | 'interface' | 'string' | 'native' | 'primitive' | 'attribute' | 'integer' | 'catalogue' | 'entrypoint' | 'field' | 'container' | 'reference' | 'eventsink' | 'eventsource' | 'property' | 'association' | 'constant' | 'input' | 'output' | 'transient' | 'event' | 'def' | 'abstract' | 'get' | 'set' | 'readWrite' | 'readOnly' | 'writeOnly' | 'array' | 'enum' | 'namespace' | 'throws' 
+;
+
 entry Catalogue returns Catalogue:
     attributes+=Attribute*
     /**
@@ -13,27 +30,6 @@ entry Catalogue returns Catalogue:
      */
     'catalogue' name=ValidID  
     elements+=Namespace*
-;
-
-hidden terminal WS: /\s+/;
-terminal ID: /[_a-zA-Z]\w*/;
-
-terminal STRING: /"(?:\\(?:[abfnrtv\\\"\'\?]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})|[^"\n])*"/;
-terminal CHAR:   /'(?:\\(?:[abfnrtv\\\"\'\?]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})|[^'\n])*'/;
-
-
-hidden terminal ML_COMMENT: /\/\*[\s\S]*?\*\//;
-hidden terminal SL_COMMENT: /\/\/[^\n\r]*/;
-
-terminal FLOATING_LITERAL:FRACTIONALCONSTANT EXPONENTPART? FLOATINGSUFFIX?  | DIGITSEQUENCE EXPONENTPART FLOATINGSUFFIX?;
-terminal fragment FRACTIONALCONSTANT:DIGITSEQUENCE? '.' DIGITSEQUENCE  | DIGITSEQUENCE '.';
-terminal fragment DIGITSEQUENCE:/[0-9][0-9']*/;
-terminal fragment EXPONENTPART:/[eE][+-]?[0-9][0-9']*/;
-terminal fragment FLOATINGSUFFIX:/[fF]/;
-terminal INTEGER_LITERAL:/(?:[1-9][0-9']*|0[0-7']*)(?:ns|us|ms|s|mn|h|d|[uU][lL]?|[lL][uU]?)?|(?:0[xX][0-9a-fA-F][0-9a-fA-F']*|0[bB][01]['01]*)(?:[uU][lL]?|[lL][uU]?)?/;
-
-ValidID returns string:
-    ID | 'extends' | 'implements' | 'in' | 'out' | 'inout' | 'class' | 'struct' | 'exception' | 'model' | 'service' | 'interface' | 'string' | 'native' | 'primitive' | 'attribute' | 'integer' | 'catalogue' | 'entrypoint' | 'field' | 'container' | 'reference' | 'eventsink' | 'eventsource' | 'property' | 'association' | 'constant' | 'input' | 'output' | 'transient' | 'event' | 'def' | 'abstract' | 'get' | 'set' | 'readWrite' | 'readOnly' | 'writeOnly' | 'array' | 'enum' | 'namespace' | 'throws' 
 ;
 
 Namespace returns Namespace:
@@ -734,94 +730,12 @@ CharacterLiteral returns Expression:
     {CharacterLiteral} value=CHAR   
 ;
 
-BuiltInConstants returns BuiltInConstants:
-    /** The double value that is closer than any other to pi, the ratio of the circumference of a circle to its diameter.*/
-    'PI' |
-    /** The double value that is closer than any other to e, the base of the natural logarithms. */
-    'E' 
-;
 BuiltInConstant returns Expression:
-    {BuiltInConstant} '$' name=BuiltInConstants   
+    {BuiltInConstant} '$' name=ID   
 ;
-
-BuiltInFunctions returns BuiltInFunctions:
-    /** Returns the trigonometric cosine of an angle. */
-    'cos' |
-    /** Returns the trigonometric sine of an angle. */
-    'sin' |
-    /** Returns the trigonometric tangent of an angle. */
-    'tan' |
-    /** Returns the arc cosine of a value; the returned angle is in the range 0.0 through pi. */
-    'acos' |
-    /** Returns the arc sine of a value; the returned angle is in the range -pi/2 through pi/2. */
-    'asin' |
-    /** Returns the arc tangent of a value; the returned angle is in the range -pi/2 through pi/2. */
-    'atan' |
-    /** Returns the hyperbolic cosine of a double value. The hyperbolic cosine of x is defined to be (ex + e-x)/2 where e is Euler's number. */
-    'cosh' |
-    /** Returns the hyperbolic sine of a double value. The hyperbolic sine of x is defined to be (ex - e-x)/2 where e is Euler's number. */
-    'sinh' |
-    /** Returns the hyperbolic tangent of a double value. The hyperbolic tangent of x is defined to be (ex - e-x)/ (ex + e-x), in other words, sinh(x)/cosh(x). Note that the absolute value of the exact tanh is always less than 1. */
-    'tanh' |
-    /** Returns Euler's number e raised to the power of a double value. */
-    'exp' |
-    /** Returns the natural logarithm (base e) of a double value. */
-    'log' |
-    /** Returns the base 10 logarithm of a double value. */
-    'log10' |
-    /** Returns ex -1. Note that for values of x near 0, the exact sum of expm1(x) + 1 is much closer to the true result of ex than exp(x). */
-    'expm1' |
-    /** Returns the natural logarithm of the sum of the argument and 1. Note that for small values x, the result of log1p(x) is much closer to the true result of ln(1 + x) than the floating-point evaluation of log(1.0+x). */
-    'log1p' |
-    /** Returns the correctly rounded positive square root of a double value. */
-    'sqrt' |
-    /** Returns the smallest (closest to negative infinity) double value that is greater than or equal to the argument and is equal to a mathematical integer. */
-    'ceil' |
-    /** Returns the largest (closest to positive infinity) double value that is less than or equal to the argument and is equal to a mathematical integer. */
-    'floor' |
-    /** Returns the absolute value of a double value. If the argument is not negative, the argument is returned. If the argument is negative, the negation of the argument is returned. */
-    'abs' |
-    /** Returns the trigonometric cosine of an angle. */
-    'cosf' |
-    /** Returns the trigonometric sine of an angle. */
-    'sinf' |
-    /** Returns the trigonometric tangent of an angle. */
-    'tanf' |
-    /** Returns the arc cosine of a value; the returned angle is in the range 0.0 through pi. */
-    'acosf' |
-    /** Returns the arc sine of a value; the returned angle is in the range -pi/2 through pi/2. */
-    'asinf' |
-    /** Returns the arc tangent of a value; the returned angle is in the range -pi/2 through pi/2. */
-    'atanf' |
-    /** Returns the hyperbolic cosine of a float value. The hyperbolic cosine of x is defined to be (ex + e-x)/2 where e is Euler's number. */
-    'coshf' |
-    /** Returns the hyperbolic sine of a float value. The hyperbolic sine of x is defined to be (ex - e-x)/2 where e is Euler's number. */
-    'sinhf' |
-    /** Returns the hyperbolic tangent of a float value. The hyperbolic tangent of x is defined to be (ex - e-x)/ (ex + e-x), in other words, sinh(x)/cosh(x). Note that the absolute value of the exact tanh is always less than 1. */
-    'tanhf' |
-    /** Returns Euler's number e raised to the power of a float value. */
-    'expf' |
-    /** Returns the natural logarithm (base e) of a float value. */
-    'logf' |
-    /** Returns the base 10 logarithm of a float value. */
-    'log10f' |
-    /** Returns ex -1. Note that for values of x near 0, the exact sum of expm1(x) + 1 is much closer to the true result of ex than exp(x). */
-    'expm1f' |
-    /** Returns the natural logarithm of the sum of the argument and 1. Note that for small values x, the result of log1p(x) is much closer to the true result of ln(1 + x) than the floating-point evaluation of log(1.0+x). */
-    'log1pf' |
-    /** Returns the correctly rounded positive square root of a float value. */
-    'sqrtf' |
-    /** Returns the smallest (closest to negative infinity) float value that is greater than or equal to the argument and is equal to a mathematical integer. */
-    'ceilf' |
-    /** Returns the largest (closest to positive infinity) float value that is less than or equal to the argument and is equal to a mathematical integer. */
-    'floorf' |
-    /** Returns the absolute value of a float value. If the argument is not negative, the argument is returned. If the argument is negative, the negation of the argument is returned. */
-    'absf'
-;
-
 
 BuiltInFunction returns Expression:
-    {BuiltInFunction} '$' name=BuiltInFunctions  '(' argument=Expression? ')'  
+    {BuiltInFunction} '$' name=ID  '(' argument=Expression? ')'  
 ;
 
 BooleanLiteral returns Expression:

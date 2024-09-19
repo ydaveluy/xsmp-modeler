@@ -290,21 +290,13 @@ interface CharacterLiteral extends Expression {
 	value: string
 }
 
-type BuiltInConstants = 'PI'|'E';
 interface BuiltInConstant extends Expression {
-	name: BuiltInConstants
+	name: string
 }
 
-type BuiltInFloat64Functions =
-	'cos' |'sin' |'tan' |'acos' | 'asin' | 'atan' | 'cosh' | 'sinh' | 'tanh' |'exp' | 'log' | 'log10' |'expm1' | 'log1p' | 'sqrt' | 'ceil' | 'floor' | 'abs';
-
-type BuiltInFloat32Functions =
-	'cosf' |'sinf' |'tanf' | 'acosf' |  'asinf' | 'atanf' |'coshf' | 'sinhf' | 'tanhf' | 'expf' | 'logf' | 'log10f' |'expm1f' | 'log1pf' | 'sqrtf' | 'ceilf' | 'floorf' |'absf';
-
-type BuiltInFunctions = BuiltInFloat64Functions | BuiltInFloat32Functions;
 
 interface BuiltInFunction extends Expression {
-	name: BuiltInFunctions
+	name: string
 	argument: Expression
 }
 
