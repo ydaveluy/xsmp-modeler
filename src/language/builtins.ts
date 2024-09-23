@@ -26,13 +26,14 @@ function createBuiltinsMap(): Map<string, string> {
 
     // Read all the files in the directory
     const files = fs.readdirSync(dir);
+    const validFileExtension = ['.xsmpcat', '.xsmptool', '.xsmpprofile'];
 
     for (const file of files) {
         const filePath = path.join(dir, file);
 
-        // Check if it's a file (and not a directory)
+        // Check if it's a valid file
         const stat = fs.statSync(filePath);
-        if (stat.isFile()) {
+        if (stat.isFile() && validFileExtension.includes(path.extname(filePath))) {
             // Read the file content
             const content = fs.readFileSync(filePath, 'utf-8');
             // Add the file name and its content to the Map
