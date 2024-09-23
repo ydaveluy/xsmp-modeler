@@ -2,7 +2,8 @@
 import type { Module } from 'langium';
 import { XsmpcatValidator } from './validation/xsmpcat-validator.js';
 import type { LangiumServices, PartialLangiumServices } from 'langium/lsp';
-import { XsmpcatScopeComputation, XsmpcatScopeProvider } from './references/xsmpcat-scope.js';
+import { XsmpcatScopeComputation } from './references/xsmpcat-scope-computation.js';
+import { XsmpcatScopeProvider } from './references/xsmpcat-scope-provider.js';
 import { XsmpcatFormatter } from './lsp/xsmpcat-formatter.js';
 import { XsmpHoverProvider } from './lsp/hover-provider.js';
 import { XsmpDocumentSymbolProvider } from './lsp/document-symbol-provider.js';
