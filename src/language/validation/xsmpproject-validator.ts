@@ -54,16 +54,16 @@ export class XsmpprojectValidator {
     }
 
     checkProfile(profile: ast.Profile, accept: ValidationAcceptor): void {
-        if (UriUtils.extname(AstUtils.getDocument(profile).uri) !== '.profile') {
-            accept('error', 'A profile file shall have \'.profile\' file extension.', {
+        if (UriUtils.extname(AstUtils.getDocument(profile).uri) !== '.xsmpprofile') {
+            accept('error', 'A profile file shall have \'.xsmpprofile\' file extension.', {
                 node: profile,
                 keyword: 'profile',
             });
         }
     }
     checkTool(tool: ast.Tool, accept: ValidationAcceptor): void {
-        if (UriUtils.extname(AstUtils.getDocument(tool).uri) !== '.tool') {
-            accept('error', 'A tool file shall have \'.tool\' file extension.', {
+        if (UriUtils.extname(AstUtils.getDocument(tool).uri) !== '.xsmptool') {
+            accept('error', 'A tool file shall have \'.xsmptool\' file extension.', {
                 node: tool,
                 keyword: 'tool',
             });

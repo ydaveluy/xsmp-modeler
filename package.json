@@ -77,8 +77,8 @@
                     "xsmpproject"
                 ],
                 "extensions": [
-                    ".profile",
-                    ".tool"
+                    ".xsmpprofile",
+                    ".xsmptool"
                 ],
                 "filenames": [
                     "xsmp.project"
