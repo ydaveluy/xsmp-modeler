@@ -13,7 +13,7 @@ function getDirName() {
     }
 }
 
-export const builtInScheme = 'builtin';
+export const builtInScheme = 'xsmp';
 export function isBuiltinLibrary(uri: URI): boolean {
     return uri.scheme === builtInScheme;
 }

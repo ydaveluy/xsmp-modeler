@@ -45,9 +45,9 @@ function startLanguageClient(context: vscode.ExtensionContext): LanguageClient {
         clientOptions: LanguageClientOptions = {
             documentSelector: [
                 { scheme: 'file', language: 'xsmpproject' },
-                { scheme: 'builtin', language: 'xsmpproject' },
+                { scheme: builtInScheme, language: 'xsmpproject' },
                 { scheme: 'file', language: 'xsmpcat' },
-                { scheme: 'builtin', language: 'xsmpcat' },
+                { scheme: builtInScheme, language: 'xsmpcat' },
             ],
             markdown: {
                 isTrusted: true, supportHtml: true
