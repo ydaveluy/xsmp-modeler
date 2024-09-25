@@ -3,15 +3,15 @@ import { EmptyFileSystem, type LangiumDocument } from "langium";
 import { expandToString as s } from "langium/generate";
 import { parseHelper } from "langium/test";
 import { createXsmpServices } from "../../src/language/xsmp-module.js";
-import { isProject, Project } from "../../src/language/generated/ast.js";
+import * as ast from "../../src/language/generated/ast.js";
 
 let services: ReturnType<typeof createXsmpServices>;
-let parse: ReturnType<typeof parseHelper<Project>>;
-let document: LangiumDocument<Project> | undefined;
+let parse: ReturnType<typeof parseHelper<ast.Project>>;
+let document: LangiumDocument<ast.Project> | undefined;
 
 beforeAll(async () => {
   services = createXsmpServices(EmptyFileSystem);
-  parse = parseHelper<Project>(services.xsmpproject);
+  parse = parseHelper<ast.Project>(services.xsmpproject);
 
   await services.shared.workspace.WorkspaceManager.initializeWorkspace([]);
 });
@@ -39,13 +39,13 @@ describe('Parsing tests', () => {
     expect(
       checkDocumentValid(document) ?? s`
                 Profiles:
-                  ${document.parseResult.value?.profile?.map(p => p.$refText)?.join('\n')}
+                  ${document.parseResult.value?.elements.filter(ast.isProfileReference)?.map(p => p.profile.$refText)?.join('\n')}
                 Tools:
-                  ${document.parseResult.value?.tools?.map(p => p.$refText)?.join('\n')}
+                  ${document.parseResult.value?.elements.filter(ast.isToolReference)?.map(p => p.tool.$refText)?.join('\n')}
                 Sources:
-                  ${document.parseResult.value?.sourcePaths?.join('\n')}
+                  ${document.parseResult.value?.elements.filter(ast.isSource)?.map(s=>s.path).join('\n')}
                 Dependencies:
-                  ${document.parseResult.value?.dependencies?.map(p => p.$refText)?.join('\n')}
+                  ${document.parseResult.value?.elements.filter(ast.isDependency)?.map(p => p.project.$refText)?.join('\n')}
             `
     ).toBe(s`
             Profiles:
@@ -70,6 +70,6 @@ function checkDocumentValid(document: LangiumDocument): string | undefined {
           ${document.parseResult.parserErrors.map(e => e.message).join('\n  ')}
     `
     || document.parseResult.value === undefined && `ParseResult is 'undefined'.`
-    || !isProject(document.parseResult.value) && `Root AST object is a ${document.parseResult.value.$type}, expected a '${Project}'.`
+    || !ast.isProject(document.parseResult.value) && `Root AST object is a ${document.parseResult.value.$type}, expected a '${ast.Project}'.`
     || undefined;
 }

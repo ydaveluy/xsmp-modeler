@@ -304,24 +304,24 @@ footer:
 /**
  * XSMP Project configuration for ${projectName}
  */
-project "${projectName}"
+project '${projectName}'
 
 // project relative path(s) containing modeling file(s)
-source "smdl"
+source 'smdl'
 
 `;
 
     if (profile) {
         content += `
 // use ${profile.label}
-profile "${profile.id}"
+profile '${profile.id}'
 
 `;
     }
     for (const tool of tools) {
         content += `
 // use ${tool.label}
-tool "${tool.id}"
+tool '${tool.id}'
 
 `;
     }
@@ -329,8 +329,8 @@ tool "${tool.id}"
     content += `
 // If your project needs types from outside sources,
 // you can include them by adding project dependencies.
-// For example: dependency "otherProject"
-//              dependency "otherProject2"
+// For example: dependency 'otherProject'
+//              dependency 'otherProject2'
 
 `;
 

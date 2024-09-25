@@ -75,8 +75,8 @@ export class XsmpDocumentGenerator {
 
         const projectUri = UriUtils.dirname(project.$document?.uri as URI);
 
-        for (const profile of project.profile) {
-            switch (profile.ref?.name) {
+        for (const profile of project.elements.filter(ast.isProfileReference)) {
+            switch (profile.profile?.ref?.name) {
                 case 'org.eclipse.xsmp.profile.xsmp-sdk':
                 case 'xsmp-sdk':
                     this.xsmpSdkGenerator.generate(catalogue, projectUri, taskAcceptor);
@@ -84,8 +84,8 @@ export class XsmpDocumentGenerator {
             }
         }
 
-        for (const tool of project.tools) {
-            switch (tool.ref?.name) {
+        for (const tool of project.elements.filter(ast.isToolReference)) {
+            switch (tool.tool?.ref?.name) {
                 case 'org.eclipse.xsmp.tool.smp':
                 case 'smp':
                     this.smpGenerator.generate(catalogue, projectUri, taskAcceptor);

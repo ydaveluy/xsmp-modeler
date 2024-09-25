@@ -13,8 +13,8 @@ export function findProjectContainingUri(documents: LangiumDocuments, uri: URI):
             const projectUri = UriUtils.dirname(doc.uri);
 
             if (uri.path.startsWith(projectUri.path)) {
-                for (const source of project.sourcePaths) {
-                    if (uri.path.startsWith(UriUtils.joinPath(projectUri, source).path)) {
+                for (const source of project.elements.filter(ast.isSource)) {
+                    if (source.path && uri.path.startsWith(UriUtils.joinPath(projectUri, source.path).path)) {
                         return project;
                     }
                 }
@@ -42,12 +42,13 @@ function collectAllDependencies(project: ast.Project, dependencies: Set<ast.Proj
     }
     dependencies.add(project);
 
-    if (project.$document && project.$document.state >= DocumentState.Linked)
-        {for (const dependency of project.dependencies) {
-            if (dependency.ref) {
-                collectAllDependencies(dependency.ref, dependencies);
+    if (project.$document && project.$document.state >= DocumentState.Linked) {
+        for (const dependency of project.elements.filter(ast.isDependency)) {
+            if (dependency.project?.ref) {
+                collectAllDependencies(dependency.project.ref, dependencies);
             }
-        }}
+        }
+    }
 }
 
 export function getSourceFolders(projects: Set<ast.Project>): Set<string> {
@@ -55,8 +56,9 @@ export function getSourceFolders(projects: Set<ast.Project>): Set<string> {
     for (const project of projects) {
         if (project.$document) {
             const projectUri = UriUtils.dirname(project.$document.uri);
-            for (const source of project.sourcePaths) {
-                uris.add(UriUtils.joinPath(projectUri, source).path);
+            for (const source of project.elements.filter(ast.isSource)) {
+                if (source.path)
+                    uris.add(UriUtils.joinPath(projectUri, source.path).path);
             }
         }
     }
@@ -78,7 +80,7 @@ export function findVisibleUris(documents: LangiumDocuments, uri: URI): Set<stri
 
     if (project) {
         const uris: Set<string> = new Set<string>(),
-         folders = getSourceFolders(getAllDependencies(project));
+            folders = getSourceFolders(getAllDependencies(project));
         for (const doc of documents.all) {
             if (ast.isCatalogue(doc.parseResult.value) && (isBuiltinLibrary(doc.uri) || isUriInFolders(doc.uri, folders))) {
                 uris.add(doc.uri.toString());

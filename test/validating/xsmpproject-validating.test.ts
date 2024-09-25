@@ -67,13 +67,13 @@ describe('Validating Xsmpproject', () => {
             [3:20..3:55]: Deprecated: Use the "xsmp-sdk" profile instead.
             [4:20..4:55]: Deprecated: Use the "xsmp-sdk" profile instead.
             [4:20..4:55]: A profile is already defined.
+            [6:17..6:44]: Deprecated: Use the "smp" tool instead.
+            [8:17..8:23]: Duplicated tool 'adoc'.
             [11:19..11:25]: Source path 'smdl' does not exist.
             [12:19..12:24]: Source path '../' is not contained within the project directory.
             [14:23..14:37]: Cyclic dependency detected 'project-name'.
             [15:23..15:37]: Cyclic dependency detected 'project-name'.
             [15:23..15:37]: Duplicated dependency 'project-name'.
-            [6:17..6:44]: Deprecated: Use the "smp" tool instead.
-            [8:17..8:23]: Duplicated tool 'adoc'.
         `);
     });
 });

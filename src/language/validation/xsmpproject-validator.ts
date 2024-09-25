@@ -43,7 +43,7 @@ export class XsmpprojectValidator {
     }
 
     checkTypeReference<N extends AstNode>(accept: ValidationAcceptor, node: N, reference: Reference<ast.NamedElement>, property: Properties<N>, index?: number): boolean {
-        if (!reference.ref) {
+        if (!reference?.ref) {
             return false;
         }
         const deprecated = this.docHelper.getDeprecated(reference.ref);
@@ -85,64 +85,64 @@ export class XsmpprojectValidator {
                 relatedInformation: duplicates.filter(d => d.node !== project).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment!.range), message: d.name }))
             });
         }
+
         // Check only one profile (or zero)
         let profile: ast.Profile | undefined;
-        project.profile.forEach((p, index) => {
-            if (this.checkTypeReference(accept, project, p, 'profile', index)) {
-                if (profile) {
-                    accept('error', 'A profile is already defined.', { node: project, property: 'profile', index });
-                }
-                else {
-                    profile = p.ref;
-                }
 
+        const projectUri = UriUtils.dirname(AstUtils.getDocument(project).uri);
+        const tools = new Set<ast.Tool>();
+        const dependencies = new Set<ast.Project>();
+
+        project.elements.forEach((element) => {
+            switch (element.$type) {
+                case ast.ProfileReference: {
+                    if (this.checkTypeReference(accept, element, element.profile, 'profile')) {
+                        if (profile) {
+                            accept('error', 'A profile is already defined.', { node: element, property: 'profile' });
+                        }
+                        else {
+                            profile = element.profile.ref;
+                        }
+                    }
+                    break;
+                }
+                case ast.ToolReference: {
+                    if (this.checkTypeReference(accept, element, element.tool, 'tool')) {
+
+                        // Check no duplicated tool
+                        if (tools.has(element.tool.ref!))
+                            accept('error', `Duplicated tool '${element.tool.ref?.name}'.`, { node: element, property: 'tool' });
+                        else
+                            tools.add(element.tool.ref!);
+                    }
+                    break;
+                }
+                case ast.Dependency: {
+                    if (this.checkTypeReference(accept, element, element.project, 'project')) {
+                        if (ProjectUtils.getAllDependencies(element.project.ref!).has(project))
+                            accept('error', `Cyclic dependency detected '${element.project.ref?.name}'.`, { node: element, property: 'project' });
+
+                        // Check no duplicated dependency
+                        if (dependencies.has(element.project.ref!))
+                            accept('error', `Duplicated dependency '${element.project.ref?.name}'.`, { node: element, property: 'project' });
+                        else
+                            dependencies.add(element.project.ref!);
+                    }
+                    break;
+                }
+                case ast.Source: {
+                    if (element.path) {
+                        const { path } = UriUtils.joinPath(projectUri, element.path);
+                        if (!path.startsWith(projectUri.path)) {
+                            accept('error', `Source path '${element.path}' is not contained within the project directory.`, { node: element, property: 'path' });
+                        }
+                        else if (!fs.existsSync(path)) {
+                            accept('error', `Source path '${element.path}' does not exist.`, { node: element, property: 'path' });
+                        }
+                    }
+                    break;
+                }
             }
         });
-        // Check source dir exists
-        if (project.$document) {
-            const projectUri = UriUtils.dirname(project.$document.uri);
-            project.sourcePaths.forEach((source, index) => {
-                const { path } = UriUtils.joinPath(projectUri, source);
-                if (!path.startsWith(projectUri.path)) {
-                    accept('error', `Source path '${source}' is not contained within the project directory.`, { node: project, property: 'sourcePaths', index });
-                }
-                else if (!fs.existsSync(path)) {
-                    accept('error', `Source path '${source}' does not exist.`, { node: project, property: 'sourcePaths', index });
-                }
-            });
-        }
-        // Check dependencies references & no cyclic dependencies
-        project.dependencies.forEach((dependency, index) => {
-            if (this.checkTypeReference(accept, project, dependency, 'dependencies', index) && ProjectUtils.getAllDependencies(dependency.ref!).has(project)) {
-                accept('error', `Cyclic dependency detected '${dependency.ref?.name}'.`, { node: project, property: 'dependencies', index });
-            }
-
-        });
-        // Check no duplicated dependency
-        project.dependencies.forEach((dependency, index) =>
-            project.dependencies.slice(index + 1).some((other, index2) => {
-                if (dependency.ref && dependency.ref.name === other.ref?.name) {
-                    accept('error', `Duplicated dependency '${dependency.ref.name}'.`, { node: project, property: 'dependencies', index: index + 1 + index2 });
-                    return true;
-                }
-                return false;
-            })
-        );
-
-        // Check tools references
-        project.tools.forEach((tool, index) =>
-            this.checkTypeReference(accept, project, tool, 'tools', index)
-        );
-
-        // Check no duplicated tool
-        project.tools.forEach((tool, index) =>
-            project.tools.slice(index + 1).some((other, index2) => {
-                if (tool.ref && tool.ref.name === other.ref?.name) {
-                    accept('error', `Duplicated tool '${tool.ref.name}'.`, { node: project, property: 'tools', index: index + 1 + index2 });
-                    return true;
-                }
-                return false;
-            })
-        );
     }
 }

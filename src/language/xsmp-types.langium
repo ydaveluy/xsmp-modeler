@@ -215,12 +215,21 @@ interface EventSource extends NamedElement, Resolvable {
 
 
 interface Project extends Document {
-	profile:@Profile[]
-	tools:@Tool[]
-	sourcePaths:string[]
-	dependencies:@Project[]
-	element: NamedElement[]
+	elements: (ProfileReference | ToolReference | Dependency | Source)[]
 }
+interface ProfileReference{
+	profile: @Profile
+}
+interface ToolReference{
+	tool: @Tool
+}
+interface Dependency{
+	project: @Project
+}
+interface Source{
+	path: string
+}
+
 
 interface Tool extends Document {
 }
