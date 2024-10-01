@@ -246,10 +246,14 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
                 #define ${guard}
 
                 ${this.includes(this.headerIncludes(type), [type])}
+                // ----------------------------------------------------------------------------
+                // --------------------------- Types and Interfaces ---------------------------
+                // ----------------------------------------------------------------------------
 
                 ${this.namespace(type, body)}
 
                 #endif // ${guard}
+
                 `);
         }
     }

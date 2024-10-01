@@ -730,6 +730,7 @@ export abstract class CppGenerator implements XsmpGenerator {
                 // ----------------------------------------------------------------------------
                 // --------------------------- Forward Declarations ---------------------------
                 // ----------------------------------------------------------------------------
+                
                 ${Array.from(forwardedTypes).map(type => this.namespace(type, `class ${type.name};`, false), this).join('\n')}
 
                 `: undefined}
@@ -737,6 +738,7 @@ export abstract class CppGenerator implements XsmpGenerator {
                 // ----------------------------------------------------------------------------
                 // --------------------------- Include Header Files ---------------------------
                 // ----------------------------------------------------------------------------
+
                 ${sortedIncludes.map(i => `#include <${i}>`).join('\n')}
 
                 `: undefined}
@@ -938,7 +940,19 @@ export abstract class CppGenerator implements XsmpGenerator {
         if (!expr) {
             return [];
         }
-        return AstUtils.streamAst(expr).filter(ast.isNamedElementReference).map(l => l.value.ref?.$container).filter(l => l !== undefined).toArray();
+        const includes = [];
+        for (const element of AstUtils.streamAst(expr)) {
+            switch (element.$type) {
+                case ast.NamedElementReference:
+                    includes.push((element as ast.NamedElementReference).value.ref?.$container);
+                    break;
+                case ast.BuiltInConstant:
+                case ast.BuiltInFunction:
+                    includes.push('math.h');
+                    break;
+            }
+        }
+        return includes;
     }
     sourceIncludesInteger(type: ast.Integer): Include[] {
         const includes = [
