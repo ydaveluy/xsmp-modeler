@@ -513,7 +513,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             case ast.ParenthesizedExpression: return `(${this.expression((expr as ast.ParenthesizedExpression).expr)})`;
             case ast.BooleanLiteral: return (expr as ast.BooleanLiteral).isTrue ? 'true' : 'false';
             case ast.BuiltInConstant: return `M_${(expr as ast.BuiltInConstant).name}`;
-            case ast.BuiltInFunction: return `${(expr as ast.BuiltInFunction).name}(${this.expression((expr as ast.BuiltInFunction).argument)})`;
+            case ast.BuiltInFunction: return `std::${(expr as ast.BuiltInFunction).name}(${this.expression((expr as ast.BuiltInFunction).argument)})`;
             case ast.IntegerLiteral: {
                 const type = this.typeProvider.getType(expr);
                 if (ast.isEnumeration(type)) {
@@ -948,7 +948,7 @@ export abstract class CppGenerator implements XsmpGenerator {
                     break;
                 case ast.BuiltInConstant:
                 case ast.BuiltInFunction:
-                    includes.push('math.h');
+                    includes.push('cmath');
                     break;
             }
         }
