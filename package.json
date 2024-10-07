@@ -50,7 +50,7 @@
         "@types/node": "^18.0.0",
         "@types/vscode": "~1.67.0",
         "@vitest/coverage-v8": "^2.1.1",
-        "@vscode/vsce": "^3.1.0",
+        "@vscode/vsce": "^3.1.1",
         "concurrently": "^9.0.1",
         "esbuild": "^0.24.0",
         "esbuild-plugin-copy": "^2.1.1",
