@@ -16,7 +16,7 @@ terminal fragment FLOATINGSUFFIX:/[fF]/;
 terminal INTEGER_LITERAL:/(?:[1-9][0-9']*|0[0-7']*)(?:ns|us|ms|s|mn|h|d|[uU][lL]?|[lL][uU]?)?|(?:0[xX][0-9a-fA-F][0-9a-fA-F']*|0[bB][01]['01]*)(?:[uU][lL]?|[lL][uU]?)?/;
 
 ValidID returns string:
-    ID | 'extends' | 'implements' | 'in' | 'out' | 'inout' | 'class' | 'struct' | 'exception' | 'model' | 'service' | 'interface' | 'string' | 'native' | 'primitive' | 'attribute' | 'integer' | 'catalogue' | 'entrypoint' | 'field' | 'container' | 'reference' | 'eventsink' | 'eventsource' | 'property' | 'association' | 'constant' | 'input' | 'output' | 'transient' | 'event' | 'def' | 'abstract' | 'get' | 'set' | 'readWrite' | 'readOnly' | 'writeOnly' | 'array' | 'enum' | 'namespace' | 'throws' 
+    ID | 'extends' | 'implements' | 'in' | 'out' | 'inout' | 'class' | 'struct' | 'exception' | 'model' | 'service' | 'interface' | 'string' | 'native' | 'primitive' | 'attribute' | 'integer' | 'catalogue' | 'entrypoint' | 'field' | 'container' | 'reference' | 'eventsink' | 'eventsource' | 'property' | 'association' | 'constant' | 'input' | 'output' | 'transient' | 'event' | 'def' | 'abstract' | 'get' | 'set' | 'readWrite' | 'readOnly' | 'writeOnly' | 'array' | 'enum' | 'namespace' | 'throws'
 ;
 
 entry Catalogue returns Catalogue:
@@ -73,18 +73,18 @@ Type returns Type:
 VisibilityModifiers returns string:
     /** The element is visible only within its containing classifier. */
     'private' |
-    /** The element is visible within its containing classifier and derived classifiers thereof. */
+/** The element is visible within its containing classifier and derived classifiers thereof. */
     'protected' |
-    /** The element is globally visible. */
-    'public' 
+/** The element is globally visible. */
+    'public'
 ;
 FieldFlags returns string:
     /** Input flag of the field. */
     'input' |
-    /** Output flag of the field. */
+/** Output flag of the field. */
     'output' | 
-    /** Transient flag of the field (opposite of state). */
-    'transient' 
+/** Transient flag of the field (opposite of state). */
+    'transient'
 ;
 
 FieldModifiers returns string:
@@ -93,19 +93,19 @@ FieldModifiers returns string:
 
 ClassModifiers returns string:
     VisibilityModifiers |
-    /** The type is abstract. Abstract types cannot be instantiated, but they can be subtyped. */
-    'abstract' 
+/** The type is abstract. Abstract types cannot be instantiated, but they can be subtyped. */
+    'abstract'
 ;
 AccessKind returns string:
     /** Specifies a property, which has both a getter and a setter. */
     'readWrite' |
-    /** Specifies a property, which only has a getter. */
+/** Specifies a property, which only has a getter. */
      'readOnly' | 
-     /** Specifies a property, which only has a setter. */
-     'writeOnly' 
+/** Specifies a property, which only has a setter. */
+     'writeOnly'
 ;
 
-PropertyModifiers returns string: 
+PropertyModifiers returns string:
     AccessKind | 
     VisibilityModifiers
 ;
@@ -141,10 +141,10 @@ Class returns Class:
 	 * As the Class metaclass is derived from Structure it can contain constants and fields. 
 	 * Further, it can have arbitrary numbers of properties (Property elements), operations (**Operation** elements), and associations (**Association** elements).
      */
-    'class' name=ValidID (/** A single base class to extends from */'extends' base=[Class:QualifiedName ] )?  
+    'class' name=ValidID (/** A single base class to extends from */'extends' base=[Class:QualifiedName] )?  
     '{' 
         elements+=(Constant|Field|Property|Operation|Association)* 
-    '}' 
+    '}'
 ;
 
 Exception returns Exception:
@@ -159,10 +159,10 @@ Exception returns Exception:
 	 * An Exception can contain constants and fields (from **Structure**) as well as operations, properties and associations (from **Class**). The fields represent the state variables of the exception which carry additional information when the exception is raised.
 	 * Furthermore, an **Exception** may be **Abstract** (from **Class**), and it may inherit from a single base exception (implementation inheritance), which is represented by the Base link (from **Class**).
      */
-    'exception' name=ValidID (/** A single base exception to extends from */'extends' base=[Class:QualifiedName ] )?  
+    'exception' name=ValidID (/** A single base exception to extends from */'extends' base=[Class:QualifiedName] )?  
     '{' 
         elements+=(Constant|Field|Property|Operation|Association)* 
-    '}' 
+    '}'
 ;
 Interface returns Interface:
     attributes+=Attribute*  
@@ -176,10 +176,10 @@ Interface returns Interface:
 	 * An **Interface** may inherit from other interfaces (interface inheritance), which is represented via the Base links. 
 	 * Remark : It is strongly recommended to only use value types, references and other interfaces in the properties and operations of an interface (i.e. not to use models). Otherwise, a dependency between a model implementing the interface, and other models referenced by this interface is introduced, which is against the idea of interface-based or component-based design. 
 	 */
-    'interface' name=ValidID (/** Interface(s) to inherit from */'extends' base+=[Interface:QualifiedName ] (',' base+=[Interface:QualifiedName ] )* )? 
+    'interface' name=ValidID (/** Interface(s) to inherit from */'extends' base+=[Interface:QualifiedName] (',' base+=[Interface:QualifiedName] )* )? 
     '{' 
         elements+=(Constant|Property|Operation)* 
-    '}' 
+    '}'
 ;
 
 Model returns Model:
@@ -201,11 +201,11 @@ Model returns Model:
 	 * For a dataflow-based design, the fields of a **Model** can be tagged as Input or Output fields.
 	 * In addition, a **Model** may have **Association** elements to express associations to other models or fields of other models.
      */
-    'model' name=ValidID (/** A single base model to extends from */'extends' base=[Component:QualifiedName ] )? 
-        (/** Interface(s) to inherit from */'implements' interface+=[Interface:QualifiedName ] (',' interface+=[Interface:QualifiedName ] )* )?
+    'model' name=ValidID (/** A single base model to extends from */'extends' base=[Component:QualifiedName] )? 
+        (/** Interface(s) to inherit from */'implements' interface+=[Interface:QualifiedName] (',' interface+=[Interface:QualifiedName] )* )?
     '{' 
         elements+=(Constant|Field|Property|Operation|Association|Container|Reference|EntryPoint|EventSink|EventSource)* 
-    '}' 
+    '}'
 ;
 Service returns Service:
     attributes+=Attribute*  
@@ -218,11 +218,11 @@ Service returns Service:
 	 * The Service metaclass is a component and hence inherits all component mechanisms. 
 	 * A Service can reference one or more interfaces via the **Interface** links (inherited from Component), where at least one of them must be derived from Smp::IService, which qualifies it as a service interface.
      */
-    'service' name=ValidID (/** A single base service to extends from */'extends' base=[Component:QualifiedName ] )? 
-        (/** Interface(s) to inherit from */'implements' interface+=[Interface:QualifiedName ] (',' interface+=[Interface:QualifiedName ] )* )?
+    'service' name=ValidID (/** A single base service to extends from */'extends' base=[Component:QualifiedName] )? 
+        (/** Interface(s) to inherit from */'implements' interface+=[Interface:QualifiedName] (',' interface+=[Interface:QualifiedName] )* )?
     '{' 
         elements+=(Constant|Field|Property|Operation|Association|Container|Reference|EntryPoint|EventSink|EventSource)* 
-    '}' 
+    '}'
 ;
 
 ArrayType returns ArrayType:
@@ -238,7 +238,7 @@ ArrayType returns ArrayType:
 	 * Dynamic arrays are not supported by SMDL, as they are not supported by some potential target platforms, and introduce various difficulties in memory management. 
 	 * Remarks : Nevertheless, specific mechanisms are available to allow dynamic collections of components, either for containment (composition) or references (aggregation). 
      */
-    'array' name=ValidID  '=' itemType=[ValueType:QualifiedName ] '['  size=Expression? ']' 
+    'array' name=ValidID  '=' itemType=[ValueType:QualifiedName] '['  size=Expression? ']'
 ;
 ValueReference returns ValueReference:
     attributes+=Attribute*  
@@ -250,7 +250,7 @@ ValueReference returns ValueReference:
      * 
 	 * A **ValueReference** is a type that references a specific value type. It is the "missing link" between value types and reference types.
      */
-    'using' name=ValidID  '=' type=[ValueType:QualifiedName ] '*' 
+    'using' name=ValidID  '=' type=[ValueType:QualifiedName] '*'
 ;
 Integer returns Integer:
     attributes+=Attribute*  
@@ -264,7 +264,7 @@ Integer returns Integer:
 	 * The Unit element can hold a physical unit that can be used by applications to ensure physical unit integrity across models.
 	 * Optionally, the **PrimitiveType** used to encode the integer value may be specified (one of **Int8**, **Int16**, **Int32**, **Int64**, **UIn8**, **UInt16**, **UInt32**, **UInt64**, where the default is **Int32**).	
      */
-    'integer' name=ValidID  (/** The Integral type to inherit from */'extends' primitiveType=[PrimitiveType:QualifiedName ] )? (/** The integer range */'in' (minimum=Expression  | '*' )'...' (maximum=Expression  | '*' ))?  
+    'integer' name=ValidID  (/** The Integral type to inherit from */'extends' primitiveType=[PrimitiveType:QualifiedName] )? (/** The integer range */'in' (minimum=Expression  | '*' )'...' (maximum=Expression  | '*' ))?
 ;
 Float returns Float:
     attributes+=Attribute*  
@@ -279,17 +279,17 @@ Float returns Float:
 	 * The Unit element can hold a physical unit that can be used by applications to ensure physical unit integrity across models.
 	 * Optionally, the **PrimitiveType** used to encode the floating-point value may be specified (one of **Float32** or **Float64**, where the default is **Float64**).
 	 */
-    'float' name=ValidID  (/** The Floating type to inherit from */'extends' primitiveType=[PrimitiveType:QualifiedName ] )? (/** The integer range */'in' (minimum=Expression  | '*' ) range=RangeKind  (maximum=Expression  | '*' ))?
+    'float' name=ValidID  (/** The Floating type to inherit from */'extends' primitiveType=[PrimitiveType:QualifiedName] )? (/** The integer range */'in' (minimum=Expression  | '*' ) range=RangeKind  (maximum=Expression  | '*' ))?
 ;
 RangeKind returns RangeKind:
     /** The minimum and maximum bounds are inclusive. */
     '...' | 
-    /** The minimum bound is inclusive and the maximum bound is exclusive. */
+/** The minimum bound is inclusive and the maximum bound is exclusive. */
     '..<'  | 
-    /** The minimum bound is exclusive and the maximum bound is inclusive. */
+/** The minimum bound is exclusive and the maximum bound is inclusive. */
     '<..' |
-    /** The minimum and maximum bounds are exclusive. */
-     '<.<' 
+/** The minimum and maximum bounds are exclusive. */
+     '<.<'
 ;
 
 
@@ -304,7 +304,7 @@ EventType returns EventType:
 	 * An **Event** Type is used to specify the type of an event. 
 	 * This can be used not only to give a meaningful name to an event type, but also to link it to an existing simple type (via the EventArgs attribute) that is passed as an argument with every invocation of the event.
      */
-    'event' name=ValidID  (/** The event argument type */ 'extends' eventArgs=[SimpleType:QualifiedName ] )? 
+    'event' name=ValidID  (/** The event argument type */ 'extends' eventArgs=[SimpleType:QualifiedName] )?
 ;
 StringType returns StringType:
     attributes+=Attribute*  
@@ -335,7 +335,7 @@ PrimitiveType returns PrimitiveType:
 	 * This is an important restriction, as all values of primitive types may be held in a **SimpleValue**. 
 	 * The metaclasses derived from **SimpleValue**, however, are pre-defined and cannot be extended.
      */
-    'primitive' name=ValidID 
+    'primitive' name=ValidID
 ;
 
 NativeType returns NativeType:
@@ -350,7 +350,7 @@ NativeType returns NativeType:
 	 * This mechanism is used within the specification to define the SMDL primitive types with respect to the Metamodel, but it can also be used to define native types within an arbitrary SMDL catalogue for use by models.
 	 * In the latter case, native types are typically used to bind a model to some external library or existing Application Programming **Interface** (API).	
      */
-    'native' name=ValidID  
+    'native' name=ValidID
 ;
 AttributeType returns AttributeType:
     attributes+=Attribute*  
@@ -364,7 +364,7 @@ AttributeType returns AttributeType:
 	 * The AllowMultiple attribute specifies if a corresponding Attribute may be attached more than once to a language element, while the Usage element defines to which language elements attributes of this type can be attached. 
 	 * An attribute type always references a value type, and can optionally specify a Default value.
      */
-    'attribute' type=[ValueType:QualifiedName ] name=ValidID  ('=' default=Expression  )? 
+    'attribute' type=[ValueType:QualifiedName] name=ValidID  ('=' default=Expression  )?
 ;
 
 Enumeration returns Enumeration:
@@ -384,7 +384,7 @@ Enumeration returns Enumeration:
 ;
 EnumerationLiteral returns EnumerationLiteral:
     attributes+=Attribute*  
-    name=ValidID  '=' value=Expression   
+    name=ValidID  '=' value=Expression
 ;
 
 Constant returns Constant:
@@ -397,7 +397,7 @@ Constant returns Constant:
      * 
 	 * A **Constant** is a feature that is typed by a simple type and that must have a Value.
      */
-    'constant' type=[SimpleType:QualifiedName ] name=ValidID  ('=' value=Expression  )?  
+    'constant' type=[SimpleType:QualifiedName] name=ValidID  ('=' value=Expression  )?
 ;
 Field returns Field:
     attributes+=Attribute*  
@@ -415,7 +415,7 @@ Field returns Field:
 	 * The Input and Output attributes define whether the field value is an input for internal calculations (i.e. needed in order to perform these calculations), or an output of internal calculations (i.e. modified when performing these calculations). 
 	 * These flags default to false, but can be changed from their default value to support dataflow-based design.
      */
-    'field' type=[ValueType:QualifiedName ] name=ValidID  ('=' default=Expression  )?  
+    'field' type=[ValueType:QualifiedName] name=ValidID  ('=' default=Expression  )?
 ;
 
 Property returns Property:
@@ -435,10 +435,10 @@ Property returns Property:
 	 * Remark : The category can be used in applications as ordering or filtering criterion, for example in a property grid. The term "property" used here closely corresponds in its semantics to the same term in the Java Beans specification and in the Microsoft .NET framework. 
 	 * That is, a property formally represents a "getter" or a "setter" operation or both which allow accessing state or configuration information (or derived information thereof) in a controlled way and which can also be exposed via interfaces (in contrast to fields).
      */
-    'property' type=[ValueType:QualifiedName ] name=ValidID  
-    ('get' 'throws' getRaises+=[Exception:QualifiedName ] (',' getRaises+=[Exception:QualifiedName ] )* )? 
-    ('set' 'throws' setRaises+=[Exception:QualifiedName ] (',' setRaises+=[Exception:QualifiedName ] )* )? 
-    ('->' attachedField=[Field:QualifiedName ] )?  
+    'property' type=[ValueType:QualifiedName] name=ValidID  
+    ('get' 'throws' getRaises+=[Exception:QualifiedName] (',' getRaises+=[Exception:QualifiedName] )* )? 
+    ('set' 'throws' setRaises+=[Exception:QualifiedName] (',' setRaises+=[Exception:QualifiedName] )* )? 
+    ('->' attachedField=[Field:QualifiedName] )?
 ;
 
 Operation returns Operation:
@@ -455,7 +455,7 @@ Operation returns Operation:
 	 * An **RaisedException** may specify an arbitrary number of exceptions that it can raise (**RaisedException**).
      */
     'def' (returnParameter=(ReturnParameter|ReturnParameterWithName)  | 'void') name=ValidID '(' (parameter+=Parameter  (',' parameter+=Parameter  )* )? ')' 
-    ('throws' raisedException+=[Exception:QualifiedName ] (',' raisedException+=[Exception:QualifiedName ] )* )?  
+    ('throws' raisedException+=[Exception:QualifiedName] (',' raisedException+=[Exception:QualifiedName] )* )?
 ;
 
 ReturnParameter returns ReturnParameter:
@@ -470,20 +470,20 @@ ReturnParameterWithName returns ReturnParameter:
 
 Parameter returns Parameter:
     attributes+=Attribute*  
-    direction=ParameterDirectionKind? type=[LanguageType:QualifiedName ] name=ValidID  ('=' default=Expression  )?  
+    direction=ParameterDirectionKind? type=[LanguageType:QualifiedName] name=ValidID  ('=' default=Expression  )?
 ;
 ParameterDirectionKind returns ParameterDirectionKind:
     /** The parameter is read-only to the operation, i.e. its value must be specified on call, and cannot be changed inside the operation. */
     'in' | 
-    /** The parameter is write-only to the operation, i.e. its value is unspecified on call, and must be set by the operation. */
+/** The parameter is write-only to the operation, i.e. its value is unspecified on call, and must be set by the operation. */
     'out' |
-    /** The parameter must be specified on call, and may be changed by the operation. */
+/** The parameter must be specified on call, and may be changed by the operation. */
      'inout'
 ;
 
 Association returns Association:
     attributes+=Attribute* 
-    modifiers+=VisibilityModifiers * 
+    modifiers+=VisibilityModifiers* 
     /**
      * ```java
      * [public|protected|private] association <type> <name> [= <default-value>]
@@ -492,7 +492,7 @@ Association returns Association:
 	 * An **Association** is a feature that is typed by a language type (Type link). An association always expresses a reference to an instance of the referenced language type. 
 	 * This reference is either another model (if the Type link refers to a **Model** or **Interface**), or it is a field contained in another model (if the Type link refers to a ValueType).
      */
-    'association' type=[LanguageType:QualifiedName ] name=ValidID  //('=' default=Expression  )?  
+    'association' type=[LanguageType:QualifiedName] name=ValidID  //('=' default=Expression  )?  
 ;
 
 
@@ -516,7 +516,7 @@ Container returns Container:
 	 * Furthermore, a container may specify a default implementation of the container type via the DefaultComponentl link.
 	 * Remark : SMDL support tools may use this during instantiation (i.e. during model integration) to select an initial implementation for newly created contained components. 
      */
-    'container' type=[ReferenceType:QualifiedName] MultiplicityDeclaration name=ValidID  ('=' defaultComponent=[Component:QualifiedName ] )?  
+    'container' type=[ReferenceType:QualifiedName] MultiplicityDeclaration name=ValidID  ('=' defaultComponent=[Component:QualifiedName] )?
 ;
 
 Reference returns Reference_:
@@ -538,14 +538,14 @@ Reference returns Reference_:
 	 * The Lower and Upper attributes specify the multiplicity, i.e. the number of possibly held references to components implementing this interface. 
 	 * Therein the upper bound may be unlimited, which is represented by Upper=-1.
      */
-    'reference' interface=[Interface:QualifiedName] MultiplicityDeclaration name=ValidID   
+    'reference' interface=[Interface:QualifiedName] MultiplicityDeclaration name=ValidID
 ;
 fragment MultiplicityDeclaration*:
-    optional?='?'  | multiplicity=Multiplicity ? 
+    optional?='?'  | multiplicity=Multiplicity?
 ;
 
 Multiplicity returns Multiplicity:
-    {Multiplicity} '[' ((lower=Expression  ('...' (aux?='*'  | upper=Expression  ))? ) | aux?='+'  | '*' )?']'  
+    {Multiplicity} '[' ((lower=Expression  ('...' (aux?='*'  | upper=Expression  ))? ) | aux?='+'  | '*' )?']'
 ;
 EntryPoint returns EntryPoint:
     attributes+=Attribute*  
@@ -559,7 +559,7 @@ EntryPoint returns EntryPoint:
 	 * An Entry Point can reference both Input fields (which must have their Input attribute set to true) and Output fields (which must have their Output attribute set to true). 
 	 * These links can be used to ensure that all component output fields are updated before the entry point is called, or that all input fields can be used after the entry point has been called.	
      */
-    'entrypoint' name=ValidID  ('{' ('in' input+=[Field:QualifiedName ]  | 'out' output+=[Field:QualifiedName ]  )*'}' )?  
+    'entrypoint' name=ValidID  ('{' ('in' input+=[Field:QualifiedName]  | 'out' output+=[Field:QualifiedName]  )*'}' )?
 ;
 
 EventSink returns EventSink:
@@ -571,7 +571,7 @@ EventSink returns EventSink:
      * 
      * An **EventSink** is used to specify that a **Component** can receive a specific event using a given name. An **EventSink** can be connected to any number of **EventSource** instances.	
      */
-    'eventsink' type=[EventType:QualifiedName ] name=ValidID   
+    'eventsink' type=[EventType:QualifiedName] name=ValidID
 ;
 
 EventSource returns EventSource:
@@ -585,17 +585,17 @@ EventSource returns EventSource:
 	 * The Multicast attribute can be used to specify whether any number of sinks can connect to the source (the default), or only a single sink can connect (**Multicast=false**).
 	 * Remark: A tool for model integration can use the **Multicast** attribute to configure the user interface accordingly to ease the specification of event links. 
 	 */
-    'eventsource' type=[EventType:QualifiedName ] name=ValidID   
+    'eventsource' type=[EventType:QualifiedName] name=ValidID
 ;
 
 
 
 Expression returns Expression:
-    OrExpression 
+    OrExpression
 ;
 
 Attribute returns Attribute:
-    '@'(type=[AttributeType:QualifiedName]  ('(' value=Expression ? ')')?)?
+    '@'(type=[AttributeType:QualifiedName]  ('(' value=Expression? ')')?)?
 ;
 
 QualifiedName returns string:
@@ -603,123 +603,123 @@ QualifiedName returns string:
 
 
 OrExpression returns Expression:
-    AndExpression ({BinaryOperation.leftOperand=current} feature=OpOr    rightOperand=AndExpression  )*  
+    AndExpression ({BinaryOperation.leftOperand=current} feature=OpOr    rightOperand=AndExpression  )*
 ;
 
 OpOr returns OpBinary:
-    '||' 
+    '||'
 ;
 
 AndExpression returns Expression:
-    BitwiseOrExpression ({BinaryOperation.leftOperand=current} feature=OpAnd    rightOperand=BitwiseOrExpression  )*  
+    BitwiseOrExpression ({BinaryOperation.leftOperand=current} feature=OpAnd    rightOperand=BitwiseOrExpression  )*
 ;
 
 OpAnd returns OpBinary:
-    '&&' 
+    '&&'
 ;
 
 BitwiseOrExpression returns Expression:
-    BitwiseXorExpression ({BinaryOperation.leftOperand=current} feature=OpBitwiseOr    rightOperand=BitwiseXorExpression  )*  
+    BitwiseXorExpression ({BinaryOperation.leftOperand=current} feature=OpBitwiseOr    rightOperand=BitwiseXorExpression  )*
 ;
 
 OpBitwiseOr returns OpBinary:
-    '|' 
+    '|'
 ;
 
 BitwiseXorExpression returns Expression:
-    BitwiseAndExpression ({BinaryOperation.leftOperand=current} feature=OpBitwiseXor    rightOperand=BitwiseAndExpression  )*  
+    BitwiseAndExpression ({BinaryOperation.leftOperand=current} feature=OpBitwiseXor    rightOperand=BitwiseAndExpression  )*
 ;
 
 OpBitwiseXor returns OpBinary:
-    '^' 
+    '^'
 ;
 
 BitwiseAndExpression returns Expression:
-    EqualityExpression ({BinaryOperation.leftOperand=current} feature=OpBitwiseAnd    rightOperand=EqualityExpression  )*  
+    EqualityExpression ({BinaryOperation.leftOperand=current} feature=OpBitwiseAnd    rightOperand=EqualityExpression  )*
 ;
 
 OpBitwiseAnd returns OpBinary:
-    '&' 
+    '&'
 ;
 
 EqualityExpression returns Expression:
-    RelationalExpression ({BinaryOperation.leftOperand=current} feature=OpEquality    rightOperand=RelationalExpression  )*  
+    RelationalExpression ({BinaryOperation.leftOperand=current} feature=OpEquality    rightOperand=RelationalExpression  )*
 ;
 
 OpEquality returns OpBinary:
-    '==' | '!=' 
+    '==' | '!='
 ;
 
 RelationalExpression returns Expression:
-    BitwiseExpression ({BinaryOperation.leftOperand=current} feature=OpCompare    rightOperand=BitwiseExpression  )*  
+    BitwiseExpression ({BinaryOperation.leftOperand=current} feature=OpCompare    rightOperand=BitwiseExpression  )*
 ;
 
 OpCompare returns OpBinary:
-    '>=' | '<=' | '>' | '<' 
+    '>=' | '<=' | '>' | '<'
 ;
 
 BitwiseExpression returns Expression:
-    AdditiveExpression ({BinaryOperation.leftOperand=current} feature=OpBitwise    rightOperand=AdditiveExpression  )*  
+    AdditiveExpression ({BinaryOperation.leftOperand=current} feature=OpBitwise    rightOperand=AdditiveExpression  )*
 ;
 
 OpBitwise returns OpBinary:
-    '<<' | '>>' 
+    '<<' | '>>'
 ;
 
 AdditiveExpression returns Expression:
-    MultiplicativeExpression ({BinaryOperation.leftOperand=current} feature=OpAdd    rightOperand=MultiplicativeExpression  )*  
+    MultiplicativeExpression ({BinaryOperation.leftOperand=current} feature=OpAdd    rightOperand=MultiplicativeExpression  )*
 ;
 
 OpAdd returns OpBinary:
-    '+' | '-' 
+    '+' | '-'
 ;
 
 MultiplicativeExpression returns Expression:
-    UnaryOperation ({BinaryOperation.leftOperand=current} feature=OpMulti    rightOperand=UnaryOperation  )*  
+    UnaryOperation ({BinaryOperation.leftOperand=current} feature=OpMulti    rightOperand=UnaryOperation  )*
 ;
 
 OpMulti returns OpBinary:
-    '*' | '/' | '%' 
+    '*' | '/' | '%'
 ;
 
 UnaryOperation returns Expression:
-    {UnaryOperation} feature=OpUnary  operand=UnaryOperation  | Literal 
+    {UnaryOperation} feature=OpUnary  operand=UnaryOperation  | Literal
 ;
 
 OpUnary returns OpUnary:
-    "!" | "-" | "+" | "~" 
+    "!" | "-" | "+" | "~"
 ;
 
 NamedElementReference returns Expression:
-    {NamedElementReference} value=[ConstantOrEnumerationLiteral:QualifiedName ]  
+    {NamedElementReference} value=[ConstantOrEnumerationLiteral:QualifiedName]
 ;
 
 Literal returns Expression:
-    CollectionLiteral | FloatingLiteral | IntegerLiteral | StringLiteral | CharacterLiteral | BooleanLiteral | ParenthesizedExpression | NamedElementReference | BuiltInConstant | BuiltInFunction | KeywordExpression 
+    CollectionLiteral | FloatingLiteral | IntegerLiteral | StringLiteral | CharacterLiteral | BooleanLiteral | ParenthesizedExpression | NamedElementReference | BuiltInConstant | BuiltInFunction | KeywordExpression
 ;
 
 ParenthesizedExpression returns Expression:
-    {ParenthesizedExpression} '(' expr=Expression  ')'  
+    {ParenthesizedExpression} '(' expr=Expression  ')'
 ;
 
 DesignatedInitializer returns Expression:
-    {DesignatedInitializer} '.' field=[Field:ValidID ] ('=' expr=Expression  )?  
+    {DesignatedInitializer} '.' field=[Field:ValidID] ('=' expr=Expression  )?
 ;
 
 CollectionExpression returns Expression:
-    Expression | DesignatedInitializer 
+    Expression | DesignatedInitializer
 ;
 
 CollectionLiteral returns Expression:
-    {CollectionLiteral} '{' (elements+=CollectionExpression  (',' elements+=CollectionExpression  )* )? '}'  
+    {CollectionLiteral} '{' (elements+=CollectionExpression  (',' elements+=CollectionExpression  )* )? '}'
 ;
 
 IntegerLiteral returns IntegerLiteral:
-    {IntegerLiteral} text=INTEGER_LITERAL  
+    {IntegerLiteral} text=INTEGER_LITERAL
 ;
 
 FloatingLiteral returns FloatingLiteral:
-    {FloatingLiteral} text=FLOATING_LITERAL   
+    {FloatingLiteral} text=FLOATING_LITERAL
 ;
 
 StringLiteral returns Expression:
@@ -727,15 +727,15 @@ StringLiteral returns Expression:
 ;
 
 CharacterLiteral returns Expression:
-    {CharacterLiteral} value=CHAR   
+    {CharacterLiteral} value=CHAR
 ;
 
 BuiltInConstant returns Expression:
-    {BuiltInConstant} '$' name=ID   
+    {BuiltInConstant} '$' name=ID
 ;
 
 BuiltInFunction returns Expression:
-    {BuiltInFunction} '$' name=ID  '(' argument=Expression? ')'  
+    {BuiltInFunction} '$' name=ID  '(' argument=Expression? ')'
 ;
 
 BooleanLiteral returns Expression:
@@ -743,7 +743,7 @@ BooleanLiteral returns Expression:
 ;
 
 KeywordExpression returns Expression:
-    {KeywordExpression} name='nullptr'   
+    {KeywordExpression} name='nullptr'
 ;
 
 
