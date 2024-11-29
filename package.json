@@ -40,7 +40,7 @@
     "dependencies": {
         "chalk": "~5.3.0",
         "commander": "~12.1.0",
-        "langium": "~3.2.1",
+        "langium": "~3.3.0",
         "p-limit": "^6.1.0",
         "vscode-languageclient": "~9.0.1",
         "vscode-languageserver": "~9.0.1",
@@ -55,7 +55,7 @@
         "esbuild": "^0.24.0",
         "esbuild-plugin-copy": "^2.1.1",
         "eslint": "^9.15.0",
-        "langium-cli": "^3.2.0",
+        "langium-cli": "^3.3.0",
         "shx": "^0.3.4",
         "typescript": "^5.6.3",
         "typescript-eslint": "^8.12.2",
