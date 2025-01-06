@@ -39,7 +39,7 @@
     },
     "dependencies": {
         "chalk": "~5.4.1",
-        "commander": "~12.1.0",
+        "commander": "~13.0.0",
         "langium": "~3.3.0",
         "p-limit": "^6.2.0",
         "vscode-languageclient": "~9.0.1",
