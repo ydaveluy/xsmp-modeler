@@ -1,7 +1,7 @@
 
 import type { Module } from 'langium';
 import { XsmpcatValidator } from './validation/xsmpcat-validator.js';
-import type { LangiumServices, PartialLangiumServices } from 'langium/lsp';
+import type { PartialLangiumServices } from 'langium/lsp';
 import { XsmpcatScopeComputation } from './references/xsmpcat-scope-computation.js';
 import { XsmpcatScopeProvider } from './references/xsmpcat-scope-provider.js';
 import { XsmpcatFormatter } from './lsp/xsmpcat-formatter.js';
@@ -13,9 +13,10 @@ import { XsmpcatCodeActionProvider } from './lsp/xsmpcat-code-action.js';
 import { XsmpCommentProvider } from './lsp/comment-provider.js';
 import { XsmpcatTypeDefinitionProvider } from './lsp/xsmpcat-type-provider.js';
 import { XsmpcatTypeHierarchyProvider } from './lsp/xsmpcat-type-hierarchy-provider.js';
-import type { XsmpSharedServices } from './xsmp-module.js';
+import type { XsmpServices } from './xsmp-module.js';
 import { XsmpDocumentationProvider } from './lsp/documentation-provider.js';
 import { XsmpcatFoldingRangeProvider } from './lsp/xsmpcat-folding-range-provider.js';
+import { XsmpRenameProvider } from './lsp/xsmp-rename-provider.js';
 
 /**
  * Declaration of Xsmp services.
@@ -29,7 +30,7 @@ export interface XsmpcatAddedServices {
 /**
  * Union of Langium default services and Xsmp custom services.
  */
-export type XsmpcatServices = LangiumServices & XsmpcatAddedServices & { shared: XsmpSharedServices; }
+export type XsmpcatServices = XsmpServices & XsmpcatAddedServices
 
 /**
  * Dependency injection module that overrides Langium default services and contributes the
@@ -53,6 +54,7 @@ export const XsmpcatModule: Module<XsmpcatServices, PartialLangiumServices & Xsm
         TypeProvider: (services) => new XsmpcatTypeDefinitionProvider(services),
         TypeHierarchyProvider: (services) => new XsmpcatTypeHierarchyProvider(services),
         FoldingRangeProvider: (services) => new XsmpcatFoldingRangeProvider(services),
+        RenameProvider: (services) => new XsmpRenameProvider(services),
     },
     parser:
     {

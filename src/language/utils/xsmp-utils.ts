@@ -265,7 +265,7 @@ export function isConstantVisibleFrom(from: ast.Expression, element: ast.Constan
 export function isTypeVisibleFrom(from: AstNode, element: ast.Type): boolean {
     const visibility = getRealVisibility(element);
     return !((visibility === VisibilityKind.protected && AstUtils.getDocument(element) !== AstUtils.getDocument(from)) ||
-        (visibility === VisibilityKind.private && !isAncestor(AstUtils.getContainerOfType(from, ast.isNamespace), element)));
+        (visibility === VisibilityKind.private && !isAncestor(AstUtils.getContainerOfType(element, ast.isNamespace), from)));
 
 }
 
