@@ -297,9 +297,10 @@ export class XsmpcatValidator {
                     let exp = expression.elements[i];
                     const field = fields[i];
                     if (ast.isDesignatedInitializer(exp)) {
-                        if (exp.field.ref !== field) { accept('error', `Invalid field name, expecting ${field.name}.`, { node: exp, property: 'field', data: diagnosticData(IssueCodes.InvalidFieldName) }); }
+                        if (exp.field && exp.field.ref !== field) { accept('error', `Invalid field name, expecting ${field.name}.`, { node: exp, property: 'field', data: diagnosticData(IssueCodes.InvalidFieldName) }); }
                         exp = exp.expr;
                     }
+                    if(field.type)
                     this.checkExpression(field.type.ref, exp, accept);
                 }
                 const more = expression.elements.at(Number(fieldCount));
@@ -611,7 +612,7 @@ export class XsmpcatValidator {
                     break;
                 case ast.Field:
                     this.checkModifier(element, [(elem) => elem === 'input', (elem) => elem === 'output', (elem) => elem === 'transient'], accept);
-                    if (XsmpUtils.isRecursiveType(structure, element.type.ref)) { accept('error', 'Recursive Field Type.', { node: element, property: 'type' }); }
+                    if (element.type && XsmpUtils.isRecursiveType(structure, element.type.ref)) { accept('error', 'Recursive Field Type.', { node: element, property: 'type' }); }
                     break;
             }
         }
@@ -633,7 +634,7 @@ export class XsmpcatValidator {
                     break;
                 case ast.Field:
                     this.checkModifier(element, [ast.isVisibilityModifiers, (elem) => elem === 'input', (elem) => elem === 'output', (elem) => elem === 'transient'], accept);
-                    if (XsmpUtils.isRecursiveType(clazz, element.type.ref)) {
+                    if (element.type && XsmpUtils.isRecursiveType(clazz, element.type.ref)) {
                         accept('error', 'Recursive Field Type.', { node: element, property: 'type' });
                     }
                     break;
