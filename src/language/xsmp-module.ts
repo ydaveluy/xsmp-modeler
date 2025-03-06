@@ -21,7 +21,6 @@ import { XsmpNodeInfoProvider } from './lsp/node-info-provider.js';
 import { XsmpServiceRegistry } from './lsp/service-registry.js';
 import { DocumentationHelper } from './utils/documentation-helper.js';
 import { AttributeHelper } from './utils/attribute-helper.js';
-import { QualifiedNameProvider } from './naming/xsmp-naming.js';
 
 export type XsmpServices = LangiumServices & { shared: XsmpSharedServices; }
 /**
@@ -83,9 +82,6 @@ export interface XsmpAddedSharedServices {
     readonly lsp: {
         readonly NodeInfoProvider: XsmpNodeInfoProvider,
     },
-    readonly references: {
-        readonly QualifiedNameProvider: QualifiedNameProvider,
-    },
     readonly DocumentationHelper: DocumentationHelper,
     readonly AttributeHelper: AttributeHelper,
 }
@@ -104,9 +100,6 @@ export const XsmpSharedModule: Module<XsmpSharedServices, DeepPartial<XsmpShared
         DocumentUpdateHandler: (services) => new XsmpDocumentUpdateHandler(services),
         NodeInfoProvider: (services) => new XsmpNodeInfoProvider(services),
         NodeKindProvider: () => new XsmpNodeKindProvider(),
-    },
-    references: {
-        QualifiedNameProvider: () => new QualifiedNameProvider()
     },
     workspace: {
         DocumentBuilder: (services) => new XsmpDocumentBuilder(services),

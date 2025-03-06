@@ -5,17 +5,14 @@ import type { RenameParams } from 'vscode-languageserver-protocol';
 import { Location, TextEdit, type Range, type WorkspaceEdit } from 'vscode-languageserver-types';
 import * as ast from '../generated/ast.js';
 import type { XsmpServices } from '../xsmp-module.js';
-import type { QualifiedNameProvider } from '../naming/xsmp-naming.js';
 
 export class XsmpRenameProvider extends DefaultRenameProvider {
 
     protected readonly langiumDocuments: LangiumDocuments;
-    protected readonly qualifiedNameProvider: QualifiedNameProvider;
 
     constructor(services: XsmpServices) {
         super(services);
         this.langiumDocuments = services.shared.workspace.LangiumDocuments;
-        this.qualifiedNameProvider = services.shared.references.QualifiedNameProvider;
     }
 
     override async rename(document: LangiumDocument, params: RenameParams): Promise<WorkspaceEdit | undefined> {
@@ -41,54 +38,43 @@ export class XsmpRenameProvider extends DefaultRenameProvider {
         }
 
         if (ast.isNamedElement(targetNode)) {
-            const oldFqn = this.qualifiedNameProvider.getFullyQualifiedName(targetNode);
-            const oldName = targetNode.name;
+            const oldFqn = this.getFullyQualifiedName(targetNode);
             targetNode.name = params.newName;
-            const newFqn = this.qualifiedNameProvider.getFullyQualifiedName(targetNode);
-            const newName = targetNode.name;
-            this.processNode(targetNode, changes, oldFqn, newFqn, oldName, newName);
+            const newFqn = this.getFullyQualifiedName(targetNode);
+            this.processNode(targetNode, changes, oldFqn, newFqn);
         }
 
         return { changes };
     }
 
-    protected processNode(node: ast.NamedElement, changes: Record<string, TextEdit[]>, oldFqn: string, newFqn: string, oldName: string, newName: string) {
+    protected processNode(node: ast.NamedElement, changes: Record<string, TextEdit[]>, oldFqn: string, newFqn: string) {
         this.references.findReferences(node, {}).forEach(reference => {
             const refText = this.getReferenceText(reference.sourceUri, reference.segment.range);
-            if (refText?.startsWith(oldFqn + '.')) {
-                const newName = newFqn + refText.slice(oldFqn.length);
-                const nodeLocation = this.getRefLocation(reference);
-                const nodeChange = TextEdit.replace(nodeLocation.range, newName);
-                if (changes[nodeLocation.uri]) {
-                    changes[nodeLocation.uri].push(nodeChange);
-                } else {
-                    changes[nodeLocation.uri] = [nodeChange];
+            let oldName = oldFqn;
+            let newName = newFqn;
+            while(oldName !== newName)
+            {
+                if (refText === oldName) {
+                    const nodeLocation = this.getRefLocation(reference);
+                    const nodeChange = TextEdit.replace(nodeLocation.range, newName);
+                    if (changes[nodeLocation.uri]) {
+                        changes[nodeLocation.uri].push(nodeChange);
+                    } else {
+                        changes[nodeLocation.uri] = [nodeChange];
+                    }
+                    break;
                 }
-            }
-            else if (refText === oldFqn) {
-                const newName = newFqn;
-                const nodeLocation = this.getRefLocation(reference);
-                const nodeChange = TextEdit.replace(nodeLocation.range, newName);
-                if (changes[nodeLocation.uri]) {
-                    changes[nodeLocation.uri].push(nodeChange);
-                } else {
-                    changes[nodeLocation.uri] = [nodeChange];
-                }
-            }
-            else if (refText === oldName) {
-                const nodeLocation = this.getRefLocation(reference);
-                const nodeChange = TextEdit.replace(nodeLocation.range, newName);
-                if (changes[nodeLocation.uri]) {
-                    changes[nodeLocation.uri].push(nodeChange);
-                } else {
-                    changes[nodeLocation.uri] = [nodeChange];
+                else
+                {
+                    oldName = oldName.slice(oldName.indexOf('.') + 1);
+                    newName = newName.slice(newName.indexOf('.') + 1);
                 }
             }
         });
 
         for (const nested of AstUtils.streamContents(node)) {
             if (ast.isNamedElement(nested))
-                this.processNode(nested, changes, oldFqn, newFqn, oldName, newName);
+                this.processNode(nested, changes, `${oldFqn}.${nested.name}`, `${newFqn}.${nested.name}`);
 
         }
     }
@@ -117,5 +103,23 @@ export class XsmpRenameProvider extends DefaultRenameProvider {
             );
         }
         return undefined;
+    }
+
+    public getFullyQualifiedName(node: ast.NamedElement): string {
+        let name = node.name;
+        if (name === undefined || name.length === 0) {
+            return '';
+        }
+        if (ast.isContainer(node) || ast.isReferenceType(node)) {
+            name = '$' + name;
+        }
+
+        const parent = AstUtils.getContainerOfType(node.$container, ast.isNamedElement);
+
+        if (ast.isDocument(parent) || parent === undefined) {
+            return name;
+        }
+
+        return this.getFullyQualifiedName(parent) + '.' + name;
     }
 }
