@@ -8,7 +8,7 @@ import type { XsmpTypeProvider } from './type-provider.js';
 
 export class XsmpcatScopeProvider implements ScopeProvider {
     protected documents: LangiumDocuments;
-    protected readonly visibleUris: WorkspaceCache<URI, Set<string> | undefined>;
+    protected readonly visibleUris: WorkspaceCache<URI, Set<string>>;
     protected readonly reflection: AstReflection;
     protected readonly indexManager: IndexManager;
     protected readonly typeProvider: XsmpTypeProvider;
@@ -18,7 +18,7 @@ export class XsmpcatScopeProvider implements ScopeProvider {
 
     constructor(services: XsmpcatServices) {
         this.documents = services.shared.workspace.LangiumDocuments;
-        this.visibleUris = new WorkspaceCache<URI, Set<string> | undefined>(services.shared);
+        this.visibleUris = new WorkspaceCache<URI, Set<string>>(services.shared);
         this.reflection = services.shared.AstReflection;
         this.indexManager = services.shared.workspace.IndexManager;
         this.typeProvider = services.shared.TypeProvider;
@@ -121,7 +121,7 @@ export class XsmpcatScopeProvider implements ScopeProvider {
         return parent;
     }
 
-    private getVisibleUris(uri: URI): Set<string> | undefined {
+    private getVisibleUris(uri: URI): Set<string> {
         return this.visibleUris.get(uri, () => ProjectUtils.findVisibleUris(this.documents, uri));
     }
 

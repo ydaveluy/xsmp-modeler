@@ -74,21 +74,27 @@ export function isUriInFolders(uri: URI, folders: Set<string>): boolean {
     return false;
 }
 
-export function findVisibleUris(documents: LangiumDocuments, uri: URI): Set<string> | undefined {
+export function findVisibleUris(documents: LangiumDocuments, uri: URI): Set<string> {
 
     const project = findProjectContainingUri(documents, uri);
-
+    const uris: Set<string> = new Set<string>();
     if (project) {
-        const uris: Set<string> = new Set<string>(),
-            folders = getSourceFolders(getAllDependencies(project));
+        const standard = project.standard ?? 'ECSS_SMP_2019';
+        const folders = getSourceFolders(getAllDependencies(project));
         for (const doc of documents.all) {
-            if (ast.isCatalogue(doc.parseResult.value) && (isBuiltinLibrary(doc.uri) || isUriInFolders(doc.uri, folders))) {
-                uris.add(doc.uri.toString());
+            if (ast.isCatalogue(doc.parseResult.value)) {
+                if (isUriInFolders(doc.uri, folders) || isBuiltinLibrary(doc.uri) && (!doc.uri.path.includes('@') || doc.uri.path.includes('@' + standard)))
+                    uris.add(doc.uri.toString());
             }
         }
         uris.delete(uri.toString());
-        return uris;
+    }
+    else if (!isBuiltinLibrary(uri)) {
+        for (const doc of documents.all) {
+            uris.add(doc.uri.toString());
+        }
+        uris.delete(uri.toString());
     }
 
-    return undefined;
+    return uris;
 }

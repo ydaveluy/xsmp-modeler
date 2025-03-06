@@ -35,7 +35,6 @@ describe('Validating Xsmpcat', () => {
 [52:1..52:19]: Duplicated annotation of a non-repeatable type. Only annotation types marked with '@allowMultiple' can be used multiple times on a single target.
 [53:1..53:19]: This annotation is disallowed for element of type PrimitiveType.
 [52:1..52:19]: A value is required.
-[105:47..105:51]: The PrimitiveType Smp.Bool is not visible.
 [105:22..105:32]: A Parameter shall not be both ByPointer and ByReference.
 [3:9..3:21]: Invalid date format (e.g: 1970-01-01T00:00:00Z).
 [9:0..9:9]: This Catalogue in not contained in a project.
@@ -67,7 +66,6 @@ describe('Validating Xsmpcat', () => {
 [105:145..105:154]: The Parameter requires a default vallue.
 [105:74..105:82]: Deprecated.
 [105:100..105:110]: A Parameter shall not be both ByPointer and ByReference.
-[105:148..105:152]: The PrimitiveType Smp.Bool is not visible.
 [111:61..111:65]: Expecting a Field.
 [107:8..107:15]: A Property of an Interface shall not be static.
 [108:8..108:16]: A Property shall not be both Static and Virtual.
@@ -80,8 +78,6 @@ describe('Validating Xsmpcat', () => {
 [120:38..120:45]: A 'Char8' shall contain exactly one character.
 [121:38..121:48]: A 'Char8' shall contain exactly one character.
 [127:53..127:65]: Duplicated exception.
-[128:30..128:34]: The PrimitiveType Smp.Bool is not visible.
-[129:30..129:34]: The PrimitiveType Smp.Bool is not visible.
 [132:14..132:35]: The Integer hidden.privateInteger is not visible.
 [138:137..138:138]: Deprecated: do not use
 [138:137..138:138]: The Type of the AttachedField shall match the Type of the Property.
@@ -109,11 +105,8 @@ Upper bound shall be -1 or larger or equal to the lower bound.
 [168:18..168:22]: The type PrimitiveType is not a sub type of EventType.
 [169:20..169:24]: The type PrimitiveType is not a sub type of EventType.
 [174:4..174:9]: Missing Type UUID.
-[178:37..178:41]: The PrimitiveType Smp.Bool is not visible.
-[181:17..181:21]: The PrimitiveType Smp.Bool is not visible.
 [184:4..184:9]: Missing Type UUID.
 [189:4..189:13]: Missing Type UUID.
-[192:17..192:21]: The PrimitiveType Smp.Bool is not visible.
 [195:4..195:9]: Missing Type UUID.
 [197:4..197:9]: Missing Type UUID.
 [199:4..199:9]: Missing Type UUID.
@@ -134,7 +127,6 @@ Upper bound shall be -1 or larger or equal to the lower bound.
 [242:26..242:29]: Int32 cannot be converted to Smp.Int8.
 [244:36..244:50]: Conversion overflow for type Int32.
 [245:29..245:33]: RangeError: Division by zero
-[249:14..249:18]: The PrimitiveType Smp.Bool is not visible.
 [250:41..250:44]: Unary operator '-' is not supported for operand of type 'String8'.
 [250:47..250:50]: Unary operator '!' is not supported for operand of type 'String8'.
 [250:53..250:56]: Unary operator '+' is not supported for operand of type 'String8'.
@@ -144,9 +136,7 @@ Upper bound shall be -1 or larger or equal to the lower bound.
 [29:30..29:38]: The type Structure is not a sub type of Service.
 [29:4..29:11]: The Service shall be abstract.
 [40:11..40:18]: Illegal modifier.
-[40:29..40:33]: The PrimitiveType Smp.Bool is not visible.
 [40:34..40:49]: Default value is missing.
-[48:21..48:25]: The PrimitiveType Smp.Bool is not visible.
 [44:14..44:19]: Duplicated usage.
 [45:14..45:21]: Invalid usage.
 [54:11..54:16]: Unsupported Primitive Type.

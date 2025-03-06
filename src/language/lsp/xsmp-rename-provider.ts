@@ -110,7 +110,7 @@ export class XsmpRenameProvider extends DefaultRenameProvider {
         if (name === undefined || name.length === 0) {
             return '';
         }
-        if (ast.isContainer(node) || ast.isReferenceType(node)) {
+        if (ast.isContainer(node) || ast.isReference_(node)) {
             name = '$' + name;
         }
 

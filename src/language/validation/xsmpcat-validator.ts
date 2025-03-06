@@ -420,7 +420,7 @@ export class XsmpcatValidator {
         }
         else {
             const duplicates = this.globalCache.get('uuids', () => this.computeUuidsForTypes()).get(uuid.toString().trim());
-            if (duplicates.length > 1) {
+            if (duplicates.length > 1 && !isBuiltinLibrary(AstUtils.getDocument(type).uri)) {
                 accept('error', 'Duplicated UUID.', {
                     node: type,
                     range: uuid.range,
@@ -740,7 +740,7 @@ export class XsmpcatValidator {
 
         const duplicates = this.globalCache.get('services', () => this.computeServiceNames()).get(service.name);
 
-        if (duplicates.length > 1) {
+        if (duplicates.length > 1 && !isBuiltinLibrary(AstUtils.getDocument(service).uri)) {
             accept('error', 'Duplicated Service name.', {
                 node: service,
                 property: 'name',
@@ -755,7 +755,7 @@ export class XsmpcatValidator {
             accept('warning', 'Invalid date format (e.g: 1970-01-01T00:00:00Z).', { node: catalogue, range: date.range });
         }
         const duplicates = this.indexManager.allElements(ast.Catalogue).filter(c => c.name === catalogue.name).toArray();
-        if (duplicates.length > 1) {
+        if (duplicates.length > 1 && !isBuiltinLibrary(AstUtils.getDocument(catalogue).uri)) {
             accept('error', 'Duplicated Catalogue name.', {
                 node: catalogue,
                 property: 'name',

@@ -214,7 +214,9 @@ interface EventSource extends NamedElement, Resolvable {
 }
 
 
+type SmpStandard = 'ECSS_SMP_2019' | 'ECSS_SMP_2024'
 interface Project extends Document {
+	standard?: SmpStandard = 'ECSS_SMP_2019'
 	elements: (ProfileReference | ToolReference | Dependency | Source)[]
 }
 interface ProfileReference{

@@ -18,7 +18,7 @@ Project returns Project:
      * 
      * It contains an optional profile, source folder(s) where modeling files are located, activated tool(s) and project dependencies.
      */
-    'project' name=STRING  
+    'project' name=STRING  (/** Specify which version of the standard to use. */ 'with' standard=('ECSS_SMP_2019' | 'ECSS_SMP_2024'))?
     elements+=(ProfileReference | ToolReference | Dependency | Source)*
 ;
 ProfileReference returns ProfileReference:
