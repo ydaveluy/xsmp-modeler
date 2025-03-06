@@ -265,9 +265,9 @@ namespace ns
 		field Char8 aCharNumber = 10
 		field Char8 aCharWithEscape = '\n'
 		field DateTime aDateTime = 42
-		field DateTime aDateTimeStr = "2022-10-22T09:07:44Z"
+		field DateTime aDateTimeStr = "2022-10-22T09:07:44.101010101Z"
 		field Duration aDuration = 100
-		field Duration aDurationStr = "PT20.345S"
+		field Duration aDurationStr = "PT20.345000001S"
 		field AFloat aFloat = 4.5
 		field AFloat32 aFloat32 = 10.
 		field AFloat64 aFloat64 = 2.5

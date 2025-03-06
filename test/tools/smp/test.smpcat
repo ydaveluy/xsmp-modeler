@@ -288,11 +288,11 @@
       </Field>
       <Field Id="ns.AModel.aDateTime" Name="aDateTime">
         <Type xlink:title="DateTime" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.DateTime"/>
-        <Default xsi:type="Types:DateTimeValue" Value="1970-01-01T00:00:00.000Z"/>
+        <Default xsi:type="Types:DateTimeValue" Value="1970-01-01T00:00:00.000000042Z"/>
       </Field>
       <Field Id="ns.AModel.aDateTimeStr" Name="aDateTimeStr">
         <Type xlink:title="DateTime" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.DateTime"/>
-        <Default xsi:type="Types:DateTimeValue" Value="2022-10-22T09:07:44.000Z"/>
+        <Default xsi:type="Types:DateTimeValue" Value="2022-10-22T09:07:44.101010101Z"/>
       </Field>
       <Field Id="ns.AModel.aDuration" Name="aDuration">
         <Type xlink:title="Duration" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Duration"/>
@@ -300,7 +300,7 @@
       </Field>
       <Field Id="ns.AModel.aDurationStr" Name="aDurationStr">
         <Type xlink:title="Duration" xlink:href="http://www.ecss.nl/smp/2019/Smdl#Smp.Duration"/>
-        <Default xsi:type="Types:DurationValue" Value="PT20.345S"/>
+        <Default xsi:type="Types:DurationValue" Value="PT20.345000001S"/>
       </Field>
       <Field Id="ns.AModel.aFloat" Name="aFloat">
         <Type xlink:title="AFloat" xlink:href="#ns.AFloat"/>
@@ -497,9 +497,9 @@
       <Field Id="ns.AModel.arrayOf3DateTime" Name="arrayOf3DateTime">
         <Type xlink:title="ArrayOf3DateTime" xlink:href="#ns.ArrayOf3DateTime"/>
         <Default xsi:type="Types:DateTimeArrayValue">
-          <ItemValue Value="1970-01-01T00:00:00.000Z"/>
-          <ItemValue Value="1970-01-01T00:00:00.000Z"/>
-          <ItemValue Value="1970-01-01T00:00:00.000Z"/>
+          <ItemValue Value="1970-01-01T00:00:00.000000000Z"/>
+          <ItemValue Value="1970-01-01T00:00:00.000000001Z"/>
+          <ItemValue Value="1970-01-01T00:00:00.000000002Z"/>
         </Default>
       </Field>
       <Field Id="ns.AModel.arrayOf3AnEnum" Name="arrayOf3AnEnum">

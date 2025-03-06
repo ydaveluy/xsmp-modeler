@@ -85,11 +85,20 @@ export class StringValue extends Value<StringValue> {
 
     override integralValue(type: IntegralPTK): IntegralValue | undefined {
         if (type === PTK.DateTime) {
-            const instant = Date.parse(this.value);
+            const fractionalRegex = /[.,]\d+/;
+            // ignore the fractional part when parsing with Date because Date can only handle ms
+            const instant = Date.parse(this.value.replace(fractionalRegex, ''));
             if (isNaN(instant)) {
                 return undefined;
             }
-            return new IntegralValue(BigInt(instant) * BigInt(1_000_000), type);
+            let ns = BigInt(instant) * BigInt(1_000_000);
+            //extract manually the fractional part and convert it to ns
+            const match = fractionalRegex.exec(this.value);
+            if (match) {
+                //skip the starting '.', pad end with 0 up to 9 characters and limit to 9 characters in case of the initial input was longer
+                ns += BigInt(match[0].slice(1).padEnd(9, '0').slice(0, 9));
+            }
+            return new IntegralValue(ns, type);
         }
         else if (type === PTK.Duration) {
             try {
