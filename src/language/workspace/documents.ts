@@ -1,9 +1,16 @@
 import { DefaultLangiumDocuments, DocumentState } from 'langium';
 import type { LangiumDocument, URI } from 'langium';
 import * as ast from '../generated/ast.js';
-import * as ProjectUtils from '../utils/project-utils.js';
+import type { ProjectManager } from './project-manager.js';
+import type { XsmpSharedServices } from '../xsmp-module.js';
 
 export class XsmpLangiumDocuments extends DefaultLangiumDocuments {
+    protected readonly projectManager: () => ProjectManager;
+
+    constructor(services: XsmpSharedServices) {
+        super(services);
+        this.projectManager = () => services.workspace.ProjectManager;
+    }
 
     override invalidateDocument(uri: URI): LangiumDocument | undefined {
         const uriString = uri.toString(),
@@ -27,7 +34,7 @@ export class XsmpLangiumDocuments extends DefaultLangiumDocuments {
                 }
             }
             else {
-                const project = ProjectUtils.findProjectContainingUri(this, langiumDoc.uri);
+                const project = this.projectManager().getProject(langiumDoc);
                 if (project) {
                     this.invalidateProject(project, langiumDoc);
                 }
@@ -38,8 +45,8 @@ export class XsmpLangiumDocuments extends DefaultLangiumDocuments {
 
     protected invalidateProject(project: ast.Project, langiumDoc: LangiumDocument) {
         for (const doc of this.all) {
-            const dep = ProjectUtils.findProjectContainingUri(this, doc.uri);
-            if (dep && doc !== langiumDoc && ProjectUtils.getAllDependencies(dep).has(project)) {
+            const dep = this.projectManager().getProject(doc);
+            if (dep && doc !== langiumDoc && this.projectManager().getDependencies(dep).has(project)) {
                 this.invalidateDependency(doc);
             }
         }

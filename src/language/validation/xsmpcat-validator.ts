@@ -1,13 +1,12 @@
 import {
     AstUtils, MultiMap, type ValidationAcceptor, type ValidationChecks, WorkspaceCache, diagnosticData,
-    type AstNode, type IndexManager, type LangiumDocuments, type Properties, type Reference, type URI,
-    type AstNodeDescription
+    type AstNode, type IndexManager, type Properties, type Reference, type URI,
+    type AstNodeDescription, type LangiumDocument
 } from 'langium';
 import * as ast from '../generated/ast.js';
 import type { XsmpcatServices } from '../xsmpcat-module.js';
 import * as XsmpUtils from '../utils/xsmp-utils.js';
 import * as Solver from '../utils/solver.js';
-import { findProjectContainingUri, findVisibleUris } from '../utils/project-utils.js';
 import * as IssueCodes from './xsmpcat-issue-codes.js';
 import { isBuiltinLibrary } from '../builtins.js';
 import { isFloatingType, PTK } from '../utils/primitive-type-kind.js';
@@ -15,6 +14,7 @@ import { DiagnosticTag, Location } from 'vscode-languageserver';
 import { VisibilityKind } from '../utils/visibility-kind.js';
 import { type DocumentationHelper } from '../utils/documentation-helper.js';
 import { type AttributeHelper } from '../utils/attribute-helper.js';
+import type { ProjectManager } from '../workspace/project-manager.js';
 
 /**
  * Register custom validation checks.
@@ -90,20 +90,19 @@ const reservedNames = new Set([
  */
 export class XsmpcatValidator {
     protected readonly indexManager: IndexManager;
-    protected documents: LangiumDocuments;
-
     protected readonly globalCache: WorkspaceCache<string, MultiMap<string, AstNodeDescription>>;
     protected readonly visibleCache: WorkspaceCache<URI, MultiMap<string, AstNodeDescription>>;
     protected readonly docHelper: DocumentationHelper;
     protected readonly attrHelper: AttributeHelper;
+    protected readonly projectManager: ProjectManager;
 
     constructor(services: XsmpcatServices) {
         this.indexManager = services.shared.workspace.IndexManager;
-        this.documents = services.shared.workspace.LangiumDocuments;
         this.globalCache = new WorkspaceCache<string, MultiMap<string, AstNodeDescription>>(services.shared);
         this.visibleCache = new WorkspaceCache<URI, MultiMap<string, AstNodeDescription>>(services.shared);
         this.docHelper = services.shared.DocumentationHelper;
         this.attrHelper = services.shared.AttributeHelper;
+        this.projectManager = services.shared.workspace.ProjectManager;
     }
 
     private computeUuidsForTypes(): MultiMap<string, AstNodeDescription> {
@@ -129,16 +128,16 @@ export class XsmpcatValidator {
         return map;
     }
 
-    private computeVisibleNames(uri: URI): MultiMap<string, AstNodeDescription> {
+    private computeVisibleNames(document: LangiumDocument): MultiMap<string, AstNodeDescription> {
         const map = new MultiMap<string, AstNodeDescription>();
-        for (const element of this.indexManager.allElements(ast.NamedElement, findVisibleUris(this.documents, uri)?.add(uri.toString()))) {
+        for (const element of this.indexManager.allElements(ast.NamedElement, this.projectManager.getVisibleUris(document)?.add(document.uri.toString()))) {
             map.add(element.name, element);
         }
         return map;
     }
     private getDuplicatedName(element: ast.Type | ast.Namespace): readonly AstNodeDescription[] {
-        const { uri } = AstUtils.getDocument(element);
-        return this.visibleCache.get(uri, () => this.computeVisibleNames(uri)).get(XsmpUtils.fqn(element));
+        const document = AstUtils.getDocument(element);
+        return this.visibleCache.get(document.uri, () => this.computeVisibleNames(document)).get(XsmpUtils.fqn(element));
     }
 
     checkNamedElement(element: ast.NamedElement, accept: ValidationAcceptor): void {
@@ -300,8 +299,8 @@ export class XsmpcatValidator {
                         if (exp.field && exp.field.ref !== field) { accept('error', `Invalid field name, expecting ${field.name}.`, { node: exp, property: 'field', data: diagnosticData(IssueCodes.InvalidFieldName) }); }
                         exp = exp.expr;
                     }
-                    if(field.type)
-                    this.checkExpression(field.type.ref, exp, accept);
+                    if (field.type)
+                        this.checkExpression(field.type.ref, exp, accept);
                 }
                 const more = expression.elements.at(Number(fieldCount));
                 if (more) { accept('error', `The structure type expect ${fieldCount} element(s), got ${collectionSize} element(s).`, { node: more }); }
@@ -762,7 +761,7 @@ export class XsmpcatValidator {
                 relatedInformation: duplicates.filter(d => d.node !== catalogue).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment!.range), message: d.name }))
             });
         }
-        if (catalogue.$document && !isBuiltinLibrary(catalogue.$document.uri) && !findProjectContainingUri(this.documents, catalogue.$document.uri)) {
+        if (catalogue.$document && !isBuiltinLibrary(catalogue.$document.uri) && !this.projectManager.getProject(catalogue.$document)) {
             accept('warning', 'This Catalogue in not contained in a project.', { node: catalogue, keyword: 'catalogue' });
         }
     }

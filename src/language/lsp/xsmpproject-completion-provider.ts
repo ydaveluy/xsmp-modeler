@@ -2,10 +2,16 @@ import { AstUtils, UriUtils, type AstNodeDescription, type GrammarAST, type Refe
 import type { CompletionContext, CompletionValueItem } from 'langium/lsp';
 import { DefaultCompletionProvider } from 'langium/lsp';
 import * as ast from '../generated/ast.js';
-import * as ProjectUtils from '../utils/project-utils.js';
+import type { XsmpServices } from '../xsmp-module.js';
+import { type ProjectManager } from '../workspace/project-manager.js';
 
 export class XsmpprojectCompletionProvider extends DefaultCompletionProvider {
 
+    protected readonly projectManager: ProjectManager;
+    constructor(services: XsmpServices) {
+        super(services);
+        this.projectManager = services.shared.workspace.ProjectManager;
+    }
     /**
      * Filter duplicate tools and dependencies
      *
@@ -20,8 +26,8 @@ export class XsmpprojectCompletionProvider extends DefaultCompletionProvider {
         if (project) {
             switch (refId) {
                 case 'Dependency:project':
-                    return this.scopeProvider.getScope(refInfo).getAllElements().filter(d => ast.isProject(d.node) && !ProjectUtils.getAllDependencies(d.node).has(project) &&
-                        !ProjectUtils.getAllDependencies(project).has(d.node));
+                    return this.scopeProvider.getScope(refInfo).getAllElements().filter(d => ast.isProject(d.node) && !this.projectManager.getDependencies(d.node).has(project) &&
+                        !this.projectManager.getDependencies(project).has(d.node));
                 case 'ToolReference:tool':
                     return this.scopeProvider.getScope(refInfo).getAllElements().filter(d => !project.elements.filter(ast.isToolReference).some(r => r.tool?.$refText === d.name));
             }

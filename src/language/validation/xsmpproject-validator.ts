@@ -1,10 +1,10 @@
 import { type AstNode, type IndexManager, MultiMap, type Properties, type Reference, type ValidationAcceptor, type ValidationChecks, UriUtils, WorkspaceCache, type AstNodeDescription, AstUtils } from 'langium';
 import type { XsmpprojectServices } from '../xsmpproject-module.js';
 import * as fs from 'node:fs';
-import * as ProjectUtils from '../utils/project-utils.js';
 import * as ast from '../generated/ast.js';
 import { DiagnosticTag, Location } from 'vscode-languageserver';
 import { type DocumentationHelper } from '../utils/documentation-helper.js';
+import type { ProjectManager } from '../workspace/project-manager.js';
 
 /**
  * Register custom validation checks.
@@ -27,11 +27,13 @@ export class XsmpprojectValidator {
     protected readonly indexManager: IndexManager;
     protected readonly globalCache: WorkspaceCache<string, MultiMap<string, AstNodeDescription>>;
     protected readonly docHelper: DocumentationHelper;
+    protected readonly projectManager: ProjectManager;
 
     constructor(services: XsmpprojectServices) {
         this.indexManager = services.shared.workspace.IndexManager;
         this.globalCache = new WorkspaceCache<string, MultiMap<string, AstNodeDescription>>(services.shared);
         this.docHelper = services.shared.DocumentationHelper;
+        this.projectManager = services.shared.workspace.ProjectManager;
     }
 
     private computeNamesForProjects(): MultiMap<string, AstNodeDescription> {
@@ -119,7 +121,7 @@ export class XsmpprojectValidator {
                 }
                 case ast.Dependency: {
                     if (this.checkTypeReference(accept, element, element.project, 'project')) {
-                        if (ProjectUtils.getAllDependencies(element.project.ref!).has(project))
+                        if (this.projectManager.getDependencies(element.project.ref!).has(project))
                             accept('error', `Cyclic dependency detected '${element.project.ref?.name}'.`, { node: element, property: 'project' });
 
                         // Check no duplicated dependency

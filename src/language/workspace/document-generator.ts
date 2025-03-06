@@ -1,7 +1,6 @@
 import { DocumentState, interruptAndCheck, UriUtils } from 'langium';
 import type { Cancellation, DocumentBuilder, IndexManager, LangiumDocument, LangiumDocuments, ServiceRegistry, URI } from 'langium';
 import * as ast from '../generated/ast.js';
-import { findProjectContainingUri } from '../utils/project-utils.js';
 import { DiagnosticSeverity } from 'vscode-languageserver';
 import { SmpGenerator } from '../tools/smp/generator.js';
 import pLimit from 'p-limit';
@@ -9,6 +8,7 @@ import type { Task, TaskAcceptor } from '../generator/generator.js';
 import { XsmpSdkGenerator } from '../profiles/xsmp-sdk/generator.js';
 import type { XsmpSharedServices } from '../xsmp-module.js';
 import { PythonGenerator } from '../tools/python/generator.js';
+import type { ProjectManager } from './project-manager.js';
 
 const limit = pLimit(8);
 
@@ -20,6 +20,7 @@ export class XsmpDocumentGenerator {
     protected readonly xsmpSdkGenerator: XsmpSdkGenerator;
     protected readonly pythonGenerator: PythonGenerator;
     protected readonly builder: DocumentBuilder;
+    protected readonly projectManager: ProjectManager;
 
     constructor(services: XsmpSharedServices) {
         this.langiumDocuments = services.workspace.LangiumDocuments;
@@ -29,6 +30,7 @@ export class XsmpDocumentGenerator {
         this.xsmpSdkGenerator = new XsmpSdkGenerator(services);
         this.pythonGenerator = new PythonGenerator(services);
         this.builder = services.workspace.DocumentBuilder;
+        this.projectManager = services.workspace.ProjectManager;
     }
 
     private isValid(document: LangiumDocument): boolean {
@@ -40,14 +42,11 @@ export class XsmpDocumentGenerator {
         if (!document || !this.isValid(document)) {
             return;
         }
-
-        console.time(`Generate ${uri.fsPath}`);
-        console.time(`Collecting tasks ${uri.fsPath}`);
         const tasks: Array<Promise<void>> = [];
 
         const taskAcceptor: TaskAcceptor = (task: Task) => { tasks.push(limit(task)); };
         if (ast.isCatalogue(document.parseResult.value)) {
-            const project = findProjectContainingUri(this.langiumDocuments, document.uri);
+            const project = this.projectManager.getProject(document);
             if (project) {
                 this.generateCatalogue(project, document.parseResult.value, taskAcceptor);
             }
@@ -55,20 +54,16 @@ export class XsmpDocumentGenerator {
         else if (ast.isProject(document.parseResult.value)) {
             const project = document.parseResult.value;
             for (const doc of this.langiumDocuments.all) {
-                if (this.isValid(doc) && ast.isCatalogue(doc.parseResult.value) && project === findProjectContainingUri(this.langiumDocuments, doc.uri)) {
+                if (this.isValid(doc) && ast.isCatalogue(doc.parseResult.value) && project === this.projectManager.getProject(doc)) {
                     this.generateCatalogue(project, doc.parseResult.value, taskAcceptor);
                 }
             }
         }
         await interruptAndCheck(cancelToken);
 
-        console.timeEnd(`Collecting tasks ${uri.fsPath}`);
         if (tasks.length > 0) {
-            console.log('Executing all generation tasks...');
             await Promise.all(tasks);
         }
-        console.timeEnd(`Generate ${uri.fsPath}`);
-
     }
 
     generateCatalogue(project: ast.Project, catalogue: ast.Catalogue, taskAcceptor: TaskAcceptor) {
