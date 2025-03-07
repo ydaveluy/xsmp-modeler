@@ -25,10 +25,4 @@ export class XsmpDocumentBuilder extends DefaultDocumentBuilder {
         await super.buildDocuments(projects, options, cancelToken);
         await super.buildDocuments(others, options, cancelToken);
     }
-
-    protected override shouldRelink(document: LangiumDocument, changedUris: Set<string>): boolean {
-        // Check whether the document is affected by any of the changed URIs
-        return this.indexManager.isAffected(document, changedUris);
-    }
-
 }

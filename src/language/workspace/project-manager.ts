@@ -101,7 +101,6 @@ export class ProjectManager {
                     uris.add(doc.uri.toString());
                 }
             }
-            uris.delete(document.uri.toString());
             return uris;
         });
 

@@ -52,8 +52,7 @@ export class XsmpRenameProvider extends DefaultRenameProvider {
             const refText = this.getReferenceText(reference.sourceUri, reference.segment.range);
             let oldName = oldFqn;
             let newName = newFqn;
-            while(oldName !== newName)
-            {
+            while (oldName !== newName) {
                 if (refText === oldName) {
                     const nodeLocation = this.getRefLocation(reference);
                     const nodeChange = TextEdit.replace(nodeLocation.range, newName);
@@ -64,8 +63,9 @@ export class XsmpRenameProvider extends DefaultRenameProvider {
                     }
                     break;
                 }
-                else
-                {
+                else {
+                    if (oldName.indexOf('.') === -1)
+                        break;
                     oldName = oldName.slice(oldName.indexOf('.') + 1);
                     newName = newName.slice(newName.indexOf('.') + 1);
                 }
@@ -83,7 +83,7 @@ export class XsmpRenameProvider extends DefaultRenameProvider {
         if (!langiumDoc) {
             return undefined;
         }
-        return langiumDoc.textDocument.getText(range);
+        return langiumDoc.textDocument.getText(range).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n\r]*/g,'').replace(/\s+/g, '');
     }
 
     getRefLocation(ref: ReferenceDescription): Location {
