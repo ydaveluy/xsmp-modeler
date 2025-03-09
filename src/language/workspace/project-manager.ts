@@ -1,20 +1,29 @@
 import { AstUtils, DocumentState, UriUtils, WorkspaceCache } from 'langium';
-import type { LangiumDocument, LangiumDocuments, LangiumSharedCoreServices, URI } from 'langium';
+import type { LangiumDocument, LangiumDocuments, LangiumSharedCoreServices, Stream, URI } from 'langium';
 import * as ast from '../generated/ast.js';
 import { isBuiltinLibrary } from '../builtins.js';
 
 export class ProjectManager {
     protected readonly projectCache: WorkspaceCache<URI, ast.Project | undefined>;
-    protected readonly dependenciesCache: WorkspaceCache<[URI, boolean], Set<ast.Project>>;
+    protected readonly dependenciesCache: WorkspaceCache<URI, Set<ast.Project>>;
     protected readonly visibleUrisCache: WorkspaceCache<URI, Set<string>>;
     protected readonly documents: LangiumDocuments;
+    protected readonly services: LangiumSharedCoreServices;
 
     constructor(services: LangiumSharedCoreServices) {
 
-        this.projectCache = new WorkspaceCache<URI, ast.Project | undefined>(services);
-        this.dependenciesCache = new WorkspaceCache<[URI, boolean], Set<ast.Project>>(services);
-        this.visibleUrisCache = new WorkspaceCache<URI, Set<string>>(services);
         this.documents = services.workspace.LangiumDocuments;
+        this.services = services;
+        this.projectCache = new WorkspaceCache<URI, ast.Project | undefined>(services);
+        this.dependenciesCache = new WorkspaceCache<URI, Set<ast.Project>>(services);
+        this.visibleUrisCache = new WorkspaceCache<URI, Set<string>>(services);
+    }
+
+    getProjects(): Stream<ast.Project> {
+        return this.documents.all.map(doc => doc.parseResult.value).filter(ast.isProject);
+    }
+    getProjectByName(name: string): ast.Project | undefined {
+        return this.getProjects().find(p => p.name === name);
     }
 
     getProject(document: LangiumDocument): ast.Project | undefined {
@@ -39,73 +48,59 @@ export class ProjectManager {
         }
         return undefined;
     }
-
-    getDependencies(project: ast.Project, transitive: boolean = true): Set<ast.Project> {
-        return this.dependenciesCache.get([AstUtils.getDocument(project).uri, transitive], () => this.doGetDependencies(project, transitive));
-    }
-    /**
-     * Collect all dependencies of a project recursively
-     * @param project the project
-     * @param dependencies the collected dependencies
-     */
-    protected doGetDependencies(project: ast.Project, transitive: boolean): Set<ast.Project> {
-        const dependencies = new Set<ast.Project>();
-        dependencies.add(project);
-
-        if (project.$document && project.$document.state >= DocumentState.Linked) {
-            for (const dependency of project.elements.filter(ast.isDependency)) {
-                if (dependency.project?.ref) {
-                    this.collectAllDependencies(dependency.project.ref, dependencies, transitive);
-                }
+    getDependencies(project: ast.Project): Set<ast.Project> {
+        return this.dependenciesCache.get(
+            AstUtils.getDocument(project).uri,
+            () => {
+                const dependencies = new Set<ast.Project>([project]);
+                this.collectDependencies(project, dependencies);
+                return dependencies;
             }
-        }
-        return dependencies;
+        );
     }
 
-    /**
-     * Collect all dependencies of a project recursively
-     * @param project the project
-     * @param dependencies the collected dependencies
-     */
-    protected collectAllDependencies(project: ast.Project, dependencies: Set<ast.Project>, transitive: boolean): void {
-        // Avoid cyclic dependencies
-        if (dependencies.has(project)) {
-            return;
-        }
-        dependencies.add(project);
+    protected collectDependencies(project: ast.Project, dependencies: Set<ast.Project>): void {
+        project.elements.filter(ast.isDependency).forEach(dependency => {
+            const depProject =
+                project.$document && project.$document.state >= DocumentState.Linked
+                    ? dependency.project.ref
+                    : this.getProjectByName(dependency.project.$refText);
 
-        if (transitive && project.$document && project.$document.state >= DocumentState.Linked) {
-            for (const dependency of project.elements.filter(ast.isDependency)) {
-                if (dependency.project?.ref) {
-                    this.collectAllDependencies(dependency.project.ref, dependencies, transitive);
-                }
+            if (depProject && !dependencies.has(depProject)) {
+                dependencies.add(depProject);
+                this.collectDependencies(depProject, dependencies);
             }
-        }
+        });
     }
-    getVisibleUris(document: LangiumDocument): Set<string> {
-        return this.visibleUrisCache.get(document.uri, () => {
-            const project = this.getProject(document);
-            const uris: Set<string> = new Set<string>();
-            if (project) {
-                const standard = project.standard ?? 'ECSS_SMP_2019';
-                const folders = this.getSourceFolders(this.getDependencies(project));
-                for (const doc of this.documents.all) {
-                    if (ast.isCatalogue(doc.parseResult.value)) {
-                        if (this.isUriInFolders(doc.uri, folders) || isBuiltinLibrary(doc.uri) && (!doc.uri.path.includes('@') || doc.uri.path.includes('@' + standard)))
-                            uris.add(doc.uri.toString());
-                    }
-                }
+
+    getVisibleUris(document: LangiumDocument): Set<string> | undefined {
+
+        const project = this.getProject(document);
+        if (!project) return undefined;
+
+        return this.visibleUrisCache.get(document.uri, () => this.computeVisibleUris(project));
+    }
+
+    protected computeVisibleUris(project: ast.Project): Set<string> {
+        const uris = new Set<string>();
+        uris.add(AstUtils.getDocument(project).uri.toString());
+
+        const standard = project.standard ?? 'ECSS_SMP_2019';
+        const dependencies = this.getDependencies(project);
+        dependencies.forEach(dep => uris.add(AstUtils.getDocument(dep).uri.toString()));
+
+        const folders = this.getSourceFolders(dependencies);
+        this.documents.all.forEach(doc => {
+            if (//ast.isCatalogue(doc.parseResult.value) &&
+                (this.isUriInFolders(doc.uri, folders) ||
+                    (isBuiltinLibrary(doc.uri) && (!doc.uri.path.includes('@') || doc.uri.path.includes('@' + standard))))) {
+                uris.add(doc.uri.toString());
             }
-            else if (!isBuiltinLibrary(document.uri)) {
-                for (const doc of this.documents.all) {
-                    uris.add(doc.uri.toString());
-                }
-            }
-            return uris;
         });
 
+        return uris;
     }
-    getSourceFolders(projects: Set<ast.Project>): Set<string> {
+    protected getSourceFolders(projects: Set<ast.Project>): Set<string> {
         const uris = new Set<string>();
         for (const project of projects) {
             if (project.$document) {
@@ -118,7 +113,8 @@ export class ProjectManager {
         }
         return uris;
     }
-    isUriInFolders(uri: URI, folders: Set<string>): boolean {
+
+    protected isUriInFolders(uri: URI, folders: Set<string>): boolean {
         for (const folder of folders) {
             if (uri.path.startsWith(folder)) {
                 return true;

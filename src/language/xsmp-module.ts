@@ -11,8 +11,6 @@ import { registerXsmpprojectValidationChecks } from './validation/xsmpproject-va
 import { XsmpWorkspaceManager } from './workspace/workspace-manager.js';
 import { XsmpIndexManager } from './workspace/index-manager.js';
 import { XsmpNodeKindProvider } from './lsp/node-kind-provider.js';
-import { XsmpDocumentBuilder } from './workspace/document-builder.js';
-import { XsmpLangiumDocuments } from './workspace/documents.js';
 import { XsmpDocumentGenerator } from './workspace/document-generator.js';
 import { XsmpDocumentUpdateHandler } from './lsp/document-update-handler.js';
 import { XsmpTypeProvider } from './references/type-provider.js';
@@ -105,9 +103,7 @@ export const XsmpSharedModule: Module<XsmpSharedServices, DeepPartial<XsmpShared
         NodeKindProvider: () => new XsmpNodeKindProvider(),
     },
     workspace: {
-        DocumentBuilder: (services) => new XsmpDocumentBuilder(services),
         IndexManager: (services) => new XsmpIndexManager(services),
-        LangiumDocuments: (services) => new XsmpLangiumDocuments(services),
         WorkspaceManager: (services) => new XsmpWorkspaceManager(services),
         ProjectManager:(services) =>  new ProjectManager(services),
     },
