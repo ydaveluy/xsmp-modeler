@@ -30,7 +30,7 @@ const plugins = [
     copy({
         assets: {
             // Copy the 'lib' directory to the 'out' directory
-            from: './src/lib/*',
+            from: './src/lib/**',
             to: './lib/',
         },
     }),

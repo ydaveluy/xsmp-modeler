@@ -2,8 +2,9 @@ import type { LanguageClientOptions, ServerOptions } from 'vscode-languageclient
 import * as vscode from 'vscode';
 import * as path from 'node:path';
 import { LanguageClient, TransportKind } from 'vscode-languageclient/node.js';
-import { builtins, builtInScheme } from '../language/builtins.js';
+import { builtInScheme } from '../language/builtins.js';
 import { createProjectWizard } from '../language/wizard/wizard.js';
+import { GetServerFileContentRequest } from '../language/lsp/language-server.js';
 
 let client: LanguageClient;
 
@@ -16,7 +17,6 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         vscode.commands.registerCommand('xsmp.wizard', createProjectWizard)
     );
-
 }
 
 // This function is called when the extension is deactivated.
@@ -61,7 +61,6 @@ function startLanguageClient(context: vscode.ExtensionContext): LanguageClient {
             serverOptions,
             clientOptions
         );
-
     // Start the client. This will also launch the server
     client.start();
     return client;
@@ -77,9 +76,9 @@ export class BuiltinLibraryFileSystemProvider implements vscode.FileSystemProvid
             }));
     }
 
-    stat(uri: vscode.Uri): vscode.FileStat {
-        const date = Date.now(),
-            value = builtins.get(uri.toString());
+   async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+        const date = Date.now();
+        const value =  await client.sendRequest(GetServerFileContentRequest,uri.toString());
         if (value) {
             return {
                 ctime: date,
@@ -97,9 +96,8 @@ export class BuiltinLibraryFileSystemProvider implements vscode.FileSystemProvid
         };
     }
 
-    readFile(uri: vscode.Uri): Uint8Array {
-
-        const value = builtins.get(uri.toString());
+   async readFile(uri: vscode.Uri): Promise<Uint8Array> {
+        const value =  await client.sendRequest(GetServerFileContentRequest,uri.toString());
         if (value) { return new Uint8Array(Buffer.from(value)); }
 
         return new Uint8Array();

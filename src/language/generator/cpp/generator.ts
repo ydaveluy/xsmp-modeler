@@ -460,7 +460,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             return defaultFqn ?? '';
         }
         const key = { id: 'fqn', value: reference };
-        return this.cache.get(key, () => { return `::${fqn(reference, '::')}`; }) as string;
+        return this.cache.get(key, () => `::${fqn(reference, '::')}`) as string;
     }
     // list of types with uuids defined in namespace ::Smp::Uuids
     static readonly smpUuidsTypes = new Set<string>(['Smp.Uuid', 'Smp.Char8', 'Smp.Bool', 'Smp.Int8', 'Smp.UInt8', 'Smp.Int16', 'Smp.UInt16', 'Smp.Int32',
@@ -769,6 +769,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             case ast.Operation: return this.headerIncludesOperation(element as ast.Operation);
             case ast.Property: return this.headerIncludesProperty(element as ast.Property);
             case ast.Reference_: return this.headerIncludesReference(element as ast.Reference_);
+            case ast.ValueReference: return this.headerIncludesValueReference(element as ast.ValueReference);
             default: return [];
         }
     }
@@ -819,6 +820,9 @@ export abstract class CppGenerator implements XsmpGenerator {
     }
     headerIncludesReference(element: ast.Reference_): Include[] {
         return [element.interface.ref];
+    }
+    headerIncludesValueReference(element: ast.ValueReference): Include[] {
+        return [element.type.ref];
     }
     headerIncludesClass(type: ast.Class): Include[] {
         return ['Smp/Publication/ITypeRegistry.h', ...type.elements.flatMap(element => this.headerIncludes(element)), type.base?.ref];
@@ -883,6 +887,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             case ast.Operation: return this.sourceIncludesOperation(element as ast.Operation);
             case ast.Property: return this.sourceIncludesProperty(element as ast.Property);
             case ast.Reference_: return this.sourceIncludesReference(element as ast.Reference_);
+            case ast.ValueReference: return this.sourceIncludesValueReference(element as ast.ValueReference);
             default: return [];
         }
     }
@@ -923,6 +928,9 @@ export abstract class CppGenerator implements XsmpGenerator {
         return [];
     }
     sourceIncludesReference(_element: ast.Reference_): Include[] {
+        return [];
+    }
+    sourceIncludesValueReference(_element: ast.ValueReference): Include[] {
         return [];
     }
     sourceIncludesClass(type: ast.Class): Include[] {

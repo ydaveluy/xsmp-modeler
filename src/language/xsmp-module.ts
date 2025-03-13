@@ -19,6 +19,7 @@ import { XsmpServiceRegistry } from './lsp/service-registry.js';
 import { DocumentationHelper } from './utils/documentation-helper.js';
 import { AttributeHelper } from './utils/attribute-helper.js';
 import { ProjectManager } from './workspace/project-manager.js';
+import { XsmpLanguageServer } from './lsp/language-server.js';
 
 export type XsmpServices = LangiumServices & { shared: XsmpSharedServices; }
 /**
@@ -101,6 +102,7 @@ export const XsmpSharedModule: Module<XsmpSharedServices, DeepPartial<XsmpShared
         DocumentUpdateHandler: (services) => new XsmpDocumentUpdateHandler(services),
         NodeInfoProvider: (services) => new XsmpNodeInfoProvider(services),
         NodeKindProvider: () => new XsmpNodeKindProvider(),
+        LanguageServer: (services) => new XsmpLanguageServer(services),
     },
     workspace: {
         IndexManager: (services) => new XsmpIndexManager(services),

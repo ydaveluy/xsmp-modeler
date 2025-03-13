@@ -2,7 +2,7 @@ import * as ast from '../../generated/ast.js';
 import * as fs from 'fs';
 import { expandToString as s } from 'langium/generate';
 import { type URI, UriUtils } from 'langium';
-import { fqn, getAccessKind, getRealVisibility, isInput, isOutput, isState, isString8} from '../../utils/xsmp-utils.js';
+import { fqn, getAccessKind, getRealVisibility, isInput, isOutput, isState, isString8 } from '../../utils/xsmp-utils.js';
 import { CppGenerator, CxxStandard } from './generator.js';
 import type { TaskAcceptor } from '../generator.js';
 import type { XsmpSharedServices } from '../../xsmp-module.js';
@@ -116,6 +116,9 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
             case ast.NativeType:
                 body = await this.generateNativeTypeHeader(type as ast.NativeType);
                 break;
+            case ast.ValueReference:
+                body = await this.generateValueReferenceHeader(type as ast.ValueReference);
+                break;
         }
         if (body?.length) {
             const guard = this.guard(type);
@@ -177,6 +180,9 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
             case ast.NativeType:
                 body = await this.generateNativeTypeSource(type as ast.NativeType);
                 break;
+            case ast.ValueReference:
+                body = await this.generateValueReferenceSource(type as ast.ValueReference);
+                break;
         }
         if (body?.length) {
             await this.generateFile(path, s`
@@ -229,6 +235,9 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
                 break;
             case ast.NativeType:
                 body = await this.generateNativeTypeHeaderGen(type as ast.NativeType, gen);
+                break;
+            case ast.ValueReference:
+                body = await this.generateValueReferenceHeaderGen(type as ast.ValueReference, gen);
                 break;
         }
         if (body?.length) {
@@ -295,6 +304,9 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
             case ast.NativeType:
                 body = await this.generateNativeTypeSourceGen(type as ast.NativeType, gen);
                 break;
+            case ast.ValueReference:
+                body = await this.generateValueReferenceSourceGen(type as ast.ValueReference, gen);
+                break;
         }
         if (body?.length) {
             await this.generateFile(path, s`
@@ -325,11 +337,29 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     }
     async generateNativeTypeHeaderGen(type: ast.NativeType, gen: boolean): Promise<string | undefined> {
         const namespace = this.docHelper.getNativeNamespace(type);
-        return `using ${this.name(type, gen)} = ${namespace ? namespace + '::' : ''}${this.docHelper.getNativeType(type)};`;
+        return `${this.comment(type)}using ${this.name(type, gen)} = ${namespace ? namespace + '::' : ''}${this.docHelper.getNativeType(type)};`;
     }
     async generateNativeTypeSourceGen(_type: ast.NativeType, _gen: boolean): Promise<string | undefined> {
         return undefined;
     }
+
+    async generateValueReferenceHeader(type: ast.ValueReference): Promise<string | undefined> {
+        return this.generateTypeHeader(type);
+    }
+    async generateValueReferenceSource(_type: ast.ValueReference): Promise<string | undefined> {
+        return undefined;
+    }
+    async generateValueReferenceHeaderGen(type: ast.ValueReference, gen: boolean): Promise<string | undefined> {
+        return s`
+        ${this.comment(type)}using ${this.name(type, gen)} = ${this.fqn(type.type.ref)} *;
+        
+        ${this.uuidDeclaration(type)}
+        `;
+    }
+    async generateValueReferenceSourceGen(type: ast.ValueReference, _gen: boolean): Promise<string | undefined> {
+        return this.uuidDefinition(type);
+    }
+
     async generateClassHeader(type: ast.Class): Promise<string | undefined> {
         return s`
             ${this.comment(type)}class ${type.name}: public ${type.name}Gen
@@ -731,22 +761,22 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     async generateComponentSourceGen(_type: ast.Component, _gen: boolean): Promise<string | undefined> {
         return undefined;
     }
-/*
-    protected override initialize(element: ast.NamedElement, gen: boolean = false): string | undefined {
-        switch (element.$type) {
-            case ast.Association: return this.initializeAssociation(element as ast.Association, gen);
-            case ast.Constant: return this.initializeConstant(element as ast.Constant, gen);
-            case ast.Container: return this.initializeContainer(element as ast.Container, gen);
-            case ast.EntryPoint: return this.initializeEntryPoint(element as ast.EntryPoint, gen);
-            case ast.EventSink: return this.initializeEventSink(element as ast.EventSink);
-            case ast.EventSource: return this.initializeEventSource(element as ast.EventSource, gen);
-            case ast.Field: return this.initializeField(element as ast.Field, gen);
-            case ast.Operation: return this.initializeOperation(element as ast.Operation, gen);
-            case ast.Property: return this.initializeProperty(element as ast.Property, gen);
-            case ast.Reference_: return this.initializeReference(element as ast.Reference_, gen);
-            default: return undefined;
-        }
-    }*/
+    /*
+        protected override initialize(element: ast.NamedElement, gen: boolean = false): string | undefined {
+            switch (element.$type) {
+                case ast.Association: return this.initializeAssociation(element as ast.Association, gen);
+                case ast.Constant: return this.initializeConstant(element as ast.Constant, gen);
+                case ast.Container: return this.initializeContainer(element as ast.Container, gen);
+                case ast.EntryPoint: return this.initializeEntryPoint(element as ast.EntryPoint, gen);
+                case ast.EventSink: return this.initializeEventSink(element as ast.EventSink);
+                case ast.EventSource: return this.initializeEventSource(element as ast.EventSource, gen);
+                case ast.Field: return this.initializeField(element as ast.Field, gen);
+                case ast.Operation: return this.initializeOperation(element as ast.Operation, gen);
+                case ast.Property: return this.initializeProperty(element as ast.Property, gen);
+                case ast.Reference_: return this.initializeReference(element as ast.Reference_, gen);
+                default: return undefined;
+            }
+        }*/
     protected override initializeAssociation(element: ast.Association, _gen: boolean = false): string | undefined {
         if (!this.attrHelper.isStatic(element))
             return s`
@@ -1058,7 +1088,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
 
     protected initializeMembers(container: ast.WithBody, gen: boolean): string[] {
         const buffer: Array<string | undefined> = [];
-        for (const c of this.constants(container) )
+        for (const c of this.constants(container))
             buffer.push(this.initializeConstant(c, gen));
         for (const c of container.elements.filter(ast.isProperty))
             buffer.push(this.initializeProperty(c, gen));
@@ -1093,7 +1123,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     protected declareMembers(container: ast.WithBody, initialVisibility: VisibilityKind): string {
         const buffer: string[] = [];
         let current = initialVisibility;
-        for (const c of this.constants(container) )
+        for (const c of this.constants(container))
             current = this.declareMember(c, current, this.declareConstant(c), buffer);
         for (const c of container.elements.filter(ast.isProperty))
             current = this.declareMember(c, current, this.declareProperty(c), buffer);
@@ -1119,7 +1149,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     protected declareMembersGen(container: ast.WithBody, initialVisibility: VisibilityKind, gen: boolean): string {
         const buffer: string[] = [];
         let current = initialVisibility;
-        for (const c of this.constants(container) )
+        for (const c of this.constants(container))
             current = this.declareMember(c, current, this.declareConstantGen(c, gen), buffer);
         for (const c of container.elements.filter(ast.isProperty))
             current = this.declareMember(c, current, this.declarePropertyGen(c, gen), buffer);

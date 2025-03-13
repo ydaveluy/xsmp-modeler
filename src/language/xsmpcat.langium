@@ -667,7 +667,7 @@ OpBitwise returns OpBinary:
 ;
 
 AdditiveExpression returns Expression:
-    MultiplicativeExpression ({BinaryOperation.leftOperand=current} feature=OpAdd    rightOperand=MultiplicativeExpression  )*
+    MultiplicativeExpression ({BinaryOperation.leftOperand=current} feature=OpAdd rightOperand=MultiplicativeExpression  )*
 ;
 
 OpAdd returns OpBinary:
@@ -675,7 +675,7 @@ OpAdd returns OpBinary:
 ;
 
 MultiplicativeExpression returns Expression:
-    UnaryOperation ({BinaryOperation.leftOperand=current} feature=OpMulti    rightOperand=UnaryOperation  )*
+    UnaryOperation ({BinaryOperation.leftOperand=current} feature=OpMulti rightOperand=UnaryOperation  )*
 ;
 
 OpMulti returns OpBinary:
@@ -683,7 +683,7 @@ OpMulti returns OpBinary:
 ;
 
 UnaryOperation returns Expression:
-    {UnaryOperation} feature=OpUnary  operand=UnaryOperation  | Literal
+    {UnaryOperation} feature=OpUnary operand=UnaryOperation | Literal
 ;
 
 OpUnary returns OpUnary:
