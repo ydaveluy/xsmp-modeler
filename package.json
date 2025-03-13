@@ -121,6 +121,12 @@
                 "command": "xsmp.wizard",
                 "category": "Xsmp",
                 "title": "Create a new project"
+            },
+            {
+                "command": "xsmp.registerContributor",
+                "category": "Xsmp",
+                "title": "Register a contributor",
+                "enablement": "false"
             }
         ],
         "configurationDefaults": {

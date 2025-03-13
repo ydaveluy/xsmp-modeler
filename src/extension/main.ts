@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { LanguageClient, TransportKind } from 'vscode-languageclient/node.js';
 import { builtInScheme } from '../language/builtins.js';
 import { createProjectWizard } from '../language/wizard/wizard.js';
-import { GetServerFileContentRequest } from '../language/lsp/language-server.js';
+import { GetServerFileContentRequest, RegisterContributor } from '../language/lsp/language-server.js';
 
 let client: LanguageClient;
 
@@ -17,6 +17,10 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         vscode.commands.registerCommand('xsmp.wizard', createProjectWizard)
     );
+    vscode.commands.registerCommand('xsmp.registerContributor', async (modulePath: string) => {
+        client.sendRequest(RegisterContributor, modulePath);
+    });
+
 }
 
 // This function is called when the extension is deactivated.
@@ -76,9 +80,9 @@ export class BuiltinLibraryFileSystemProvider implements vscode.FileSystemProvid
             }));
     }
 
-   async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+    async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
         const date = Date.now();
-        const value =  await client.sendRequest(GetServerFileContentRequest,uri.toString());
+        const value = await client.sendRequest(GetServerFileContentRequest, uri.toString());
         if (value) {
             return {
                 ctime: date,
@@ -96,8 +100,8 @@ export class BuiltinLibraryFileSystemProvider implements vscode.FileSystemProvid
         };
     }
 
-   async readFile(uri: vscode.Uri): Promise<Uint8Array> {
-        const value =  await client.sendRequest(GetServerFileContentRequest,uri.toString());
+    async readFile(uri: vscode.Uri): Promise<Uint8Array> {
+        const value = await client.sendRequest(GetServerFileContentRequest, uri.toString());
         if (value) { return new Uint8Array(Buffer.from(value)); }
 
         return new Uint8Array();

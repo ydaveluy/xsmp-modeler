@@ -6,13 +6,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as url from 'url';
 
-const dirname = getDirName();
-function getDirName() {
+const libDir = getLibDir();
+function getLibDir():string {
     try {
-        return url.fileURLToPath(new URL('.', import.meta.url));
+        return path.join(url.fileURLToPath(new URL('.', import.meta.url)), '../../lib');
     }
     catch {
-        return __dirname;
+        return path.join(__dirname,'../lib');
     }
 }
 export class XsmpWorkspaceManager extends DefaultWorkspaceManager {
@@ -29,7 +29,7 @@ export class XsmpWorkspaceManager extends DefaultWorkspaceManager {
         folders: WorkspaceFolder[],
         collector: (document: LangiumDocument) => void
     ): Promise<void> {
-        await this.loadBuiltinDocuments(path.join(dirname, '../lib'), collector);
+        await this.loadBuiltinDocuments(libDir, collector);
     }
 
     protected async loadBuiltinDocuments(currentDir: string, collector: (document: LangiumDocument) => void, relativePath: string = ''): Promise<void> {
