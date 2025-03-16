@@ -63,7 +63,7 @@ export class ProjectManager {
         project.elements.filter(ast.isDependency).forEach(dependency => {
             const depProject =
                 project.$document && project.$document.state >= DocumentState.Linked
-                    ? dependency.project.ref
+                    ? dependency.project?.ref
                     : this.getProjectByName(dependency.project.$refText);
 
             if (depProject && !dependencies.has(depProject)) {

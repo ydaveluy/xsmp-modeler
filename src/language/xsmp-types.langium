@@ -308,7 +308,7 @@ interface BuiltInConstant extends Expression {
 
 interface BuiltInFunction extends Expression {
 	name: string
-	argument: Expression
+	argument?: Expression
 }
 
 interface BooleanLiteral extends Expression {

@@ -2,7 +2,7 @@ import type { AstNode, JSDocComment, JSDocParagraph, JSDocTag } from 'langium';
 import { isAstNodeWithComment, isJSDoc, parseJSDoc, WorkspaceCache } from 'langium';
 import * as ast from '../generated/ast.js';
 import { type XsmpSharedServices } from '../xsmp-module.js';
-import { findCommentNode } from './xsmp-utils.js';
+import { findDocumentationNode } from './xsmp-utils.js';
 
 export class DocumentationHelper {
     protected readonly cache: WorkspaceCache<AstNode, JSDocComment | undefined>;
@@ -57,7 +57,7 @@ export class DocumentationHelper {
                     }
                 }
             }
-            const comment = findCommentNode(element.$cstNode);
+            const comment = findDocumentationNode(element.$cstNode);
             if (comment && isJSDoc(comment)) {
                 return parseJSDoc(comment);
             }

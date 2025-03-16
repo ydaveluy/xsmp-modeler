@@ -18,13 +18,13 @@ export type Attributes = 'Attributes.Static'
     | 'Attributes.SimpleArray' | 'Attributes.Operator' | 'Attributes.View';
 
 function kind(parameter: ast.Parameter | ast.ReturnParameter): ArgKind {
-    if (ast.isReferenceType(parameter.type.ref)) {
+    if (ast.isReferenceType(parameter.type?.ref)) {
         if (ast.isParameter(parameter) && (parameter.direction === undefined || parameter.direction === 'in')) {
             return ArgKind.BY_REF;
         }
         return ArgKind.BY_PTR;
     }
-    if ((ast.isNativeType(parameter.type.ref) || ast.isValueType(parameter.type.ref)) && ast.isParameter(parameter) && (parameter.direction === 'inout' || parameter.direction === 'out')) {
+    if ((ast.isNativeType(parameter.type?.ref) || ast.isValueType(parameter.type?.ref)) && ast.isParameter(parameter) && (parameter.direction === 'inout' || parameter.direction === 'out')) {
         return ArgKind.BY_PTR;
     }
     return ArgKind.BY_VALUE;
@@ -39,7 +39,7 @@ export class AttributeHelper {
         this.cache = new WorkspaceCache(services);
     }
     attribute(element: ast.NamedElement | ast.ReturnParameter, id: Attributes): ast.Attribute | undefined {
-        return this.cache.get({ key: id, node: element }, () => element.attributes.find(a => a.type.ref && fqn(a.type.ref) === id)) as ast.Attribute | undefined;
+        return this.cache.get({ key: id, node: element }, () => element.attributes.find(a => a.type?.ref && fqn(a.type?.ref) === id)) as ast.Attribute | undefined;
     }
     isAttributeTrue(attribute: ast.Attribute | undefined): boolean | undefined {
         if (!attribute) {
@@ -48,8 +48,8 @@ export class AttributeHelper {
         if (attribute.value) {
             return Solver.getValue(attribute.value)?.boolValue()?.getValue();
         }
-        if (ast.isAttributeType(attribute.type.ref)) {
-            return Solver.getValue(attribute.type.ref.default)?.boolValue()?.getValue();
+        if (ast.isAttributeType(attribute.type?.ref)) {
+            return Solver.getValue(attribute.type?.ref.default)?.boolValue()?.getValue();
         }
         return undefined;
     }
@@ -69,7 +69,7 @@ export class AttributeHelper {
             if (!attr?.value) {
                 return OperatorKind.NONE;
             }
-            const value = Solver.getValueAs(attr.value, (attr.type.ref as ast.AttributeType).type.ref!)?.enumerationLiteral()?.getValue();
+            const value = Solver.getValueAs(attr.value, (attr.type?.ref as ast.AttributeType).type.ref!)?.enumerationLiteral()?.getValue();
             switch (value?.name) {
                 case 'Positive': return OperatorKind.POSITIVE;
                 case 'Negative': return OperatorKind.NEGATIVE;
@@ -133,7 +133,7 @@ export class AttributeHelper {
             if (this.isConstructor(element)) {
                 return false;
             }
-            return this.attributeBoolValue(element, 'Attributes.Const') ?? (ast.isParameter(element) && (!element.direction || element.direction === 'in') && !ast.isValueType(element.type.ref));
+            return this.attributeBoolValue(element, 'Attributes.Const') ?? (ast.isParameter(element) && (!element.direction || element.direction === 'in') && !ast.isValueType(element.type?.ref));
         }) as boolean;
     }
     isConstGetter(element: ast.Property): boolean {
@@ -144,8 +144,8 @@ export class AttributeHelper {
         return this.cache.get({ key: 'isByPointer', node: element }, () => {
             const value = this.attributeBoolValue(element, 'Attributes.ByPointer');
             switch (element.$type) {
-                case ast.Association: return value ?? ast.isReferenceType(element.type.ref);
-                case ast.Property: return value ?? (ast.isReferenceType(element.type.ref) && !this.isByReference(element));
+                case ast.Association: return value ?? ast.isReferenceType(element.type?.ref);
+                case ast.Property: return value ?? (ast.isReferenceType(element.type?.ref) && !this.isByReference(element));
                 case ast.Parameter:
                 case ast.ReturnParameter:
                     return value ?? (kind(element) === ArgKind.BY_PTR && !(this.attributeBoolValue(element, 'Attributes.ByReference') ?? false));
@@ -201,7 +201,7 @@ export class AttributeHelper {
         if (this.isConst(p)) {
             signature += 'const ';
         }
-        signature += p.type.ref ? fqn(p.type.ref) : p.type.$refText;
+        signature += p.type?.ref ? fqn(p.type.ref) : p.type.$refText;
         if (this.isByPointer(p)) {
             signature += '*';
         }

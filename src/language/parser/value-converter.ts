@@ -15,13 +15,13 @@ export class XsmpValueConverter extends DefaultValueConverter {
         }
     }
 
-    private static NS = BigInt(1);
-    private static US = BigInt(1_000);
-    private static MS = XsmpValueConverter.US * BigInt(1_000);
-    private static S = XsmpValueConverter.MS * BigInt(1_000);
-    private static MN = XsmpValueConverter.S * BigInt(60);
-    private static HOUR = XsmpValueConverter.MN * BigInt(60);
-    private static DAY = XsmpValueConverter.HOUR * BigInt(24);
+    private static readonly NS = BigInt(1);
+    private static readonly US = BigInt(1_000);
+    private static readonly MS = XsmpValueConverter.US * BigInt(1_000);
+    private static readonly S = XsmpValueConverter.MS * BigInt(1_000);
+    private static readonly MN = XsmpValueConverter.S * BigInt(60);
+    private static readonly HOUR = XsmpValueConverter.MN * BigInt(60);
+    private static readonly DAY = XsmpValueConverter.HOUR * BigInt(24);
 
     convertInteger(input: string): string {
         const length = input.length;

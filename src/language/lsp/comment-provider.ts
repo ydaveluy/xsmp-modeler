@@ -1,5 +1,5 @@
 import { type AstNode, DefaultCommentProvider, isAstNodeWithComment, isJSDoc } from 'langium';
-import { findCommentNode } from '../utils/xsmp-utils.js';
+import { findDocumentationNode } from '../utils/xsmp-utils.js';
 
 export class XsmpCommentProvider extends DefaultCommentProvider {
 
@@ -7,6 +7,6 @@ export class XsmpCommentProvider extends DefaultCommentProvider {
         if (isAstNodeWithComment(node) && node.$comment && isJSDoc(node.$comment)) {
             return node.$comment;
         }
-        return findCommentNode(node.$cstNode)?.text;
+        return findDocumentationNode(node.$cstNode)?.text;
     }
 }

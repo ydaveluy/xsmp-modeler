@@ -106,11 +106,11 @@ export function getPTK(type: ast.Type | undefined, defaultKind: PTK = PTK.None):
     }
 }
 
-export function findCommentNode(cstNode: CstNode | undefined): CstNode | undefined {
+export function findDocumentationNode(cstNode: CstNode | undefined): CstNode | undefined {
     if (cstNode) {
         let previous = CstUtils.getPreviousNode(cstNode, true);
         while (previous) {
-            if (isCommentNode(previous)) {
+            if (isDocumentationNode(previous)) {
                 return previous;
             }
             if (!previous.hidden) {
@@ -124,7 +124,7 @@ export function findCommentNode(cstNode: CstNode | undefined): CstNode | undefin
             const endIndex = cstNode.content.findIndex(e => !e.hidden);
             for (let i = endIndex - 1; i >= 0; i--) {
                 const child = cstNode.content[i];
-                if (isCommentNode(child)) {
+                if (isDocumentationNode(child)) {
                     return child;
                 }
             }
@@ -133,7 +133,7 @@ export function findCommentNode(cstNode: CstNode | undefined): CstNode | undefin
     return undefined;
 }
 
-function isCommentNode(cstNode: CstNode): boolean {
+function isDocumentationNode(cstNode: CstNode): boolean {
     return isLeafCstNode(cstNode) && 'ML_COMMENT' === cstNode.tokenType.name && isJSDoc(cstNode);
 }
 
@@ -172,7 +172,7 @@ function checkIsBaseOfInterface(parent: ast.Interface, base: ast.Type | undefine
         return false;
     }
     visited.add(base);
-    return base === parent || ast.isInterface(base) && base.base.some(b => checkIsBaseOfInterface(parent, b.ref, visited));
+    return base === parent || ast.isInterface(base) && base.base.some(b => checkIsBaseOfInterface(parent, b?.ref, visited));
 }
 
 export function isBaseOfInterface(parent: ast.Interface, base: ast.Type | undefined): boolean {
@@ -184,7 +184,7 @@ function checkIsBaseOfComponent(parent: ast.Component, base: ast.Type | undefine
         return false;
     }
     visited.add(base);
-    return base === parent || ast.isComponent(base) && base.base !== undefined && checkIsBaseOfComponent(parent, base.base.ref, visited);
+    return base === parent || ast.isComponent(base) && base.base !== undefined && checkIsBaseOfComponent(parent, base.base?.ref, visited);
 }
 export function isBaseOfComponent(parent: ast.Component, base: ast.Type | undefined): boolean {
     return checkIsBaseOfComponent(parent, base, new Set<ast.Type>());
@@ -195,7 +195,7 @@ function checkIsBaseOfClass(parent: ast.Class, base: ast.Type | undefined, visit
         return false;
     }
     visited.add(base);
-    return base === parent || ast.isClass(base) && base.base !== undefined && checkIsBaseOfClass(parent, base.base.ref, visited);
+    return base === parent || ast.isClass(base) && base.base !== undefined && checkIsBaseOfClass(parent, base.base?.ref, visited);
 }
 export function isBaseOfClass(parent: ast.Class, base: ast.Type | undefined): boolean {
     return checkIsBaseOfClass(parent, base, new Set<ast.Type>());
@@ -210,7 +210,7 @@ function checkIsBaseOfReferenceType(parent: ast.ReferenceType, base: ast.Type | 
     }
     visited.add(base);
     if (ast.isInterface(base)) {
-        return base.base.some(i => checkIsBaseOfReferenceType(parent, i.ref, visited));
+        return base.base.some(i => checkIsBaseOfReferenceType(parent, i?.ref, visited));
     }
 
     if (ast.isComponent(base)) {
@@ -227,8 +227,8 @@ function checkIsBaseOfReferenceType(parent: ast.ReferenceType, base: ast.Type | 
             (parentFqn === 'Smp.IDynamicInvocation' && base.elements.some(ast.isInvokable))) {
             return true;
         }
-        return (base.base !== undefined && checkIsBaseOfReferenceType(parent, base.base.ref, visited)) ||
-            base.interface.some(i => checkIsBaseOfReferenceType(parent, i.ref, visited));
+        return (base.base !== undefined && checkIsBaseOfReferenceType(parent, base.base?.ref, visited)) ||
+            base.interface.some(i => checkIsBaseOfReferenceType(parent, i?.ref, visited));
     }
 
     return false;
@@ -247,10 +247,10 @@ function checkIsRecursiveType(parent: ast.Type, other: ast.Type | undefined, vis
         return true;
     }
     if (ast.isArrayType(other)) {
-        return checkIsRecursiveType(parent, other.itemType.ref, visited);
+        return checkIsRecursiveType(parent, other.itemType?.ref, visited);
     }
     if (ast.isStructure(other)) {
-        return other.elements.filter(ast.isField).some(f => checkIsRecursiveType(parent, f.type.ref, visited));
+        return other.elements.filter(ast.isField).some(f => checkIsRecursiveType(parent, f.type?.ref, visited));
     }
     return false;
 }

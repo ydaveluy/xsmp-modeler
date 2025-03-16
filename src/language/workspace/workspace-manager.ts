@@ -18,11 +18,12 @@ function getLibDir():string {
 export class XsmpWorkspaceManager extends DefaultWorkspaceManager {
 
     protected readonly documentFactory: LangiumDocumentFactory;
-    protected readonly validFileExtension = ['.xsmpcat', '.xsmptool', '.xsmpprofile'];
+    protected readonly validFileExtension;
 
     constructor(services: LangiumSharedCoreServices) {
         super(services);
         this.documentFactory = services.workspace.LangiumDocumentFactory;
+        this.validFileExtension = services.ServiceRegistry.all.flatMap(s => s.LanguageMetaData.fileExtensions);
     }
 
     protected override async loadAdditionalDocuments(
