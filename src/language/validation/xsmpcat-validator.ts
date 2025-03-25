@@ -130,7 +130,7 @@ export class XsmpcatValidator {
 
     private computeVisibleNames(document: LangiumDocument): MultiMap<string, AstNodeDescription> {
         const map = new MultiMap<string, AstNodeDescription>();
-        for (const element of this.indexManager.allElements(ast.NamedElement, this.projectManager.getVisibleUris(document)?.add(document.uri.toString()))) {
+        for (const element of this.indexManager.allElements(ast.NamedElement, this.projectManager.getVisibleUris(document))) {
             map.add(element.name, element);
         }
         return map;

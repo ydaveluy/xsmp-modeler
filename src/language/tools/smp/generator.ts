@@ -389,8 +389,8 @@ export class SmpGenerator implements XsmpGenerator {
             let href = `#${this.docHelper.getId(link.ref) ?? XsmpUtils.fqn(link.ref)}`;
             if (doc !== refDoc) {
                 let fileName = UriUtils.basename(refDoc.uri).replace(/\.xsmpcat$/, '.smpcat');
-                if (fileName === 'ecss.smp@ECSS_SMP_2019.smpcat') { fileName = 'http://www.ecss.nl/smp/2019/Smdl'; }
-                if (fileName === 'ecss.smp@ECSS_SMP_2024.smpcat') { fileName = 'http://www.ecss.nl/smp/2019/Smdl'; }
+                if (fileName === 'ecss.smp@ECSS_SMP_2020.smpcat') { fileName = 'http://www.ecss.nl/smp/2019/Smdl'; }
+                if (fileName === 'ecss.smp@ECSS_SMP_2025.smpcat') { fileName = 'http://www.ecss.nl/smp/2019/Smdl'; }
                 href = fileName + href;
             }
 

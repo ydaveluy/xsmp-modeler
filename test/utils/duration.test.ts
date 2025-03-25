@@ -10,6 +10,7 @@ describe('Check durations', () => {
         expect(Duration.parse('PT+0S')).toBe(BigInt(0));
         expect(Duration.parse('PT-0S')).toBe(BigInt(0));
         expect(Duration.parse('PT0.000000001S')).toBe(BigInt(1));
+        expect(Duration.parse('PT0.1S')).toBe(BigInt(100_000_000));
         expect(Duration.parse('PT+0.000000001S')).toBe(BigInt(1));
         expect(Duration.parse('PT-0.000000001S')).toBe(BigInt(-1));
         expect(Duration.parse('PT1S')).toBe(BigInt(1_000_000_000));
@@ -26,6 +27,7 @@ describe('Check durations', () => {
 
         expect(Duration.serialize(BigInt(0))).toBe('PT0S');
         expect(Duration.serialize(BigInt(1))).toBe('PT0.000000001S');
+        expect(Duration.serialize(BigInt(100_000_000))).toBe('PT0.1S');
         expect(Duration.serialize(BigInt(-1))).toBe('PT-0.000000001S');
         expect(Duration.serialize(BigInt(1_000_000_000))).toBe('PT1S');
         expect(Duration.serialize(BigInt(-1_000_000_000))).toBe('PT-1S');

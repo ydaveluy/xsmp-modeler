@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 import * as ast from '../generated/ast.js';
 import { DiagnosticTag, Location } from 'vscode-languageserver';
 import { type DocumentationHelper } from '../utils/documentation-helper.js';
-import type { ProjectManager } from '../workspace/project-manager.js';
+import { SmpStandards, type ProjectManager } from '../workspace/project-manager.js';
 
 /**
  * Register custom validation checks.
@@ -78,7 +78,12 @@ export class XsmpprojectValidator {
                 keyword: 'project',
             });
         }
-
+        if (!SmpStandards.includes(project.standard)) {
+            accept('error', `Unknown version. Only the following versions are supported: ${SmpStandards.join(', ')}.`, {
+                node: project,
+                property: 'standard'
+            });
+        }
         const duplicates = this.globalCache.get('projects', () => this.computeNamesForProjects()).get(project.name);
         if (duplicates.length > 1) {
             accept('error', 'Duplicated project name', {
@@ -129,6 +134,10 @@ export class XsmpprojectValidator {
                             accept('error', `Duplicated dependency '${element.project.ref?.name}'.`, { node: element, property: 'project' });
                         else
                             dependencies.add(element.project.ref!);
+
+                        if (project.standard !== element.project.ref?.standard) {
+                            accept('error', `SMP version does not match '${project.standard}'.`, { node: element, property: 'project' });
+                        }
                     }
                     break;
                 }

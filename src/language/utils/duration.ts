@@ -57,7 +57,7 @@ function _parseFraction(parsed: string, negate: number): bigint {
     if (parsed === undefined || parsed.length === 0) {
         return ZERO;
     }
-    parsed = (`${parsed}000000000`).substring(0, 9);
+    parsed = parsed.padEnd(9, '0');
     return BigInt(parseFloat(parsed) * negate);
 }
 

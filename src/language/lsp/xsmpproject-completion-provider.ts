@@ -1,9 +1,11 @@
+import type { MaybePromise} from 'langium';
 import { AstUtils, UriUtils, type AstNodeDescription, type GrammarAST, type ReferenceInfo, type Stream } from 'langium';
-import type { CompletionContext, CompletionValueItem } from 'langium/lsp';
+import type { CompletionAcceptor, CompletionContext, CompletionValueItem, NextFeature } from 'langium/lsp';
 import { DefaultCompletionProvider } from 'langium/lsp';
 import * as ast from '../generated/ast.js';
 import type { XsmpServices } from '../xsmp-module.js';
-import { type ProjectManager } from '../workspace/project-manager.js';
+import { SmpStandards, type ProjectManager } from '../workspace/project-manager.js';
+import { CompletionItemKind } from 'vscode-languageserver';
 
 export class XsmpprojectCompletionProvider extends DefaultCompletionProvider {
 
@@ -57,5 +59,21 @@ export class XsmpprojectCompletionProvider extends DefaultCompletionProvider {
             }
         }
         return super.filterKeyword(context, keyword);
+    }
+
+    protected override completionFor(context: CompletionContext, next: NextFeature, acceptor: CompletionAcceptor): MaybePromise<void> {
+        if (next.property === 'standard') {
+            SmpStandards.forEach(v => {
+                acceptor(context, {
+                    label: v,
+                    kind: CompletionItemKind.Text,
+                    detail: 'Version',
+                    insertText: `'${v}'`,
+                    sortText: '1'
+                });
+            });
+        } else {
+            super.completionFor(context, next, acceptor);
+        }
     }
 }

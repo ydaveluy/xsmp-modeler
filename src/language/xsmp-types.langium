@@ -177,7 +177,7 @@ interface Parameter extends NamedElement {
 
 interface Association extends VisibilityElement {
 	^type: @Type
-	//default?: Expression
+    //default?: Expression
 }
 
 interface Container extends NamedElementWithMultiplicity, Resolvable {
@@ -214,21 +214,21 @@ interface EventSource extends NamedElement, Resolvable {
 }
 
 
-type SmpStandard = 'ECSS_SMP_2019' | 'ECSS_SMP_2024'
+//type SmpStandard = 'ECSS_SMP_2020' | 'ECSS_SMP_2025'
 interface Project extends Document {
-	standard?: SmpStandard = 'ECSS_SMP_2019'
+	standard: string = 'ECSS_SMP_2020'
 	elements: (ProfileReference | ToolReference | Dependency | Source)[]
 }
-interface ProfileReference{
+interface ProfileReference {
 	profile: @Profile
 }
-interface ToolReference{
+interface ToolReference {
 	tool: @Tool
 }
-interface Dependency{
+interface Dependency {
 	project: @Project
 }
-interface Source{
+interface Source {
 	path: string
 }
 
@@ -318,4 +318,3 @@ interface BooleanLiteral extends Expression {
 interface KeywordExpression extends Expression {
 	name: string
 }
-;

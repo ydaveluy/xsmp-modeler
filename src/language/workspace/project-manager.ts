@@ -3,6 +3,8 @@ import type { LangiumDocument, LangiumDocuments, LangiumSharedCoreServices, Stre
 import * as ast from '../generated/ast.js';
 import { isBuiltinLibrary } from '../builtins.js';
 
+export const SmpStandards: string[] = ['ECSS_SMP_2020', 'ECSS_SMP_2025'];
+
 export class ProjectManager {
     protected readonly projectCache: WorkspaceCache<URI, ast.Project | undefined>;
     protected readonly dependenciesCache: WorkspaceCache<URI, Set<ast.Project>>;
@@ -76,7 +78,7 @@ export class ProjectManager {
     getVisibleUris(document: LangiumDocument): Set<string> | undefined {
 
         const project = this.getProject(document);
-        if (!project) return undefined;
+        if (!project) return isBuiltinLibrary(document.uri) ? new Set(document.uri.toString()) : undefined;
 
         return this.visibleUrisCache.get(document.uri, () => this.computeVisibleUris(project));
     }
@@ -85,15 +87,14 @@ export class ProjectManager {
         const uris = new Set<string>();
         uris.add(AstUtils.getDocument(project).uri.toString());
 
-        const standard = project.standard ?? 'ECSS_SMP_2019';
+        const standard = project.standard;
         const dependencies = this.getDependencies(project);
         dependencies.forEach(dep => uris.add(AstUtils.getDocument(dep).uri.toString()));
 
         const folders = this.getSourceFolders(dependencies);
         this.documents.all.forEach(doc => {
-            if (//ast.isCatalogue(doc.parseResult.value) &&
-                (this.isUriInFolders(doc.uri, folders) ||
-                    (isBuiltinLibrary(doc.uri) && (!doc.uri.path.includes('@') || doc.uri.path.includes('@' + standard))))) {
+            if (this.isUriInFolders(doc.uri, folders) ||
+                (isBuiltinLibrary(doc.uri) && (!doc.uri.path.includes('@') || doc.uri.path.includes('@' + standard)))) {
                 uris.add(doc.uri.toString());
             }
         });
