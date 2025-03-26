@@ -1,7 +1,7 @@
 import type { AstNode } from 'langium';
 import { SymbolTag } from 'vscode-languageserver';
 import * as XsmpUtils from '../utils/xsmp-utils.js';
-import * as ast from '../generated/ast.js';
+import * as ast from '../generated/ast-partial.js';
 import { PTK } from '../utils/primitive-type-kind.js';
 import { getValueAs } from '../utils/solver.js';
 import { type XsmpSharedServices } from '../xsmp-module.js';
@@ -25,7 +25,7 @@ export class XsmpNodeInfoProvider {
             case ast.EventSink: return `EventSink<${(node as ast.EventSink).type?.$refText}>`;
             case ast.EventSource: return `EventSource<${(node as ast.EventSource).type?.$refText}>`;
             case ast.Field: return (node as ast.Field).type?.$refText;
-            case ast.AttributeType: return (node as ast.AttributeType).type.$refText;
+            case ast.AttributeType: return (node as ast.AttributeType).type?.$refText;
             case ast.EventType: return (node as ast.EventType).eventArgs?.$refText ?? 'void';
             case ast.Integer: return (node as ast.Integer).primitiveType?.$refText ?? 'Smp::Int32';
             case ast.Float: return (node as ast.Float).primitiveType?.$refText ?? 'Smp::Float64';

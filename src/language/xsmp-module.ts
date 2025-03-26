@@ -15,7 +15,6 @@ import { XsmpDocumentGenerator } from './workspace/document-generator.js';
 import { XsmpDocumentUpdateHandler } from './lsp/document-update-handler.js';
 import { XsmpTypeProvider } from './references/type-provider.js';
 import { XsmpNodeInfoProvider } from './lsp/node-info-provider.js';
-import { XsmpServiceRegistry } from './lsp/service-registry.js';
 import { DocumentationHelper } from './utils/documentation-helper.js';
 import { AttributeHelper } from './utils/attribute-helper.js';
 import { ProjectManager } from './workspace/project-manager.js';
@@ -107,7 +106,6 @@ export const XsmpSharedModule: Module<XsmpSharedServices, DeepPartial<XsmpShared
     workspace: {
         IndexManager: (services) => new XsmpIndexManager(services),
         WorkspaceManager: (services) => new XsmpWorkspaceManager(services),
-        ProjectManager:(services) =>  new ProjectManager(services),
+        ProjectManager: (services) => new ProjectManager(services),
     },
-    ServiceRegistry: (services) => new XsmpServiceRegistry(services),
 };

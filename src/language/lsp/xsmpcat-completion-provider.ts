@@ -5,7 +5,7 @@ import { DefaultCompletionProvider } from 'langium/lsp';
 import type { MarkupContent } from 'vscode-languageserver';
 import { CompletionItemKind, CompletionItemTag, InsertTextFormat } from 'vscode-languageserver';
 import * as os from 'os';
-import * as ast from '../generated/ast.js';
+import * as ast from '../generated/ast-partial.js';
 import * as XsmpUtils from '../utils/xsmp-utils.js';
 import type { XsmpcatServices } from '../xsmpcat-module.js';
 import type { XsmpTypeProvider } from '../references/type-provider.js';
@@ -69,10 +69,10 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
                 return (desc) => ast.isClass(desc.node) && !XsmpUtils.isBaseOfClass(refInfo.container as ast.Class, desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node);
             case 'Interface:base':
                 return (desc) => ast.isInterface(desc.node) && !XsmpUtils.isBaseOfInterface(refInfo.container as ast.Interface, desc.node) &&
-                    !(refInfo.container as ast.Interface).base.map(i => i.ref).includes(desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node);
+                    !(refInfo.container as ast.Interface).base.some(i => i.ref === desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node);
             case 'Model:interface':
             case 'Service:interface':
-                return (desc) => ast.isInterface(desc.node) && !(refInfo.container as ast.Component).interface.map(i => i.ref).includes(desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node);
+                return (desc) => ast.isInterface(desc.node) && !(refInfo.container as ast.Component).interface.some(i => i.ref===desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node);
             case 'Reference_:interface':
                 return (desc) => ast.isInterface(desc.node);
             case 'Model:base':
@@ -249,10 +249,10 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
 
         if (ast.isArrayType(type)) {
             const value = Solver.getValueAs(type.size, PTK.Int64)?.integralValue(PTK.Int64)?.getValue();
-            return value ? `{${new Array(Number(value)).fill(this.getDefaultValueForType(type.itemType.ref)).join(', ')}}` : '{}';
+            return value ? `{${new Array(Number(value)).fill(this.getDefaultValueForType(type.itemType?.ref)).join(', ')}}` : '{}';
         }
         if (ast.isStructure(type)) {
-            return `{${this.attrHelper.getAllFields(type).map(f => `.${f.name} = ${this.getDefaultValueForType(f.type.ref)}`).join(', ')}}`;
+            return `{${this.attrHelper.getAllFields(type).map(f => `.${f.name} = ${this.getDefaultValueForType((f as ast.Field).type?.ref)}`).join(', ')}}`;
         }
 
         if (ast.isEnumeration(type)) {

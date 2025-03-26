@@ -1,4 +1,4 @@
-import * as ast from '../generated/ast.js';
+import * as ast from '../generated/ast-partial.js';
 import { AstUtils, diagnosticData, type ValidationAcceptor } from 'langium';
 import * as Duration from './duration.js';
 import { fqn, getPTK, isConstantVisibleFrom } from './xsmp-utils.js';
@@ -140,9 +140,9 @@ export class IntegralValue extends Value<IntegralValue> {
     readonly type: IntegralPTK;
 
     public static of(expr: ast.IntegerLiteral, accept?: ValidationAcceptor): IntegralValue | undefined {
-        let text = expr.text.replaceAll("'", ''),
+        let text = expr.text?.replaceAll("'", '') ?? '';
+        let type: IntegralPTK = PTK.Int32;
 
-            type: IntegralPTK = PTK.Int32;
         if (text.endsWith('u') || text.endsWith('U')) {
             type = PTK.UInt32;
             text = text.slice(0, -1);
@@ -247,7 +247,7 @@ export class FloatValue extends Value<FloatValue> {
         this.type = type;
     }
     public static of(expr: ast.FloatingLiteral, _accept?: ValidationAcceptor): FloatValue {
-        const text = expr.text.replaceAll("'", '');
+        const text = expr.text?.replaceAll("'", '') ?? '';
         if (text.endsWith('f') || text.endsWith('F')) {
             return new FloatValue(parseFloat(text.slice(0, -1)), PTK.Float32);
         }
@@ -295,7 +295,7 @@ const builtInFloat32Functions: string[] = [
     'expf', 'logf', 'log10f', 'expm1f', 'log1pf', 'sqrtf', 'ceilf', 'floorf', 'absf'];
 
 function convertBuiltinFunction<T>(func: ast.BuiltInFunction, accept?: ValidationAcceptor): Value<T> | undefined {
-    if (func.name.endsWith('f')) {
+    if (func.name?.endsWith('f')) {
         if (!builtInFloat32Functions.includes(func.name)) {
             if (accept)
                 accept('error', `Unknown built-in function '${func.name}'.`, { node: func, property: 'name' });
@@ -304,7 +304,7 @@ function convertBuiltinFunction<T>(func: ast.BuiltInFunction, accept?: Validatio
         const value = getValueAs(func.argument, PTK.Float32, accept)?.floatValue(PTK.Float32);
         return value ? new FloatValue(Math[func.name.substring(0, -1) as BuiltInFloat64Functions](value.getValue()), PTK.Float32) : undefined;
     }
-    if (!builtInFloat64Functions.includes(func.name)) {
+    if (func.name && !builtInFloat64Functions.includes(func.name)) {
         if (accept)
             accept('error', `Unknown built-in function '${func.name}'.`, { node: func, property: 'name' });
         return undefined;
@@ -320,13 +320,13 @@ export function getValue<T>(expression: ast.Expression | undefined, accept?: Val
             case ast.FloatingLiteral: return FloatValue.of(expression as ast.FloatingLiteral, accept);
             case ast.BooleanLiteral: return new BoolValue((expression as ast.BooleanLiteral).isTrue);
             case ast.StringLiteral: return new StringValue((expression as ast.StringLiteral).value.join(''));
-            case ast.CharacterLiteral: return new CharValue((expression as ast.CharacterLiteral).value);
+            case ast.CharacterLiteral: return new CharValue((expression as ast.CharacterLiteral).value ?? '');
             case ast.UnaryOperation: return unaryOperation(expression as ast.UnaryOperation, accept);
             case ast.BinaryOperation: return binaryOperation(expression as ast.BinaryOperation, accept);
             case ast.ParenthesizedExpression: return getValue((expression as ast.ParenthesizedExpression).expr, accept);
             case ast.BuiltInConstant: {
                 const cst = expression as ast.BuiltInConstant;
-                if (!builtInConstants.includes(cst.name)) {
+                if (cst.name && !builtInConstants.includes(cst.name)) {
                     if (accept)
                         accept('error', `Unknown built-in constant '${cst.name}'.`, { node: cst, property: 'name' });
                     return undefined;
@@ -527,7 +527,7 @@ function binaryOperation<T>(expression: ast.BinaryOperation, accept?: Validation
 
     const left = getValue(expression.leftOperand, accept),
         right = getValue(expression.rightOperand, accept);
-    if (!left || !right) {
+    if (!left || !right || !expression.feature) {
         return undefined;
     }
 
@@ -591,7 +591,7 @@ function unaryOperationFunction<T, U>(operand: Value<T>, feature: ast.OpUnary): 
 }
 function unaryOperation<T>(expression: ast.UnaryOperation, accept?: ValidationAcceptor): Value<T> | undefined {
     const operand = getValue(expression.operand, accept);
-    if (!operand) {
+    if (!operand || !expression.feature) {
         return undefined;
     }
 

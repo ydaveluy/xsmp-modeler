@@ -3,7 +3,7 @@ import { AstUtils, CstUtils } from 'langium';
 import { DefaultRenameProvider } from 'langium/lsp';
 import type { RenameParams } from 'vscode-languageserver-protocol';
 import { Location, TextEdit, type Range, type WorkspaceEdit } from 'vscode-languageserver-types';
-import * as ast from '../generated/ast.js';
+import * as ast from '../generated/ast-partial.js';
 import type { XsmpServices } from '../xsmp-module.js';
 
 export class XsmpRenameProvider extends DefaultRenameProvider {
@@ -29,11 +29,11 @@ export class XsmpRenameProvider extends DefaultRenameProvider {
             const change = TextEdit.replace(location.range, params.newName);
             const uri = location.uri;
             if (uri) {
-                if (changes[uri]) {
+               // if (changes[uri].) {
                     changes[uri].push(change);
-                } else {
-                    changes[uri] = [change];
-                }
+               // } else {
+               //     changes[uri] = [change];
+               // }
             }
         }
 
@@ -56,11 +56,11 @@ export class XsmpRenameProvider extends DefaultRenameProvider {
                 if (refText === oldName) {
                     const nodeLocation = this.getRefLocation(reference);
                     const nodeChange = TextEdit.replace(nodeLocation.range, newName);
-                    if (changes[nodeLocation.uri]) {
+                   // if (changes[nodeLocation.uri]) {
                         changes[nodeLocation.uri].push(nodeChange);
-                    } else {
-                        changes[nodeLocation.uri] = [nodeChange];
-                    }
+                   // } else {
+                    //    changes[nodeLocation.uri] = [nodeChange];
+                   // }
                     break;
                 }
                 else {

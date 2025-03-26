@@ -1,6 +1,6 @@
 import type { AstNode } from 'langium';
 import { WorkspaceCache } from 'langium';
-import * as ast from '../generated/ast.js';
+import * as ast from '../generated/ast-partial.js';
 import type { XsmpSharedServices } from '../xsmp-module.js';
 import { type AttributeHelper } from '../utils/attribute-helper.js';
 
@@ -30,7 +30,7 @@ export class XsmpTypeProvider {
             const type = this.getType(node.$container);
             if (ast.isStructure(type)) {
                 const field = this.attrHelper.getAllFields(type).toArray().at(node.$containerIndex!);
-                if (field) { return field.type?.ref; }
+                if (field) { return (field as ast.Field).type?.ref; }
             }
             else if (ast.isArrayType(type)) {
                 return type.itemType?.ref;

@@ -21,9 +21,9 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
 
     override clean(projectUri: URI) {
         fs.rmSync(UriUtils.joinPath(projectUri, this.includeGenFolder).fsPath, { recursive: true, force: true });
-        if (this.includeGenFolder !== this.sourceGenFolder) {
+        /*if (this.includeGenFolder !== this.sourceGenFolder) {
             fs.rmSync(UriUtils.joinPath(projectUri, this.sourceGenFolder).fsPath, { recursive: true, force: true });
-        }
+        }*/
     }
     name(element: ast.NamedElement | string, gen: boolean): string {
         const genSuffix = 'Gen';
@@ -1005,7 +1005,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
                     ${op.returnParameter ? `return ${this.defaultReturn(op.returnParameter)};` : ''}
                 }
                 `;
-        else if (!this.attrHelper.isAbstract) // override virtual method
+        else if (!this.attrHelper.isAbstract(op)) // override virtual method
             return `${this.type(op.returnParameter)} ${op.$container.name}::${this.operationName(op)}(${op.parameter.map(param => this.defineParameter(param)).join(', ')})${this.attrHelper.isConst(op) ? ' const' : ''} {
                     // TODO
                     ${op.returnParameter ? `return ${this.defaultReturn(op.returnParameter)};` : ''}

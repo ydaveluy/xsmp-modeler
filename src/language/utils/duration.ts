@@ -19,13 +19,13 @@ export function parse(text: string): bigint {
     const matches = PATTERN.exec(text);
     if (matches !== null) {
         // check for letter T but no time sections
-        if ('T' === matches[3] === false) {
-            const negate = '-' === matches[1];
-            const dayMatch = matches[2];
-            const hourMatch = matches[4];
-            const minuteMatch = matches[5];
-            const secondMatch = matches[6];
-            const fractionMatch = matches[7];
+        if ('T' === matches.at(3) === false) {
+            const negate = '-' === matches.at(1);
+            const dayMatch = matches.at(2);
+            const hourMatch = matches.at(4);
+            const minuteMatch = matches.at(5);
+            const secondMatch = matches.at(6);
+            const fractionMatch = matches.at(7);
             if (dayMatch !== undefined || hourMatch !== undefined || minuteMatch !== undefined || secondMatch !== undefined) {
                 const daysAsSecs = _parseNumber(dayMatch, SECONDS_PER_DAY);
                 const hoursAsSecs = _parseNumber(hourMatch, SECONDS_PER_HOUR);
@@ -41,7 +41,7 @@ export function parse(text: string): bigint {
     throw new Error(`Text cannot be parsed to a Duration: ${text}`);
 }
 
-function _parseNumber(parsed: string, multiplier: number): bigint {
+function _parseNumber(parsed: string | undefined, multiplier: number): bigint {
     // regex limits to [-+]?\d+
     if (parsed === undefined) {
         return ZERO;
@@ -52,7 +52,7 @@ function _parseNumber(parsed: string, multiplier: number): bigint {
     return BigInt(parseFloat(parsed) * multiplier);
 }
 
-function _parseFraction(parsed: string, negate: number): bigint {
+function _parseFraction(parsed: string | undefined, negate: number): bigint {
     // regex limits to \d{0,9}
     if (parsed === undefined || parsed.length === 0) {
         return ZERO;
@@ -101,15 +101,7 @@ export function serialize(value: bigint) {
     }
     if (nanos !== ZERO) {
         rval += '.';
-        let nanoString: string;
-        if (nanos < ZERO) {
-            nanoString = '00000000' + (-nanos).toString();
-        } else {
-            nanoString = '00000000' + nanos.toString();
-        }
-        // remove the leading '1'
-        nanoString = nanoString.slice(nanoString.length - 9, nanoString.length);
-        rval += nanoString;
+        rval += (nanos < ZERO ? -nanos : nanos).toString().padStart(9, '0');
         while (rval.endsWith('0')) {
             rval = rval.slice(0, rval.length - 1);
         }

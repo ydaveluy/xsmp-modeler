@@ -32,27 +32,29 @@ export class XsmpcatCodeActionProvider implements CodeActionProvider {
     }
 
     private createCodeActions(diagnostic: Diagnostic, document: LangiumDocument, accept: (ca: CodeAction | undefined) => void): void {
-        switch ((diagnostic.data as DiagnosticData)?.code) {
-            case IssueCodes.InvalidUuid:
-            case IssueCodes.DuplicatedUuid:
-                accept(this.replaceUuid(diagnostic, document));
-                break;
-            case IssueCodes.IllegalModifier:
-            case IssueCodes.InvalidModifier:
-            case IssueCodes.InvalidAttribute:
-            case IssueCodes.InvalidUsage:
-            case IssueCodes.DuplicatedUsage:
-                accept(this.removeRegion(diagnostic, document));
-                break;
-            case IssueCodes.MissingAbstract:
-                accept(this.addAbstract(diagnostic, document));
-                break;
-            case IssueCodes.MissingUuid:
-                accept(this.generateUuid(diagnostic, document));
-                break;
-            case IssueCodes.EnumLiteralExpected:
-                accept(this.replaceByEnumLiteral(diagnostic, document));
-                break;
+        if (diagnostic.data) {
+            switch ((diagnostic.data as DiagnosticData).code) {
+                case IssueCodes.InvalidUuid:
+                case IssueCodes.DuplicatedUuid:
+                    accept(this.replaceUuid(diagnostic, document));
+                    break;
+                case IssueCodes.IllegalModifier:
+                case IssueCodes.InvalidModifier:
+                case IssueCodes.InvalidAttribute:
+                case IssueCodes.InvalidUsage:
+                case IssueCodes.DuplicatedUsage:
+                    accept(this.removeRegion(diagnostic, document));
+                    break;
+                case IssueCodes.MissingAbstract:
+                    accept(this.addAbstract(diagnostic, document));
+                    break;
+                case IssueCodes.MissingUuid:
+                    accept(this.generateUuid(diagnostic, document));
+                    break;
+                case IssueCodes.EnumLiteralExpected:
+                    accept(this.replaceByEnumLiteral(diagnostic, document));
+                    break;
+            }
         }
     }
     private replaceByEnumLiteral(diagnostic: Diagnostic, document: LangiumDocument): CodeAction | undefined {

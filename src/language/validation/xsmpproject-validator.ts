@@ -1,7 +1,7 @@
 import { type AstNode, type IndexManager, MultiMap, type Properties, type Reference, type ValidationAcceptor, type ValidationChecks, UriUtils, WorkspaceCache, type AstNodeDescription, AstUtils } from 'langium';
 import type { XsmpprojectServices } from '../xsmpproject-module.js';
 import * as fs from 'node:fs';
-import * as ast from '../generated/ast.js';
+import * as ast from '../generated/ast-partial.js';
 import { DiagnosticTag, Location } from 'vscode-languageserver';
 import { type DocumentationHelper } from '../utils/documentation-helper.js';
 import { SmpStandards, type ProjectManager } from '../workspace/project-manager.js';
@@ -45,7 +45,7 @@ export class XsmpprojectValidator {
     }
 
     checkTypeReference<N extends AstNode>(accept: ValidationAcceptor, node: N, reference: Reference<ast.NamedElement>, property: Properties<N>, index?: number): boolean {
-        if (!reference?.ref) {
+        if (!reference.ref) {
             return false;
         }
         const deprecated = this.docHelper.getDeprecated(reference.ref);
@@ -78,13 +78,14 @@ export class XsmpprojectValidator {
                 keyword: 'project',
             });
         }
-        if (!SmpStandards.includes(project.standard)) {
+        if (project.standard && !SmpStandards.includes(project.standard)) {
             accept('error', `Unknown version. Only the following versions are supported: ${SmpStandards.join(', ')}.`, {
                 node: project,
                 property: 'standard'
             });
         }
-        const duplicates = this.globalCache.get('projects', () => this.computeNamesForProjects()).get(project.name);
+        if(project.name)
+        {const duplicates = this.globalCache.get('projects', () => this.computeNamesForProjects()).get(project.name);
         if (duplicates.length > 1) {
             accept('error', 'Duplicated project name', {
                 node: project,
@@ -92,7 +93,7 @@ export class XsmpprojectValidator {
                 relatedInformation: duplicates.filter(d => d.node !== project).map(d => ({ location: Location.create(d.documentUri.toString(), d.nameSegment!.range), message: d.name }))
             });
         }
-
+    }
         // Check only one profile (or zero)
         let profile: ast.Profile | undefined;
 
@@ -103,7 +104,7 @@ export class XsmpprojectValidator {
         project.elements.forEach((element) => {
             switch (element.$type) {
                 case ast.ProfileReference: {
-                    if (this.checkTypeReference(accept, element, element.profile, 'profile')) {
+                    if (element.profile && this.checkTypeReference(accept, element, element.profile, 'profile')) {
                         if (profile) {
                             accept('error', 'A profile is already defined.', { node: element, property: 'profile' });
                         }
@@ -114,7 +115,7 @@ export class XsmpprojectValidator {
                     break;
                 }
                 case ast.ToolReference: {
-                    if (this.checkTypeReference(accept, element, element.tool, 'tool')) {
+                    if (element.tool && this.checkTypeReference(accept, element, element.tool, 'tool')) {
 
                         // Check no duplicated tool
                         if (tools.has(element.tool.ref!))
@@ -125,7 +126,7 @@ export class XsmpprojectValidator {
                     break;
                 }
                 case ast.Dependency: {
-                    if (this.checkTypeReference(accept, element, element.project, 'project')) {
+                    if (element.project && this.checkTypeReference(accept, element, element.project, 'project')) {
                         if (this.projectManager.getDependencies(element.project.ref!).has(project))
                             accept('error', `Cyclic dependency detected '${element.project.ref?.name}'.`, { node: element, property: 'project' });
 

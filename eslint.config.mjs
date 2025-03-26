@@ -31,7 +31,7 @@ export default tseslint.config({
         "no-eval": "error",                               // eval is considered unsafe
         "no-inner-declarations": "off",                   // we need to have 'namespace' functions when using TS 'export ='
         "no-labels": "error",                             // GOTO is only used in BASIC ;)
-        "no-multiple-empty-lines": ["error", {"max": 1}], // two or more empty lines need to be fused to one
+        "no-multiple-empty-lines": ["error", { "max": 1 }], // two or more empty lines need to be fused to one
         "no-new-wrappers": "error",                       // there is no reason to wrap primitve values
         "no-throw-literal": "error",                      // only throw Error but no objects {}
         "no-trailing-spaces": "error",                    // trim end of lines
@@ -54,15 +54,15 @@ export default tseslint.config({
         "no-restricted-imports": ["error", {
             "paths": [{
                 "name": "vscode-jsonrpc",
-                "importNames": [ "CancellationToken" ],
+                "importNames": ["CancellationToken"],
                 "message": "Import 'CancellationToken' via 'Cancellation.CancellationToken' from 'langium', or directly from './utils/cancellation.ts' within Langium."
             }, {
                 "name": "vscode-jsonrpc/",
-                "importNames": [ "CancellationToken"],
+                "importNames": ["CancellationToken"],
                 "message": "Import 'CancellationToken' via 'Cancellation.CancellationToken' from 'langium', or directly from './utils/cancellation.ts' within Langium."
             }],
-            "patterns": [ {
-                "group": [ "vscode-jsonrpc" ],
+            "patterns": [{
+                "group": ["vscode-jsonrpc"],
                 "importNamePattern": "^(?!CancellationToken)",
                 "message": "Don't import types or symbols from 'vscode-jsonrpc' (package index), as that brings a large overhead in bundle size. Import from 'vscode-jsonrpc/lib/common/...js' and add a // eslint-disable..., if really necessary."
             }]
@@ -81,6 +81,7 @@ export default tseslint.config({
         "@typescript-eslint/no-unused-vars": ["error", {            // disallow Unused Variables
             "argsIgnorePattern": "^_"
         }],
+        "@typescript-eslint/no-unnecessary-condition": "error",
     },
 });
 

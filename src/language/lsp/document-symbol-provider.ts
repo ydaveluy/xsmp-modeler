@@ -41,7 +41,7 @@ export class XsmpDocumentSymbolProvider implements DocumentSymbolProvider {
                 detail: this.nodeInfoProvider.getDetails(astNode),
             }];
         }
-        return await this.getChildSymbols(document, astNode, cancelToken) || [];
+        return await this.getChildSymbols(document, astNode, cancelToken);
     }
 
     protected async getChildSymbols(document: LangiumDocument, astNode: AstNode, cancelToken: Cancellation.CancellationToken): Promise<DocumentSymbol[]> {

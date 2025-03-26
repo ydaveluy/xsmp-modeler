@@ -11,9 +11,6 @@
     "license": "MIT",
     "icon": "icons/logo.png",
     "bugs": "https://github.com/ydaveluy/xsmp-modeler/issues",
-    "sponsor": {
-        "url": "https://github.com/sponsors/ydaveluy"
-    },
     "categories": [
         "Programming Languages"
     ],
@@ -28,8 +25,8 @@
         "build:clean": "npm run clean && npm run build",
         "watch": "concurrently -n tsc,esbuild -c blue,yellow \"tsc -b tsconfig.json --watch\" \"node esbuild.mjs --watch\"",
         "lint": "eslint src",
-        "langium:generate": "langium generate",
-        "langium:generate:production": "langium generate --mode=production",
+        "langium:generate": "langium generate && node src/generate-partial-ast.js",
+        "langium:generate:production": "langium generate --mode=production && node src/generate-partial-ast.js",
         "langium:watch": "langium generate --watch",
         "vscode:prepublish": "npm run clean && npm run langium:generate:production && npm run build -- --minify",
         "test": "vitest run",

@@ -245,7 +245,7 @@ export class SmpGenerator implements XsmpGenerator {
 
         return {
             ...this.convertType(enumeration, 'Types:Enumeration'),
-            Literal: enumeration.literal.map(this.convertEnumerationLiteral, this) ?? [],
+            Literal: enumeration.literal.map(this.convertEnumerationLiteral, this),
         };
     }
     protected convertEnumerationLiteral(literal: ast.EnumerationLiteral): Types.EnumerationLiteral {

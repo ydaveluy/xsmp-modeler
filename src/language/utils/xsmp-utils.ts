@@ -1,6 +1,6 @@
 import type { AstNode, CstNode } from 'langium';
 import { AstUtils, CstUtils, isJSDoc, isLeafCstNode, isRootCstNode } from 'langium';
-import * as ast from '../generated/ast.js';
+import * as ast from '../generated/ast-partial.js';
 import * as Solver from './solver.js';
 import { PTK } from './primitive-type-kind.js';
 import { VisibilityKind } from './visibility-kind.js';
@@ -172,7 +172,7 @@ function checkIsBaseOfInterface(parent: ast.Interface, base: ast.Type | undefine
         return false;
     }
     visited.add(base);
-    return base === parent || ast.isInterface(base) && base.base.some(b => checkIsBaseOfInterface(parent, b?.ref, visited));
+    return base === parent || ast.isInterface(base) && base.base.some(b => checkIsBaseOfInterface(parent, b.ref, visited));
 }
 
 export function isBaseOfInterface(parent: ast.Interface, base: ast.Type | undefined): boolean {
@@ -184,7 +184,7 @@ function checkIsBaseOfComponent(parent: ast.Component, base: ast.Type | undefine
         return false;
     }
     visited.add(base);
-    return base === parent || ast.isComponent(base) && base.base !== undefined && checkIsBaseOfComponent(parent, base.base?.ref, visited);
+    return base === parent || ast.isComponent(base) && checkIsBaseOfComponent(parent, base.base?.ref, visited);
 }
 export function isBaseOfComponent(parent: ast.Component, base: ast.Type | undefined): boolean {
     return checkIsBaseOfComponent(parent, base, new Set<ast.Type>());
@@ -195,7 +195,7 @@ function checkIsBaseOfClass(parent: ast.Class, base: ast.Type | undefined, visit
         return false;
     }
     visited.add(base);
-    return base === parent || ast.isClass(base) && base.base !== undefined && checkIsBaseOfClass(parent, base.base?.ref, visited);
+    return base === parent || ast.isClass(base) && checkIsBaseOfClass(parent, base.base?.ref, visited);
 }
 export function isBaseOfClass(parent: ast.Class, base: ast.Type | undefined): boolean {
     return checkIsBaseOfClass(parent, base, new Set<ast.Type>());
@@ -210,7 +210,7 @@ function checkIsBaseOfReferenceType(parent: ast.ReferenceType, base: ast.Type | 
     }
     visited.add(base);
     if (ast.isInterface(base)) {
-        return base.base.some(i => checkIsBaseOfReferenceType(parent, i?.ref, visited));
+        return base.base.some(i => checkIsBaseOfReferenceType(parent, i.ref, visited));
     }
 
     if (ast.isComponent(base)) {
@@ -227,8 +227,8 @@ function checkIsBaseOfReferenceType(parent: ast.ReferenceType, base: ast.Type | 
             (parentFqn === 'Smp.IDynamicInvocation' && base.elements.some(ast.isInvokable))) {
             return true;
         }
-        return (base.base !== undefined && checkIsBaseOfReferenceType(parent, base.base?.ref, visited)) ||
-            base.interface.some(i => checkIsBaseOfReferenceType(parent, i?.ref, visited));
+        return (checkIsBaseOfReferenceType(parent, base.base?.ref, visited)) ||
+            base.interface.some(i => checkIsBaseOfReferenceType(parent, i.ref, visited));
     }
 
     return false;
@@ -250,7 +250,7 @@ function checkIsRecursiveType(parent: ast.Type, other: ast.Type | undefined, vis
         return checkIsRecursiveType(parent, other.itemType?.ref, visited);
     }
     if (ast.isStructure(other)) {
-        return other.elements.filter(ast.isField).some(f => checkIsRecursiveType(parent, f.type?.ref, visited));
+        return other.elements.filter(ast.isField).some(f => checkIsRecursiveType(parent, (f as ast.Field).type?.ref, visited));
     }
     return false;
 }

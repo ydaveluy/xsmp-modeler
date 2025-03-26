@@ -1,7 +1,8 @@
 import { AstUtils, DocumentState, UriUtils, WorkspaceCache } from 'langium';
 import type { LangiumDocument, LangiumDocuments, LangiumSharedCoreServices, Stream, URI } from 'langium';
-import * as ast from '../generated/ast.js';
+import * as ast from '../generated/ast-partial.js';
 import { isBuiltinLibrary } from '../builtins.js';
+import { isSource } from '../generated/ast.js';
 
 export const SmpStandards: string[] = ['ECSS_SMP_2020', 'ECSS_SMP_2025'];
 
@@ -40,7 +41,7 @@ export class ProjectManager {
                 const projectUri = UriUtils.dirname(doc.uri);
 
                 if (document.uri.path.startsWith(projectUri.path)) {
-                    for (const source of project.elements.filter(ast.isSource)) {
+                    for (const source of project.elements.filter(ast.isSource).map(s=>s as ast.Source)) {
                         if (source.path && document.uri.path.startsWith(UriUtils.joinPath(projectUri, source.path).path)) {
                             return project;
                         }
@@ -62,11 +63,11 @@ export class ProjectManager {
     }
 
     protected collectDependencies(project: ast.Project, dependencies: Set<ast.Project>): void {
-        project.elements.filter(ast.isDependency).forEach(dependency => {
+        project.elements.filter(ast.isDependency).map(d=>d as ast.Dependency).forEach(dependency => {
             const depProject =
                 project.$document && project.$document.state >= DocumentState.Linked
                     ? dependency.project?.ref
-                    : this.getProjectByName(dependency.project.$refText);
+                    : this.getProjectByName(dependency.project?.$refText??'');
 
             if (depProject && !dependencies.has(depProject)) {
                 dependencies.add(depProject);
@@ -106,7 +107,7 @@ export class ProjectManager {
         for (const project of projects) {
             if (project.$document) {
                 const projectUri = UriUtils.dirname(project.$document.uri);
-                for (const source of project.elements.filter(ast.isSource)) {
+                for (const source of project.elements.filter(isSource)) {
                     if (source.path)
                         uris.add(UriUtils.joinPath(projectUri, source.path).path);
                 }

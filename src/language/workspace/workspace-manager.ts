@@ -1,5 +1,5 @@
-import type { LangiumDocument, LangiumDocumentFactory, LangiumSharedCoreServices, WorkspaceFolder } from 'langium';
-import { DefaultWorkspaceManager } from 'langium';
+import type { FileSystemNode, LangiumDocument, LangiumDocumentFactory, LangiumSharedCoreServices, WorkspaceFolder } from 'langium';
+import { DefaultWorkspaceManager, UriUtils } from 'langium';
 import { builtInScheme } from '../builtins.js';
 import { URI } from 'vscode-uri';
 import * as fs from 'fs';
@@ -7,12 +7,12 @@ import * as path from 'path';
 import * as url from 'url';
 
 const libDir = getLibDir();
-function getLibDir():string {
+function getLibDir(): string {
     try {
         return path.join(url.fileURLToPath(new URL('.', import.meta.url)), '../../lib');
     }
     catch {
-        return path.join(__dirname,'../lib');
+        return path.join(__dirname, '../lib');
     }
 }
 export class XsmpWorkspaceManager extends DefaultWorkspaceManager {
@@ -58,6 +58,21 @@ export class XsmpWorkspaceManager extends DefaultWorkspaceManager {
         } catch (error) {
             console.error(`Could not read ${currentDir}:`, error);
         }
+    }
+    protected override includeEntry(_workspaceFolder: WorkspaceFolder, entry: FileSystemNode, fileExtensions: string[]): boolean {
+        const name = UriUtils.basename(entry.uri);
+        if (name.startsWith('.')) {
+            return false;
+        }
+        if (entry.isDirectory) {
+            return name !== 'node_modules' && name !== 'out';
+        } else if (entry.isFile) {
+            const extname = UriUtils.extname(entry.uri);
+            if (extname === '.project' && UriUtils.basename(entry.uri) !== 'xsmp.project')
+                return false;
+            return fileExtensions.includes(extname);
+        }
+        return false;
     }
 }
 

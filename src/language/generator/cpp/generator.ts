@@ -159,7 +159,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         const computeDeps = (type: ast.Type) => {
             if (ast.isArrayType(type)) return [type.itemType.ref];
             if (ast.isValueReference(type)) return [type.type.ref];
-            if (ast.isStructure(type)) return this.attrHelper.getAllFields(type).map(field => field.type.ref).toArray();
+            if (ast.isStructure(type)) return this.attrHelper.getAllFields(type).map(field => field.type!.ref).toArray();
             return [];
         };
 
@@ -519,7 +519,7 @@ export abstract class CppGenerator implements XsmpGenerator {
                 if (ast.isEnumeration(type)) {
                     const value = Solver.getValueAs(expr, type)?.enumerationLiteral()?.getValue();
                     if (value !== undefined) {
-                        return this.fqn(value);
+                        return this.fqn(value as ast.EnumerationLiteral);
                     }
                 }
                 if (this.cxxStandard >= CxxStandard.CXX_STD_14) {
@@ -1379,7 +1379,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             return value ? `{${new Array(Number(value)).fill(this.getDefaultValueForType(type.itemType.ref)).join(', ')}}` : '{}';
         }
         if (ast.isStructure(type)) {
-            return `{${this.attrHelper.getAllFields(type).map(f => `/*.${f.name} = */${this.getDefaultValueForType(f.type.ref)}`).join(', ')}}`;
+            return `{${this.attrHelper.getAllFields(type).map(f => `/*.${f.name} = */${this.getDefaultValueForType(f.type!.ref)}`).join(', ')}}`;
         }
 
         if (ast.isEnumeration(type)) {

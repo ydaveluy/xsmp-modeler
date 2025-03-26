@@ -2,7 +2,7 @@ import type { MaybePromise} from 'langium';
 import { AstUtils, UriUtils, type AstNodeDescription, type GrammarAST, type ReferenceInfo, type Stream } from 'langium';
 import type { CompletionAcceptor, CompletionContext, CompletionValueItem, NextFeature } from 'langium/lsp';
 import { DefaultCompletionProvider } from 'langium/lsp';
-import * as ast from '../generated/ast.js';
+import * as ast from '../generated/ast-partial.js';
 import type { XsmpServices } from '../xsmp-module.js';
 import { SmpStandards, type ProjectManager } from '../workspace/project-manager.js';
 import { CompletionItemKind } from 'vscode-languageserver';

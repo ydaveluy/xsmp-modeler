@@ -1,6 +1,6 @@
 import type { AstNode, JSDocComment, JSDocParagraph, JSDocTag } from 'langium';
 import { isAstNodeWithComment, isJSDoc, parseJSDoc, WorkspaceCache } from 'langium';
-import * as ast from '../generated/ast.js';
+import * as ast from '../generated/ast-partial.js';
 import { type XsmpSharedServices } from '../xsmp-module.js';
 import { findDocumentationNode } from './xsmp-utils.js';
 
@@ -133,7 +133,7 @@ export class DocumentationHelper {
     getDescription(element: ast.NamedElement | ast.ReturnParameter): string | undefined {
         if (ast.Parameter === element.$type) {
             const regex = new RegExp(`^${element.name}\\s`);
-            return this.getJSDoc(element.$container as AstNode)?.getTags('param').find(t => regex.test(t.content.toString()))?.content.toString().slice(element.name.length).trim();
+            return this.getJSDoc(element.$container as AstNode)?.getTags('param').find(t => regex.test(t.content.toString()))?.content.toString().slice(element.name?.length).trim();
         }
         if (ast.ReturnParameter === element.$type) {
             return this.getJSDoc(element.$container)?.getTag('return')?.content.toString().trim();

@@ -4,7 +4,7 @@ import * as ast from '../generated/ast.js';
 
 export class XsmpcatFoldingRangeProvider extends DefaultFoldingRangeProvider {
     protected override collectFolding(document: LangiumDocument, acceptor: FoldingRangeAcceptor): void {
-        const root = document.parseResult?.value;
+        const root = document.parseResult.value;
         if (ast.isCatalogue(root)) {
             this.collectCommentFolding(document, root, acceptor);
             for (const namespace of root.elements) {

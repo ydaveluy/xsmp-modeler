@@ -1,6 +1,6 @@
 import { DocumentState, interruptAndCheck, UriUtils } from 'langium';
 import type { Cancellation, DocumentBuilder, IndexManager, LangiumDocument, LangiumDocuments, ServiceRegistry, URI } from 'langium';
-import * as ast from '../generated/ast.js';
+import * as ast from '../generated/ast-partial.js';
 import { DiagnosticSeverity } from 'vscode-languageserver';
 import { SmpGenerator } from '../tools/smp/generator.js';
 import pLimit from 'p-limit';
@@ -48,7 +48,7 @@ export class XsmpDocumentGenerator {
         if (ast.isCatalogue(document.parseResult.value)) {
             const project = this.projectManager.getProject(document);
             if (project) {
-                this.generateCatalogue(project, document.parseResult.value, taskAcceptor);
+                this.generateCatalogue(project as ast.Project, document.parseResult.value, taskAcceptor);
             }
         }
         else if (ast.isProject(document.parseResult.value)) {
@@ -70,7 +70,7 @@ export class XsmpDocumentGenerator {
 
         const projectUri = UriUtils.dirname(project.$document?.uri as URI);
 
-        for (const profile of project.elements.filter(ast.isProfileReference)) {
+        for (const profile of project.elements.filter(ast.isProfileReference).map(p => p as ast.ProfileReference)) {
             switch (profile.profile?.ref?.name) {
                 case 'org.eclipse.xsmp.profile.xsmp-sdk':
                 case 'xsmp-sdk':
@@ -79,7 +79,7 @@ export class XsmpDocumentGenerator {
             }
         }
 
-        for (const tool of project.elements.filter(ast.isToolReference)) {
+        for (const tool of project.elements.filter(ast.isToolReference).map(t => t as ast.ToolReference)) {
             switch (tool.tool?.ref?.name) {
                 case 'org.eclipse.xsmp.tool.smp':
                 case 'smp':
