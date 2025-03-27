@@ -157,7 +157,10 @@ export class XsmpcatValidator {
     private checkAttributes(element: ast.NamedElement | ast.ReturnParameter, accept: ValidationAcceptor) {
         const visited = new Set<ast.AttributeType>();
         for (const attribute of element.attributes) {
-            if (this.checkTypeReference(accept, attribute, attribute.type?.ref, 'type')) {
+            if (!attribute.type) {
+                accept('error', 'Missing type.', { node: attribute, keyword: '@' });
+            }
+            else if (this.checkTypeReference(accept, attribute, attribute.type.ref, 'type')) {
                 const type = attribute.type.ref as ast.AttributeType,
                     usages = this.docHelper.getUsages(type);
 
