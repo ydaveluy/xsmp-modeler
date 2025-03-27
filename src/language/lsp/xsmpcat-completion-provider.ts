@@ -34,7 +34,7 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
         const usages = this.docHelper.getUsages(desc.node),
             elementType = XsmpUtils.getNodeType(attribute.$container);
 
-        if (!usages?.find(u => u.toString() === elementType)) {
+        if (!usages?.find(u => ast.reflection.isSubtype(elementType, u.toString()))) {
             return false;
         }
 
