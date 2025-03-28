@@ -25,10 +25,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
 // This function is called when the extension is deactivated.
 export function deactivate(): Thenable<void> | undefined {
-    if (client) {
-        return client.stop();
-    }
-    return undefined;
+    return client.stop();
 }
 
 function startLanguageClient(context: vscode.ExtensionContext): LanguageClient {

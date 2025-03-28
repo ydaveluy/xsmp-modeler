@@ -2,7 +2,7 @@ import * as ast from '../../generated/ast.js';
 import { type AstNode, AstUtils, type JSDocElement, type JSDocTag, type URI, UriUtils, WorkspaceCache } from 'langium';
 import * as fs from 'fs';
 import type { TaskAcceptor, XsmpGenerator } from '../generator.js';
-import { escape, fqn, getAccessKind, getPTK, isAbstractType, isInput, isOutput, isState } from '../../utils/xsmp-utils.js';
+import { escape, fqn, getAccessKind, getNodeType, getPTK, isAbstractType, isInput, isOutput, isState } from '../../utils/xsmp-utils.js';
 import * as CopyrightNoticeProvider from '../copyright-notice-provider.js';
 import { expandToString as s } from 'langium/generate';
 import * as Path from 'path';
@@ -220,15 +220,13 @@ export abstract class CppGenerator implements XsmpGenerator {
     protected registerType(type: ast.Type): string | undefined {
         if (ast.isStructure(type)) {
             return s`
-                // register ${type.$type} ${type.name}
+                // register ${getNodeType(type)} ${type.name}
                 ${this.fqn(type)}::_Register(typeRegistry);
-
                 `;
         }
         return s`
-            // register ${type.$type} ${type.name}
+            // register ${getNodeType(type)} ${type.name}
             ${this.fqn(type.$container as ast.NamedElement)}::_Register_${type.name}(typeRegistry);
-
             `;
 
     }
@@ -313,6 +311,7 @@ export abstract class CppGenerator implements XsmpGenerator {
                         ` : 'return true;'}
                 }
             }
+            
             `);
     }
 
@@ -342,6 +341,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             // -----------------------------------------------------------------------------
             // -------------------------- Initialise Function ------------------------------
             // -----------------------------------------------------------------------------
+
             extern "C" {
                 /// Global Initialise function of Package ${catalogue.name}.
                 /// @param simulator Simulator for registration of factories.
@@ -357,6 +357,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             // -----------------------------------------------------------------------------
             // ---------------------------- Finalise Function ------------------------------
             // -----------------------------------------------------------------------------
+
             extern "C" {                        
                 /// Global Finalise function of Package ${catalogue.name}.
                 /// @param simulator Simulator.
@@ -365,6 +366,7 @@ export abstract class CppGenerator implements XsmpGenerator {
                     return Finalise_${catalogue.name}();
                 }
             }
+            
             `);
     }
     /**
@@ -1238,7 +1240,6 @@ export abstract class CppGenerator implements XsmpGenerator {
             return s`
             // Publish field ${field.name}
             receiver->PublishField(&${field.name});
-
             `;
         }
         if (ast.isPrimitiveType(field.type.ref)) {
@@ -1267,7 +1268,6 @@ export abstract class CppGenerator implements XsmpGenerator {
                             ${isInput(field)}, // Input
                             ${isOutput(field)} // Output
                         );
-
                         `;
                 case PTK.String8:
                     return s`
@@ -1289,7 +1289,6 @@ export abstract class CppGenerator implements XsmpGenerator {
                 ${isInput(field)}, // Input
                 ${isOutput(field)} // Output
             );
-
             `;
     }
     parameterDirectionKind(param: ast.Parameter | ast.ReturnParameter): string {
@@ -1323,7 +1322,6 @@ export abstract class CppGenerator implements XsmpGenerator {
                     ${this.uuid(r.type.ref)}, // Type UUID
                     ${this.parameterDirectionKind(r)} // Parameter Direction Kind
                 );` : ''}
-
                 `;
         }
         return undefined;
@@ -1339,7 +1337,6 @@ export abstract class CppGenerator implements XsmpGenerator {
                     ${this.accessKind(property)}, // Access Kind
                     ${this.viewKind(property)} // View Kind
                 );
-
                 `;
         }
         return undefined;

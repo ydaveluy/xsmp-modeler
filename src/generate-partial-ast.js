@@ -19,26 +19,24 @@ const constants = [...content.matchAll(constRegex)].map(match => match[1]);
 const output = `import * as ast from './ast.js';
 import type { AstNode, Reference } from 'langium';
 
-type DeepOptional<T> = T extends Reference<infer U>
-  ? Reference<DeepOptional<U>>
-  : T extends AstNode
-  ? {
-      [K in keyof T as K extends \`$\${string}\`
-        ? K
-        : T[K] extends boolean
-        ? K
-        : never]: T[K];
-    } & {
-      [K in keyof T as K extends \`$\${string}\`
-        ? never
-        : T[K] extends boolean
-        ? never
-        : K]: T[K] extends Array<infer U>
-        ? Array<DeepOptional<U>>
-        : DeepOptional<T[K]> | undefined;
-    }
-  : T;
-${types.map(type => `export type ${type} = DeepOptional<ast.${type}>;`).join("\n")}
+export type DeepPartialAstNode<T> =
+    // if T is a Reference<U> transform it to Reference<DeepPartialAstNode<U>>
+    T extends Reference<infer U extends AstNode> ? Reference<DeepPartialAstNode<U>> :
+        // if T is an AstNode
+        T extends AstNode ? {
+            // transform the type of each property starting with '$' or with a boolean or array type
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            [K in keyof T as K extends \`$\${string}\` | (T[K] extends (boolean | any[]) ? K : never) ? K : never]: DeepPartialAstNode<T[K]>;
+        } & {
+            // force the property as optional and transform its type for each property not starting with '$' or with a type different from boolean or array type
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            [K in keyof T as K extends \`$\${string}\` ? never: T[K] extends (boolean | any[]) ? never : K]?: DeepPartialAstNode<T[K]>;
+        } :
+            // if T is an Array<U> convert to Array<DeepPartialAstNode<U>>
+            T extends Array<infer U> ? Array<DeepPartialAstNode<U>> :
+                // otherwise keep T as is
+                T;
+${types.map(type => `export type ${type} = DeepPartialAstNode<ast.${type}>;`).join("\n")}
 
 ${functions.map(fn => `export function ${fn}(item: unknown): item is ${fn.slice(2)} {\n    return ast.${fn}(item);\n}`).join("\n")}
 

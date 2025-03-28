@@ -38,7 +38,7 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
             return false;
         }
 
-        if (attribute.$container.attributes.some(a => a.type.ref === desc.node) && !this.docHelper.allowMultiple(desc.node)) {
+        if (attribute.$container.attributes.some(a => a.type?.ref === desc.node) && !this.docHelper.allowMultiple(desc.node)) {
             return false;
         }
         return XsmpUtils.isTypeVisibleFrom(attribute, desc.node);

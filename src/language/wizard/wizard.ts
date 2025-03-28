@@ -27,16 +27,16 @@ export async function createProjectWizard() {
 
     // Project name input
     let projectName: string | undefined;
-    while (true) {
+    while (projectName === undefined) {
         projectName = await vscode.window.showInputBox({
             prompt: 'Enter project name'
         });
-        if (!projectName) { return; }
 
-        if (/^[a-zA-Z][a-zA-Z0-9_.-]*$/.test(projectName)) {
+        if (projectName && /^[a-zA-Z][a-zA-Z0-9_.-]*$/.test(projectName)) {
             break;
         } else {
             vscode.window.showErrorMessage('Project name must follow the format [a-zA-Z][a-zA-Z0-9_.-]\\w*');
+            projectName = undefined;
         }
     }
 
@@ -50,12 +50,10 @@ export async function createProjectWizard() {
             placeHolder: 'Select a profile'
         });
 
-    if (!profile) { return; } // If user cancels selection
-
     // Select tools
     const tools = [
         { id: smpToolId, label: 'SMP Tool', 'picked': true },
-        { id: pythonToolId, label: 'Python Wrapper', 'picked': profile.id === xsmpSdkProfileId },
+        { id: pythonToolId, label: 'Python Wrapper', 'picked': profile?.id === xsmpSdkProfileId },
         { id: adocToolId, label: 'AsciiDoc generator', 'picked': true }
     ],
 
@@ -94,7 +92,7 @@ export async function createProjectWizard() {
 }
 
 async function createTemplateProject(projectName: string, dirPath: string,
-    profile: { label: string, id: string }, tools: Array<{ label: string, id: string }>) {
+    profile: { label: string, id: string }|undefined, tools: Array<{ label: string, id: string }>) {
     fs.mkdirSync(dirPath); // Create project directory
 
     const smdlPath = path.join(dirPath, 'smdl');
@@ -124,7 +122,7 @@ namespace ${catalogueName}
 
 `);
 
-    if (profile.id === xsmpSdkProfileId) {
+    if (profile?.id === xsmpSdkProfileId) {
         await fs.promises.writeFile(path.join(dirPath, 'CMakeLists.txt'), `
 cmake_minimum_required(VERSION 3.14)
 
@@ -189,7 +187,7 @@ cd build && ctest -C Release --output-on-failure
 
 `);
     }
-    else if (profile.id === esaCdkProfileId || profile.id === esaCdkLegacyProfileId) {
+    else if (profile?.id === esaCdkProfileId || profile?.id === esaCdkLegacyProfileId) {
         await fs.promises.writeFile(path.join(dirPath, 'CMakeLists.txt'), `
 file(GLOB_RECURSE SRC CONFIGURE_DEPENDS src/*.cpp src-gen/*.cpp)
 
