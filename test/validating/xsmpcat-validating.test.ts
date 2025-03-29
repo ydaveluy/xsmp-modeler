@@ -47,7 +47,7 @@ describe('Validating Xsmpcat', () => {
 [48:11..48:20]: Missing Type UUID.
 [54:1..54:10]: Missing Type UUID.
 [56:21..56:27]: Missing Type UUID.
-[58:8..58:40]: A Constant must have an initialization value.
+[58:15..58:23]: A Constant must have an initialization value.
 [64:4..66:5]: An Enumeration shall contains at least one literal.
 [71:8..71:10]: Duplicated literal name.
 [71:13..71:14]: Enumeration Literal Values shall be unique within an Enumeration.
@@ -163,7 +163,7 @@ Upper bound shall be -1 or larger or equal to the lower bound.
 [87:13..87:49]: Duplicated UUID.
 [89:10..89:18]: Duplicated Type name.
 [92:20..92:22]: The String length shall be a positive number.
-[97:4..97:22]: Missing String length.
+[97:4..97:10]: Missing String length.
 [99:46..99:56]: Duplicated interface.
 [99:58..99:69]: Cyclic dependency detected.
 [101:8..101:15]: Invalid modifier.
@@ -181,7 +181,7 @@ Upper bound shall be -1 or larger or equal to the lower bound.
 [138:24..138:33]: Illegal modifier.
 [115:4..115:9]: The Model shall be abstract.
 [147:17..147:24]: The type Model is not a sub type of Interface.
-[195:4..195:30]: Missing Array size.
+[195:4..195:9]: Missing Array size.
 [195:20..195:28]: The type Model is not a sub type of ValueType.
 [197:26..197:28]: The Array size shall be a positive number.
 [199:27..199:41]: Recursive Array Type.

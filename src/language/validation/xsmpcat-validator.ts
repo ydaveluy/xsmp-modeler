@@ -333,7 +333,7 @@ export class XsmpcatValidator {
 
         if (this.checkTypeReference(accept, constant, constant.type?.ref, 'type')) {
             const type = constant.type.ref as ast.PrimitiveType;
-            if (!constant.value) { accept('error', 'A Constant must have an initialization value.', { node: constant, property: 'value', data: diagnosticData(IssueCodes.MissingValue) }); }
+            if (!constant.value) { accept('error', 'A Constant must have an initialization value.', { node: constant, keyword: 'constant', data: diagnosticData(IssueCodes.MissingValue) }); }
             else { this.checkExpression(type, constant.value, accept); }
         }
     }
@@ -688,7 +688,7 @@ export class XsmpcatValidator {
     checkString(string: ast.StringType, accept: ValidationAcceptor): void {
         this.checkModifier(string, [ast.isVisibilityModifiers], accept);
         const length = this.checkExpression(PTK.Int64, string.length, accept);
-        if (length === undefined) { accept('error', 'Missing String length.', { node: string, property: 'length' }); }
+        if (length === undefined) { accept('error', 'Missing String length.', { node: string, keyword: XsmpUtils.getKeywordForType(string) }); }
         else if (length as bigint < 0) { accept('error', 'The String length shall be a positive number.', { node: string, property: 'length' }); }
     }
 
@@ -696,7 +696,7 @@ export class XsmpcatValidator {
         this.checkModifier(array, [ast.isVisibilityModifiers], accept);
         const size = this.checkExpression(PTK.Int64, array.size, accept);
         if (size === undefined) {
-            accept('error', 'Missing Array size.', { node: array, property: 'size' });
+            accept('error', 'Missing Array size.', { node: array, keyword: XsmpUtils.getKeywordForType(array) });
         }
         else if (size as bigint < 0) {
             accept('error', 'The Array size shall be a positive number.', { node: array, property: 'size' });

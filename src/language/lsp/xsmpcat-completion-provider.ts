@@ -14,6 +14,7 @@ import { PTK } from '../utils/primitive-type-kind.js';
 import { VisibilityKind } from '../utils/visibility-kind.js';
 import { type DocumentationHelper } from '../utils/documentation-helper.js';
 import { type AttributeHelper } from '../utils/attribute-helper.js';
+import { expandToString as s } from 'langium/generate';
 
 export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
 
@@ -72,7 +73,7 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
                     !(refInfo.container as ast.Interface).base.some(i => i.ref === desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node);
             case 'Model:interface':
             case 'Service:interface':
-                return (desc) => ast.isInterface(desc.node) && !(refInfo.container as ast.Component).interface.some(i => i.ref===desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node);
+                return (desc) => ast.isInterface(desc.node) && !(refInfo.container as ast.Component).interface.some(i => i.ref === desc.node) && XsmpUtils.isTypeVisibleFrom(refInfo.container, desc.node);
             case 'Reference_:interface':
                 return (desc) => ast.isInterface(desc.node);
             case 'Model:base':
@@ -181,20 +182,20 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
             detail: 'Keyword',
             sortText: '0000'
         });
+        this.createSnippets(context, keyword, acceptor);
 
-        const snippet = this.getSnippet(context, keyword);
-
-        if (snippet) {
-            acceptor(context, {
-                label: keyword.value,
-                insertText: snippet,
-                insertTextFormat: InsertTextFormat.Snippet,
-                documentation: this.documentationProvider.getDocumentation(keyword),
-                kind: CompletionItemKind.Snippet,
-                detail: 'Snippet',
-                sortText: '1000'
-            });
-        }
+    }
+    protected createKeywordSnippet(keyword: GrammarAST.Keyword, text: string, detail: string, preselect = false): CompletionValueItem {
+        return {
+            label: keyword.value,
+            insertText: text,
+            insertTextFormat: InsertTextFormat.Snippet,
+            documentation: this.documentationProvider.getDocumentation(keyword),
+            kind: CompletionItemKind.Snippet,
+            detail: detail,
+            preselect: preselect,
+            sortText: '1000'
+        };
     }
 
     protected override  completionForCrossReference(context: CompletionContext, next: NextFeature<GrammarAST.CrossReference>, acceptor: CompletionAcceptor): MaybePromise<void> {
@@ -307,113 +308,164 @@ export class XsmpcatCompletionProvider extends DefaultCompletionProvider {
         return this.getReferenceCandidates(refInfo, context).map(c => c.name).join(',');
 
     }
-    protected getSnippet(context: CompletionContext, keyword: GrammarAST.Keyword): string | undefined {
-
+    protected createSnippets(context: CompletionContext, keyword: GrammarAST.Keyword, acceptor: CompletionAcceptor): void {
         switch (keyword.value) {
-            case 'array': return `
-/** @uuid $UUID */
-array \${1:name} = \${2|${this.getCrossReferences(context, 'ArrayType', 'itemType')}|}[$0]`;
-            case 'association': return `association \${1|${this.getCrossReferences(context, 'Association', 'type')}|} \${2:name}`;
-            case 'catalogue': return `
-/**
-* Specifies the SMP Component Model as Catalogue.
-*
-* @creator ${os.userInfo().username}
-* @date ${new Date(Date.now()).toISOString()}
-*/
-catalogue \${1:name}
-`;
-            case 'class': return `
-/** @uuid $UUID */
-class \${1:name}
-{
-    $0
-}`;
-            case 'constant': return `constant \${1|${this.getCrossReferences(context, 'Constant', 'type')}|} \${2:name} = $0`;
-            case 'container': return `container \${1|${this.getCrossReferences(context, 'Container', 'type')}|}[*] \${2:name}`;
-            case 'def': return 'def void ${1:name} ($0)';
-            case 'entrypoint': return 'entrypoint ${1:name}';
-            case 'enum': return `
-/** @uuid $UUID */
-enum \${1:name}
-{
-    \${2:literal} = 0
-}`;
-            case 'event': return `
-/** @uuid $UUID */
-event \${1:name}`;
-            case 'eventsink': return `eventsink \${1|${this.getCrossReferences(context, 'EventSink', 'type')}|} \${2:name}`;
-            case 'eventsource': return `eventsource \${1|${this.getCrossReferences(context, 'EventSource', 'type')}|} \${2:name}`;
-            case 'exception': return `
-/** @uuid $UUID */
-exception \${1:name} 
-{
-    $0
-}`;
-            case 'field': return `field \${1|${this.getCrossReferences(context, 'Field', 'type')}|} \${2:name}`;
-            case 'integer': return `
-/** @uuid $UUID */
-integer \${1:name}`;
-            case 'float': return `
-/** @uuid $UUID */
-float \${1:name}`;
-            case 'interface': return `
-/** @uuid $UUID */
-interface \${1:name} 
-{
-    $0
-}`;
-            case 'model': return `
-/** @uuid $UUID */
-model \${1:name}
-{
-    $0
-}`;
-            case 'namespace': return `
-namespace \${1:name}
-{
-    $0
-} // namespace \${1:name}`;
-            case 'property': return `property \${1|${this.getCrossReferences(context, 'Property', 'type')}|} \${2:name}`;
-            case 'reference': return `reference \${1|${this.getCrossReferences(context, 'Reference_', 'interface')}|}[*] \${2:name}`;
-            case 'service': return `
-/** @uuid $UUID */
-service \${1:name}
-{
-    $0
-}`;
-            case 'string': return `
-/** @uuid $UUID */
-string \${1:name}[$0]`;
-            case 'struct': return `
-/** @uuid $UUID */
-struct \${1:name}
-{
-    $0
-}`;
-            case 'using': return `
-/** @uuid $UUID */
-using \${1:name} = \${2|${this.getCrossReferences(context, 'ValueReference', 'type')}|}*`;
-
-            case 'native': return `
-/** 
- * @type native_type
- * @location native_location
- * @namespace native_namespace
- * @uuid $UUID
- */
-native \${1:name}`;
-            case 'attribute': return `
-/** 
- * // @allowMultiple
- * @usage ...
- * @uuid $UUID
- */
-attribute \${1|${this.getCrossReferences(context, 'AttributeType', 'type')}|} \${2:name} = $0`;
-            default:
-                return undefined;
+            case 'array': return acceptor(context, this.createKeywordSnippet(keyword, s`
+                /** @uuid $UUID */
+                array \${1:name} = \${2|${this.getCrossReferences(context, 'ArrayType', 'itemType')}|}[\${3:0}]
+                `, 'Array Definition'
+            ));
+            case 'association': return acceptor(context, this.createKeywordSnippet(keyword,
+                `association \${1|${this.getCrossReferences(context, 'Association', 'type')}|} \${2:name}`
+                , 'Association Definition'
+            ));
+            case 'catalogue': return acceptor(context, this.createKeywordSnippet(keyword, s`
+                /**
+                * Specifies the SMP Component Model as Catalogue.
+                *
+                * @creator ${os.userInfo().username}
+                * @date ${new Date(Date.now()).toISOString()}
+                */
+                catalogue \${1:name}
+                `, 'Catalogue Definition'
+            ));
+            case 'class': return acceptor(context, this.createKeywordSnippet(keyword, s`
+                /** @uuid $UUID */
+                class \${1:name}
+                {
+                    $0
+                }`, 'Class Definition'
+            ));
+            case 'constant': return acceptor(context, this.createKeywordSnippet(keyword,
+                `constant \${1|${this.getCrossReferences(context, 'Constant', 'type')}|} \${2:name} = \${3:value}`
+                , 'Constant Definition'
+            ));
+            case 'container': return acceptor(context, this.createKeywordSnippet(keyword,
+                `container \${1|${this.getCrossReferences(context, 'Container', 'type')}|}[*] \${2:name}`
+                , 'Container Definition'
+            ));
+            case 'def': return acceptor(context, this.createKeywordSnippet(keyword,
+                'def void ${1:name} ($0)'
+                , 'Operation Definition'
+            ));
+            case 'entrypoint': return acceptor(context, this.createKeywordSnippet(keyword,
+                'entrypoint ${1:name}'
+                , 'EntryPoint Definition'
+            ));
+            case 'enum': return acceptor(context, this.createKeywordSnippet(keyword, s`
+                /** @uuid $UUID */
+                enum \${1:name}
+                {
+                    \${2:literal} = \${3:0}
+                }`, 'Enumeration Definition'
+            ));
+            case 'event': return acceptor(context, this.createKeywordSnippet(keyword, s`
+                /** @uuid $UUID */
+                event \${1:name}`
+                , 'Event Definition'
+            ));
+            case 'eventsink': return acceptor(context, this.createKeywordSnippet(keyword,
+                `eventsink \${1|${this.getCrossReferences(context, 'EventSink', 'type')}|} \${2:name}`
+                , 'EventSink Definition'
+            ));
+            case 'eventsource': return acceptor(context, this.createKeywordSnippet(keyword,
+                `eventsource \${1|${this.getCrossReferences(context, 'EventSource', 'type')}|} \${2:name}`
+                , 'EventSource Definition'
+            ));
+            case 'exception': return acceptor(context, this.createKeywordSnippet(keyword, s`
+                /** @uuid $UUID */
+                exception \${1:name} 
+                {
+                    $0
+                }`, 'Exception Definition'
+            ));
+            case 'field': return acceptor(context, this.createKeywordSnippet(keyword,
+                `field \${1|${this.getCrossReferences(context, 'Field', 'type')}|} \${2:name}`
+                , 'Field Definition'
+            ));
+            case 'integer': return acceptor(context, this.createKeywordSnippet(keyword, s`
+                /** @uuid $UUID */
+                integer \${1:name}`
+                , 'Integer Definition'
+            ));
+            case 'float': return acceptor(context, this.createKeywordSnippet(keyword, s`
+                /** @uuid $UUID */
+                float \${1:name}`
+                , 'Float Definition'
+            ));
+            case 'interface': return acceptor(context, this.createKeywordSnippet(keyword, s`
+                /** @uuid $UUID */
+                interface \${1:name} 
+                {
+                    $0
+                }`, 'Interface Definition'
+            ));
+            case 'model': return acceptor(context, this.createKeywordSnippet(keyword, s`
+                /** @uuid $UUID */
+                model \${1:name}
+                {
+                    $0
+                }`, 'Model Definition'
+            ));
+            case 'namespace': return acceptor(context, this.createKeywordSnippet(keyword, s`
+                namespace \${1:name}
+                {
+                    $0
+                } // namespace \${1:name}`
+                , 'Namespace Definition'
+            ));
+            case 'property': return acceptor(context, this.createKeywordSnippet(keyword,
+                `property \${1|${this.getCrossReferences(context, 'Property', 'type')}|} \${2:name}`
+                , 'Property Definition'
+            ));
+            case 'reference': return acceptor(context, this.createKeywordSnippet(keyword,
+                `reference \${1|${this.getCrossReferences(context, 'Reference_', 'interface')}|}[*] \${2:name}`
+                , 'ArrReferenceay Definition'
+            ));
+            case 'service': return acceptor(context, this.createKeywordSnippet(keyword, s`
+                /** @uuid $UUID */
+                service \${1:name}
+                {
+                    $0
+                }`, 'Service Definition'
+            ));
+            case 'string': return acceptor(context, this.createKeywordSnippet(keyword, s`
+                /** @uuid $UUID */
+                string \${1:name}[\${2:0}]`
+                , 'String Definition'
+            ));
+            case 'struct': return acceptor(context, this.createKeywordSnippet(keyword, s`
+                /** @uuid $UUID */
+                struct \${1:name}
+                {
+                    $0
+                }`
+                , 'Structure Definition'
+            ));
+            case 'using': return acceptor(context, this.createKeywordSnippet(keyword, s`
+                /** @uuid $UUID */
+                using \${1:name} = \${2|${this.getCrossReferences(context, 'ValueReference', 'type')}|}*`
+                , 'ValueReference Definition'
+            ));
+            case 'native': return acceptor(context, this.createKeywordSnippet(keyword, s`
+                /** 
+                 * @type native_type
+                 * @location native_location
+                 * @namespace native_namespace
+                 * @uuid $UUID
+                 */
+                native \${1:name}`
+                , 'NativeType Definition'
+            ));
+            case 'attribute': return acceptor(context, this.createKeywordSnippet(keyword, s`
+                /** 
+                 * // @allowMultiple
+                 * @usage ...
+                 * @uuid $UUID
+                 */
+                attribute \${1|${this.getCrossReferences(context, 'AttributeType', 'type')}|} \${2:name} = \${3:value}0`
+                , 'AttributeType Definition'
+            ));
         }
-
     }
-
 }
