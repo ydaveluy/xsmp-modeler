@@ -44,7 +44,7 @@ export class XsmpprojectValidator {
         return map;
     }
 
-    checkTypeReference<N extends AstNode>(accept: ValidationAcceptor, node: N, reference: Reference<ast.NamedElement>, property: Properties<N>, index?: number): boolean {
+    checkTypeReference<N extends AstNode>(accept: ValidationAcceptor, node: N, reference: Reference, property: Properties<N>, index?: number): boolean {
         if (!reference.ref) {
             return false;
         }

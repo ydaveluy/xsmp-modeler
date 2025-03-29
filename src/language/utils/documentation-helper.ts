@@ -104,17 +104,17 @@ export class DocumentationHelper {
         return this.getTag(element, 'unit')?.toString().trim();
     }
 
-    getTitle(element: ast.Document): string | undefined {
+    getTitle(element: ast.Catalogue): string | undefined {
         return this.getTag(element, 'title')?.toString().trim();
     }
-    getDate(element: ast.Document): JSDocParagraph | undefined {
+    getDate(element: ast.Catalogue): JSDocParagraph | undefined {
         return this.getTag(element, 'date');
     }
 
-    getCreator(element: ast.Document): string | undefined {
+    getCreator(element: ast.Catalogue): string | undefined {
         return this.getTags(element, 'creator')?.map(e => e.toString().trim()).join(', ');
     }
-    getVersion(element: ast.Document): string | undefined {
+    getVersion(element: ast.Catalogue): string | undefined {
         return this.getTag(element, 'version')?.toString().trim();
     }
 
@@ -122,11 +122,11 @@ export class DocumentationHelper {
         return this.getTag(type, 'uuid');
     }
 
-    getDeprecated(element: ast.NamedElement): JSDocParagraph | undefined {
+    getDeprecated(element: AstNode): JSDocParagraph | undefined {
         return this.getTag(element, 'deprecated');
     }
 
-    IsDeprecated(element: ast.NamedElement): boolean {
+    IsDeprecated(element: AstNode): boolean {
         return this.getDeprecated(element) !== undefined;
     }
 

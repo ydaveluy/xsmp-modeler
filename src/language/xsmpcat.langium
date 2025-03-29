@@ -1,6 +1,6 @@
 grammar Xsmpcat
 
-import 'xsmp-types'
+import 'xsmpcat-types'
 
 hidden terminal WS: /\s+/;
 terminal ID: /[_a-zA-Z]\w*/;
@@ -198,6 +198,7 @@ Model returns Model:
     '{'
         elements+=(Constant|Field|Property|Operation|Association|Container|Reference|EntryPoint|EventSink|EventSource)*
     '}';
+
 
 Service returns Service:
     attributes+=Attribute*

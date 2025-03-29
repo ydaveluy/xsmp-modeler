@@ -149,26 +149,23 @@ export class SmpGenerator implements XsmpGenerator {
             }],
         };
     }
-    protected convertReferenceType(inter: ast.ReferenceType, id: string): Catalogue.ReferenceType {
-
-        return {
-            ...this.convertType(inter, id),
-            Constant: inter.elements.filter(ast.isConstant).map(this.convertConstant, this),
-            Property: inter.elements.filter(ast.isProperty).map(this.convertProperty, this),
-            Operation: inter.elements.filter(ast.isOperation).map(this.convertOperation, this),
-        };
-    }
     protected convertInterface(inter: ast.Interface): Catalogue.Interface {
 
         return {
-            ...this.convertReferenceType(inter, 'Catalogue:Interface'),
+            ...this.convertType(inter, 'Catalogue:Interface'),
+            Constant: inter.elements.filter(ast.isConstant).map(this.convertConstant, this),
+            Property: inter.elements.filter(ast.isProperty).map(this.convertProperty, this),
+            Operation: inter.elements.filter(ast.isOperation).map(this.convertOperation, this),
             Base: inter.base.map(i => this.convertXlink(i, inter), this),
         };
     }
     protected convertComponent(component: ast.Component): Catalogue.Component {
 
         return {
-            ...this.convertReferenceType(component, `Catalogue:${component.$type}`),
+            ...this.convertType(component, `Catalogue:${component.$type}`),
+            Constant: component.elements.filter(ast.isConstant).map(this.convertConstant, this),
+            Property: component.elements.filter(ast.isProperty).map(this.convertProperty, this),
+            Operation: component.elements.filter(ast.isOperation).map(this.convertOperation, this),
             Base: component.base ? this.convertXlink(component.base, component) : undefined,
             Interface: component.interface.map(i => this.convertXlink(i, component), this),
             EntryPoint: component.elements.filter(ast.isEntryPoint).map(this.convertEntryPoint, this),

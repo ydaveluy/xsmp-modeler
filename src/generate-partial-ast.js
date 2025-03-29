@@ -17,13 +17,13 @@ const functions = [...content.matchAll(functionRegex)].map(match => match[1]);
 const constants = [...content.matchAll(constRegex)].map(match => match[1]);
 
 const output = `import * as ast from './ast.js';
-import type { AstNode, Reference } from 'langium';
+import * as langium from 'langium';
 
 export type DeepPartialAstNode<T> =
-    // if T is a Reference<U> transform it to Reference<DeepPartialAstNode<U>>
-    T extends Reference<infer U extends AstNode> ? Reference<DeepPartialAstNode<U>> :
+    // if T is a Reference<U> transform it to langium.Reference<DeepPartialAstNode<U>>
+    T extends langium.Reference<infer U extends langium.AstNode> ? langium.Reference<DeepPartialAstNode<U>> :
         // if T is an AstNode
-        T extends AstNode ? {
+        T extends langium.AstNode ? {
             // transform the type of each property starting with '$' or with a boolean or array type
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             [K in keyof T as K extends \`$\${string}\` | (T[K] extends (boolean | any[]) ? K : never) ? K : never]: DeepPartialAstNode<T[K]>;

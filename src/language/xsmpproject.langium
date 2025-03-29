@@ -1,7 +1,7 @@
 grammar Xsmpproject
-import 'xsmp-types'
+import 'xsmpproject-types'
 
-entry Document returns Document:
+entry Document:
     Project | Profile | Tool;
 
 hidden terminal WS: /\s+/;
