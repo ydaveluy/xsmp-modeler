@@ -29,11 +29,11 @@ export class XsmpRenameProvider extends DefaultRenameProvider {
             const change = TextEdit.replace(location.range, params.newName);
             const uri = location.uri;
             if (uri) {
-               // if (changes[uri].) {
+                if (uri in changes) {
                     changes[uri].push(change);
-               // } else {
-               //     changes[uri] = [change];
-               // }
+                } else {
+                    changes[uri] = [change];
+               }
             }
         }
 
@@ -56,11 +56,11 @@ export class XsmpRenameProvider extends DefaultRenameProvider {
                 if (refText === oldName) {
                     const nodeLocation = this.getRefLocation(reference);
                     const nodeChange = TextEdit.replace(nodeLocation.range, newName);
-                   // if (changes[nodeLocation.uri]) {
+                    if (nodeLocation.uri in changes) {
                         changes[nodeLocation.uri].push(nodeChange);
-                   // } else {
-                    //    changes[nodeLocation.uri] = [nodeChange];
-                   // }
+                    } else {
+                        changes[nodeLocation.uri] = [nodeChange];
+                    }
                     break;
                 }
                 else {
