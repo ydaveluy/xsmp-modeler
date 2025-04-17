@@ -3,7 +3,8 @@
     "languages": [{
         "id": "xsmpproject",
         "grammar": "src/language/xsmpproject.langium",
-        "fileExtensions": [".project",".xsmpprofile",".xsmptool"]
+        "fileExtensions": [".xsmpprofile",".xsmptool"],
+        "fileNames": ["xsmp.project"]
     },
     {
         "id": "xsmpcat",

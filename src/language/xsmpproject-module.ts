@@ -3,7 +3,6 @@ import type { Module } from 'langium';
 import { XsmpprojectValidator } from './validation/xsmpproject-validator.js';
 import type { PartialLangiumServices } from 'langium/lsp';
 import { XsmpprojectFormatter } from './lsp/xsmpproject-formatter.js';
-import { XsmpHoverProvider } from './lsp/hover-provider.js';
 import { XsmpDocumentSymbolProvider } from './lsp/document-symbol-provider.js';
 import { XsmpprojectCompletionProvider } from './lsp/xsmpproject-completion-provider.js';
 import { XsmpCommentProvider } from './lsp/comment-provider.js';
@@ -36,7 +35,6 @@ export const XsmpprojectModule: Module<XsmpprojectServices, PartialLangiumServic
     },
     lsp: {
         Formatter: () => new XsmpprojectFormatter(),
-        HoverProvider: (services) => new XsmpHoverProvider(services),
         DocumentSymbolProvider: (services) => new XsmpDocumentSymbolProvider(services),
         CompletionProvider: (services) => new XsmpprojectCompletionProvider(services),
         RenameProvider: (services) => new XsmpRenameProvider(services),
