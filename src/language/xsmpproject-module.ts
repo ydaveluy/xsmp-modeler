@@ -1,4 +1,3 @@
-
 import type { Module } from 'langium';
 import { XsmpprojectValidator } from './validation/xsmpproject-validator.js';
 import type { PartialLangiumServices } from 'langium/lsp';

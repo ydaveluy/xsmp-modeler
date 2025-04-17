@@ -1,4 +1,3 @@
-
 import type { Module } from 'langium';
 import { XsmpcatValidator } from './validation/xsmpcat-validator.js';
 import type { PartialLangiumServices } from 'langium/lsp';
