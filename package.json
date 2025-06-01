@@ -49,7 +49,7 @@
         "@vitest/coverage-v8": "^3.1.1",
         "@vscode/vsce": "^3.3.2",
         "concurrently": "^9.1.2",
-        "esbuild": "^0.25.2",
+        "esbuild": "^0.25.5",
         "esbuild-plugin-copy": "^2.1.1",
         "eslint": "^9.24.0",
         "langium-cli": "^3.5.0",
