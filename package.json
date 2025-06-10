@@ -46,17 +46,17 @@
     "devDependencies": {
         "@types/node": "^18.0.0",
         "@types/vscode": "~1.67.0",
-        "@vitest/coverage-v8": "^3.1.1",
+        "@vitest/coverage-v8": "^3.1.4",
         "@vscode/vsce": "^3.3.2",
         "concurrently": "^9.1.2",
-        "esbuild": "^0.25.2",
+        "esbuild": "^0.25.5",
         "esbuild-plugin-copy": "^2.1.1",
         "eslint": "^9.24.0",
         "langium-cli": "^3.5.0",
         "shx": "^0.4.0",
         "typescript": "^5.8.3",
-        "typescript-eslint": "^8.30.1",
-        "vitest": "^3.1.1"
+        "typescript-eslint": "^8.33.0",
+        "vitest": "^3.2.3"
     },
     "volta": {
         "node": "18.19.1",
