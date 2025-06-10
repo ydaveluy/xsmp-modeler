@@ -250,7 +250,7 @@ function checkIsRecursiveType(parent: ast.Type, other: ast.Type | undefined, vis
         return checkIsRecursiveType(parent, other.itemType?.ref, visited);
     }
     if (ast.isStructure(other)) {
-        return other.elements.filter(ast.isField).some(f => checkIsRecursiveType(parent, (f as ast.Field).type?.ref, visited));
+        return other.elements.filter(ast.isField).some(f => checkIsRecursiveType(parent, f.type?.ref, visited));
     }
     return false;
 }

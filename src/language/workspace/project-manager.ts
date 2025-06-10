@@ -41,7 +41,7 @@ export class ProjectManager {
                 const projectUri = UriUtils.dirname(doc.uri);
 
                 if (document.uri.path.startsWith(projectUri.path)) {
-                    for (const source of project.elements.filter(ast.isSource).map(s=>s as ast.Source)) {
+                    for (const source of project.elements.filter(ast.isSource)) {
                         if (source.path && document.uri.path.startsWith(UriUtils.joinPath(projectUri, source.path).path)) {
                             return project;
                         }
@@ -63,7 +63,7 @@ export class ProjectManager {
     }
 
     protected collectDependencies(project: ast.Project, dependencies: Set<ast.Project>): void {
-        project.elements.filter(ast.isDependency).map(d=>d as ast.Dependency).forEach(dependency => {
+        project.elements.filter(ast.isDependency).forEach(dependency => {
             const depProject =
                 project.$document && project.$document.state >= DocumentState.Linked
                     ? dependency.project?.ref

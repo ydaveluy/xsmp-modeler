@@ -48,7 +48,7 @@ export class XsmpDocumentGenerator {
         if (ast.isCatalogue(document.parseResult.value)) {
             const project = this.projectManager.getProject(document);
             if (project) {
-                this.generateCatalogue(project as ast.Project, document.parseResult.value, taskAcceptor);
+                this.generateCatalogue(project, document.parseResult.value, taskAcceptor);
             }
         }
         else if (ast.isProject(document.parseResult.value)) {
@@ -70,7 +70,7 @@ export class XsmpDocumentGenerator {
 
         const projectUri = UriUtils.dirname(project.$document?.uri as URI);
 
-        for (const profile of project.elements.filter(ast.isProfileReference).map(p => p as ast.ProfileReference)) {
+        for (const profile of project.elements.filter(ast.isProfileReference)) {
             switch (profile.profile?.ref?.name) {
                 case 'org.eclipse.xsmp.profile.xsmp-sdk':
                 case 'xsmp-sdk':
@@ -79,7 +79,7 @@ export class XsmpDocumentGenerator {
             }
         }
 
-        for (const tool of project.elements.filter(ast.isToolReference).map(t => t as ast.ToolReference)) {
+        for (const tool of project.elements.filter(ast.isToolReference)) {
             switch (tool.tool?.ref?.name) {
                 case 'org.eclipse.xsmp.tool.smp':
                 case 'smp':
