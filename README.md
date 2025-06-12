@@ -43,7 +43,7 @@ It includes:
 
 ### Visual Studio Code
 
-From [Visuel Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=ydaveluy.xsmp-modeler&ssr=false#overview)
+From [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=ydaveluy.xsmp-modeler&ssr=false#overview)
 
 ### Eclipse
 
@@ -65,4 +65,4 @@ XSMP Modeler provides additional tools to extend its functionality:
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE.md).
+This project is licensed under the [MIT License](LICENSE).
