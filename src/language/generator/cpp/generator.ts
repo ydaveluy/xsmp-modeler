@@ -857,7 +857,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         return ['Smp/Publication/ITypeRegistry.h', type.itemType.ref];
     }
     headerIncludesEnumeration(_type: ast.Enumeration): Include[] {
-        return ['Smp/Publication/ITypeRegistry.h', 'Smp/PrimitiveTypes.h', 'map'];
+        return ['Smp/Publication/ITypeRegistry.h', 'Smp/PrimitiveTypes.h', 'map', 'string'];
     }
     headerIncludesString(_type: ast.StringType): Include[] {
         return ['Smp/Publication/ITypeRegistry.h'];
@@ -994,7 +994,7 @@ export abstract class CppGenerator implements XsmpGenerator {
         return this.expressionIncludes(type.size);
     }
     sourceIncludesEnumeration(_type: ast.Enumeration): Include[] {
-        return [];
+        return ['Smp/Publication/IEnumerationType.h'];
     }
     sourceIncludesString(type: ast.StringType): Include[] {
         return this.expressionIncludes(type.length);
