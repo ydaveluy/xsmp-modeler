@@ -394,7 +394,7 @@ Field returns Field:
     modifiers+=FieldModifiers*
     /**
      * ```java
-     * [public|protected|private] field <type> <name> [= <default-value>]
+     * [public|protected|private] [input|output|transient] field <type> <name> [= <default-value>]
      * ```
      *
      * A **Field** is a feature that is typed by any value type but String8, and that may have a Default value.
