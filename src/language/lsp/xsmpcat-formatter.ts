@@ -11,7 +11,7 @@ export class XsmpcatFormatter extends AbstractFormatter {
             case ast.Parameter: return this.formatParameter(node as ast.Parameter, this.getNodeFormatter(node));
             case ast.ReturnParameter: return this.formatReturnParameter(node as ast.ReturnParameter, this.getNodeFormatter(node));
             case ast.Container: return this.formatContainer(node as ast.Container, this.getNodeFormatter(node));
-            case ast.Reference_: return this.formatReference(node as ast.Reference_, this.getNodeFormatter(node));
+            case ast.Reference: return this.formatReference(node as ast.Reference, this.getNodeFormatter(node));
             case ast.Multiplicity: return this.formatMultiplicity(node as ast.Multiplicity, this.getNodeFormatter(node));
             case ast.EntryPoint: return this.formatEntryPoint(node as ast.EntryPoint, this.getNodeFormatter(node));
             case ast.EventSource: return this.formatEventSource(node as ast.EventSource, this.getNodeFormatter(node));
@@ -72,7 +72,7 @@ export class XsmpcatFormatter extends AbstractFormatter {
         formatter.keyword('=').surround(Formatting.oneSpace());
     }
 
-    formatReference(node: ast.Reference_, formatter: NodeFormatter<ast.Reference_>) {
+    formatReference(node: ast.Reference, formatter: NodeFormatter<ast.Reference>) {
         formatter.property('interface').prepend(Formatting.oneSpace());
         formatter.property('name').prepend(Formatting.oneSpace());
         formatter.property('optional').prepend(Formatting.noSpace());

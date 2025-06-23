@@ -174,7 +174,7 @@ export class SmpGenerator implements XsmpGenerator {
             Field: component.elements.filter(ast.isField).map(this.convertField, this),
             Association: component.elements.filter(ast.isAssociation).map(this.convertAssociation, this),
             Container: component.elements.filter(ast.isContainer).map(this.convertContainer, this),
-            Reference: component.elements.filter(ast.isReference_).map(this.convertReference, this),
+            Reference: component.elements.filter(ast.isReference).map(this.convertReference, this),
         };
     }
     protected convertProperty(property: ast.Property): Types.Property {
@@ -188,7 +188,7 @@ export class SmpGenerator implements XsmpGenerator {
             '@Category': this.docHelper.getPropertyCategory(property),
         };
     }
-    protected convertReference(reference: ast.Reference_): Catalogue.Reference {
+    protected convertReference(reference: ast.Reference): Catalogue.Reference {
         return {
             ...this.convertNamedElement(reference),
             Interface: this.convertXlink(reference.interface, reference),

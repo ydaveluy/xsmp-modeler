@@ -770,7 +770,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             case ast.Field: return this.headerIncludesField(element as ast.Field);
             case ast.Operation: return this.headerIncludesOperation(element as ast.Operation);
             case ast.Property: return this.headerIncludesProperty(element as ast.Property);
-            case ast.Reference_: return this.headerIncludesReference(element as ast.Reference_);
+            case ast.Reference: return this.headerIncludesReference(element as ast.Reference);
             case ast.ValueReference: return this.headerIncludesValueReference(element as ast.ValueReference);
             default: return [];
         }
@@ -820,7 +820,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             return [ForwardedType.create(element.type.ref)];
         return [element.type.ref];
     }
-    headerIncludesReference(element: ast.Reference_): Include[] {
+    headerIncludesReference(element: ast.Reference): Include[] {
         return [element.interface.ref];
     }
     headerIncludesValueReference(element: ast.ValueReference): Include[] {
@@ -888,7 +888,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             case ast.Field: return this.sourceIncludesField(element as ast.Field);
             case ast.Operation: return this.sourceIncludesOperation(element as ast.Operation);
             case ast.Property: return this.sourceIncludesProperty(element as ast.Property);
-            case ast.Reference_: return this.sourceIncludesReference(element as ast.Reference_);
+            case ast.Reference: return this.sourceIncludesReference(element as ast.Reference);
             case ast.ValueReference: return this.sourceIncludesValueReference(element as ast.ValueReference);
             default: return [];
         }
@@ -929,7 +929,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             return [element.type.ref];
         return [];
     }
-    sourceIncludesReference(_element: ast.Reference_): Include[] {
+    sourceIncludesReference(_element: ast.Reference): Include[] {
         return [];
     }
     sourceIncludesValueReference(_element: ast.ValueReference): Include[] {
@@ -1013,7 +1013,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             case ast.Field: return this.declareField(element as ast.Field);
             case ast.Operation: return this.declareOperation(element as ast.Operation);
             case ast.Property: return this.declareProperty(element as ast.Property);
-            case ast.Reference_: return this.declareReference(element as ast.Reference_);
+            case ast.Reference: return this.declareReference(element as ast.Reference);
             default: return undefined;
         }
     }*/
@@ -1028,7 +1028,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             case ast.Field: return this.defineField(element as ast.Field);
             case ast.Operation: return this.defineOperation(element as ast.Operation);
             case ast.Property: return this.defineProperty(element as ast.Property);
-            case ast.Reference_: return this.defineReference(element as ast.Reference_);
+            case ast.Reference: return this.defineReference(element as ast.Reference);
             default: return undefined;
         }
     }
@@ -1043,7 +1043,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             case ast.Field: return this.initializeField(element as ast.Field);
             case ast.Operation: return this.initializeOperation(element as ast.Operation);
             case ast.Property: return this.initializeProperty(element as ast.Property);
-            case ast.Reference_: return this.initializeReference(element as ast.Reference_);
+            case ast.Reference: return this.initializeReference(element as ast.Reference);
             default: return undefined;
         }
     }*/
@@ -1058,7 +1058,7 @@ export abstract class CppGenerator implements XsmpGenerator {
             case ast.Field: return this.finalizeField(element as ast.Field);
             case ast.Operation: return this.finalizeOperation(element as ast.Operation);
             case ast.Property: return this.finalizeProperty(element as ast.Property);
-            case ast.Reference_: return this.finalizeReference(element as ast.Reference_);
+            case ast.Reference: return this.finalizeReference(element as ast.Reference);
             default: return undefined;
         }
     }
@@ -1185,16 +1185,16 @@ export abstract class CppGenerator implements XsmpGenerator {
         return undefined;
     }
 
-    protected declareReference(_element: ast.Reference_): string | undefined {
+    protected declareReference(_element: ast.Reference): string | undefined {
         return undefined;
     }
-    protected defineReference(_element: ast.Reference_): string | undefined {
+    protected defineReference(_element: ast.Reference): string | undefined {
         return undefined;
     }
-    protected initializeReference(_element: ast.Reference_): string | undefined {
+    protected initializeReference(_element: ast.Reference): string | undefined {
         return undefined;
     }
-    protected finalizeReference(element: ast.Reference_): string | undefined {
+    protected finalizeReference(element: ast.Reference): string | undefined {
         return this.finalizePointer(element);
     }
 

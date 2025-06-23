@@ -33,7 +33,7 @@ export class XsmpNodeInfoProvider {
             case ast.ArrayType: return `${(node as ast.ArrayType).itemType?.$refText}[${getValueAs((node as ast.ArrayType).size, PTK.Int64)?.getValue()}]`;
             case ast.Operation: return (node as ast.Operation).returnParameter?.type?.$refText ?? 'void';
             case ast.Property: return (node as ast.Property).type?.$refText;
-            case ast.Reference_: return (node as ast.Reference_).interface?.$refText + this.getMultiplicity(node as ast.NamedElementWithMultiplicity);
+            case ast.Reference: return (node as ast.Reference).interface?.$refText + this.getMultiplicity(node as ast.NamedElementWithMultiplicity);
             case ast.Model:
             case ast.Service:
             case ast.Class:

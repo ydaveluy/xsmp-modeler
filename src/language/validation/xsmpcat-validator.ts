@@ -50,7 +50,7 @@ export function registerXsmpcatValidationChecks(services: XsmpcatServices) {
             Service: validator.checkService,
             Catalogue: validator.checkCatalogue,
             Property: validator.checkProperty,
-            Reference_: validator.checkReference,
+            Reference: validator.checkReference,
             ValueReference: validator.checkValueReference,
             Operation: validator.checkOperation,
             Parameter: validator.checkParameter,
@@ -844,7 +844,7 @@ export class XsmpcatValidator {
         }
     }
 
-    checkReference(reference: ast.Reference_, accept: ValidationAcceptor): void {
+    checkReference(reference: ast.Reference, accept: ValidationAcceptor): void {
         this.checkTypeReference(accept, reference, reference.interface?.ref, 'interface');
     }
 

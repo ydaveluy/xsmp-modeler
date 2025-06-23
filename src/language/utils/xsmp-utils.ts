@@ -221,7 +221,7 @@ function checkIsBaseOfReferenceType(parent: ast.ReferenceType, base: ast.Type | 
             (parentFqn === 'Smp.IService' && base.$type === ast.Service) ||
             (parentFqn === 'Smp.IEntryPointPublisher' && base.elements.some(ast.isEntryPoint)) ||
             (parentFqn === 'Smp.IComposite' && base.elements.some(ast.isContainer)) ||
-            (parentFqn === 'Smp.IAggregate' && base.elements.some(ast.isReference_)) ||
+            (parentFqn === 'Smp.IAggregate' && base.elements.some(ast.isReference)) ||
             (parentFqn === 'Smp.IEventConsumer' && base.elements.some(ast.isEventSink)) ||
             (parentFqn === 'Smp.IEventProvider' && base.elements.some(ast.isEventSource)) ||
             (parentFqn === 'Smp.IDynamicInvocation' && base.elements.some(ast.isInvokable))) {
@@ -271,9 +271,6 @@ export function isTypeVisibleFrom(from: AstNode, element: ast.Type): boolean {
 
 export function getNodeType(node: AstNode): string {
     switch (node.$type) {
-
-        case ast.Reference_:
-            return 'Reference';
         case ast.ArrayType:
             return 'Array';
         case ast.ReturnParameter:

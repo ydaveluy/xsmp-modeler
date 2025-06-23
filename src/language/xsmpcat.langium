@@ -501,7 +501,7 @@ Container returns Container:
      */
     'container' type=[ReferenceType:QualifiedName] MultiplicityDeclaration name=ValidID ('=' defaultComponent=[Component:QualifiedName])?;
 
-Reference returns Reference_:
+Reference returns Reference:
     attributes+=Attribute*
     /**
      * ```java

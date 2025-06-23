@@ -79,16 +79,16 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         `;
     }
 
-    protected override declareReferenceGen(element: ast.Reference_): string | undefined {
+    protected override declareReferenceGen(element: ast.Reference): string | undefined {
         return s`
         ${this.comment(element)}::Xsmp::Reference<${this.fqn(element.interface.ref)}> ${element.name};
         `;
     }
-    override headerIncludesReference(element: ast.Reference_): Include[] {
+    override headerIncludesReference(element: ast.Reference): Include[] {
         return ['Xsmp/Reference.h', ...super.headerIncludesReference(element)];
     }
 
-    protected override initializeReference(element: ast.Reference_): string | undefined {
+    protected override initializeReference(element: ast.Reference): string | undefined {
         return s`
         // Reference ${element.name}
         ${element.name}{
@@ -261,7 +261,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         if (type.elements.some(ast.isContainer)) {
             includes.push('Xsmp/Composite.h');
         }
-        if (type.elements.some(ast.isReference_)) {
+        if (type.elements.some(ast.isReference)) {
             includes.push('Xsmp/Aggregate.h');
         }
         if (type.elements.some(ast.isEventSource)) {
@@ -403,7 +403,7 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
         const bases = super.componentBases(type);
         if (type.elements.some(ast.isContainer))
             bases.push('public virtual ::Xsmp::Composite');
-        if (type.elements.some(ast.isReference_))
+        if (type.elements.some(ast.isReference))
             bases.push('public virtual ::Xsmp::Aggregate');
         if (type.elements.some(ast.isEventSource))
             bases.push('public virtual ::Xsmp::EventProvider');

@@ -807,7 +807,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     protected override initializeProperty(element: ast.Property, _gen: boolean = false): string | undefined {
         return undefined;
     }
-    protected override initializeReference(element: ast.Reference_, _gen: boolean = false): string | undefined {
+    protected override initializeReference(element: ast.Reference, _gen: boolean = false): string | undefined {
         return undefined;
     }
 
@@ -822,7 +822,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
             case ast.Field: return this.declareFieldGen(element as ast.Field, gen);
             case ast.Operation: return this.declareOperationGen(element as ast.Operation, gen);
             case ast.Property: return this.declarePropertyGen(element as ast.Property, gen);
-            case ast.Reference_: return this.declareReferenceGen(element as ast.Reference_, gen);
+            case ast.Reference: return this.declareReferenceGen(element as ast.Reference, gen);
             default: return undefined;
         }
     }
@@ -837,7 +837,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
             case ast.Field: return this.defineFieldGen(element as ast.Field, gen);
             case ast.Operation: return this.defineOperationGen(element as ast.Operation, gen);
             case ast.Property: return this.definePropertyGen(element as ast.Property, gen);
-            case ast.Reference_: return this.defineReferenceGen(element as ast.Reference_, gen);
+            case ast.Reference: return this.defineReferenceGen(element as ast.Reference, gen);
             default: return undefined;
         }
     }
@@ -1077,12 +1077,12 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
             `;
     }
 
-    protected declareReferenceGen(element: ast.Reference_, _gen: boolean): string | undefined {
+    protected declareReferenceGen(element: ast.Reference, _gen: boolean): string | undefined {
         return s`
         ${this.comment(element)}::Smp::IReference* ${element.name};
         `;
     }
-    protected defineReferenceGen(_element: ast.Reference_, _gen: boolean): string | undefined {
+    protected defineReferenceGen(_element: ast.Reference, _gen: boolean): string | undefined {
         return undefined;
     }
 
@@ -1106,7 +1106,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
             buffer.push(this.initializeAssociation(c, gen));
         for (const c of container.elements.filter(ast.isContainer))
             buffer.push(this.initializeContainer(c, gen));
-        for (const c of container.elements.filter(ast.isReference_))
+        for (const c of container.elements.filter(ast.isReference))
             buffer.push(this.initializeReference(c, gen));
         return buffer.filter(v => v !== undefined);
     }
@@ -1141,7 +1141,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
             current = this.declareMember(c, current, this.declareAssociation(c), buffer);
         for (const c of container.elements.filter(ast.isContainer))
             current = this.declareMember(c, current, this.declareContainer(c), buffer);
-        for (const c of container.elements.filter(ast.isReference_))
+        for (const c of container.elements.filter(ast.isReference))
             current = this.declareMember(c, current, this.declareReference(c), buffer);
         return buffer.join('\n');
     }
@@ -1167,7 +1167,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
             current = this.declareMember(c, current, this.declareAssociationGen(c, gen), buffer);
         for (const c of container.elements.filter(ast.isContainer))
             current = this.declareMember(c, current, this.declareContainerGen(c, gen), buffer);
-        for (const c of container.elements.filter(ast.isReference_))
+        for (const c of container.elements.filter(ast.isReference))
             current = this.declareMember(c, current, this.declareReferenceGen(c, gen), buffer);
         return buffer.join('\n');
     }

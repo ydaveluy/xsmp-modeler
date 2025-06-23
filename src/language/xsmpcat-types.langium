@@ -74,7 +74,7 @@ interface Model extends Component {
 interface Component extends LanguageType {
     ^interface: @Type[]
     base?: @Type
-    elements:(Constant|Field|Property|Operation|Association|Container|Reference_|EntryPoint|EventSink|EventSource)[]
+    elements:(Constant|Field|Property|Operation|Association|Container|Reference|EntryPoint|EventSink|EventSource)[]
 }
 
 interface Service extends Component {
@@ -191,7 +191,7 @@ interface Multiplicity {
     aux?: boolean
 }
 
-interface Reference_ extends NamedElementWithMultiplicity, Resolvable {
+interface Reference extends NamedElementWithMultiplicity, Resolvable {
     ^interface: @Type
 }
 
