@@ -188,7 +188,7 @@ export class XsmpcatValidator {
             case 'Interface:base':
             case 'Model:interface':
             case 'Service:interface':
-            case 'Reference_:interface':
+            case 'Reference:interface':
                 return ast.Interface;
             case 'Model:base':
                 return ast.Model;
