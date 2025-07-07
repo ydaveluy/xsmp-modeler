@@ -134,29 +134,47 @@ export class EnumerationLiteralValue extends Value<EnumerationLiteralValue> {
     override primitiveTypeKind(): PTK { return PTK.Enum; }
 
 }
-
+const INT64_MAX = BigInt('0x7FFFFFFFFFFFFFFF');
+const UINT32_MAX = BigInt(0xFFFF_FFFF);
+const INT32_MAX = BigInt(0x7FFF_FFFF);
 export class IntegralValue extends Value<IntegralValue> {
     readonly value: bigint;
     readonly type: IntegralPTK;
 
     public static of(expr: ast.IntegerLiteral, accept?: ValidationAcceptor): IntegralValue | undefined {
         let text = expr.text?.replaceAll("'", '') ?? '';
-        let type: IntegralPTK = PTK.Int32;
+        let isUnsigned = false;
+        let isLong = false;
 
         if (text.endsWith('u') || text.endsWith('U')) {
-            type = PTK.UInt32;
+            isUnsigned = true;
             text = text.slice(0, -1);
         }
         if (text.endsWith('l') || text.endsWith('L')) {
-            type = type === PTK.Int32 ? PTK.Int64 : PTK.UInt64;
+            isLong = true;
             text = text.slice(0, -1);
         }
         if (text.endsWith('u') || text.endsWith('U')) {
-            type = type === PTK.Int32 ? PTK.UInt32 : PTK.UInt64;
+            isUnsigned = true;
             text = text.slice(0, -1);
         }
-        const value = BigInt(text),
-            result = new IntegralValue(value, type);
+        const value = BigInt(text);
+
+        let type: IntegralPTK;
+        if (value > INT64_MAX) {
+            type = PTK.UInt64;
+        }
+        else if (value > UINT32_MAX) {
+            type = isUnsigned ? PTK.UInt64 : PTK.Int64;
+        }
+        else if (value > INT32_MAX) {
+            type = isUnsigned ? (isLong ? PTK.UInt64 : PTK.UInt32) : (isLong ? PTK.Int64 : PTK.UInt32);
+        }
+        else {
+            type = isUnsigned ? (isLong ? PTK.UInt64 : PTK.UInt32) : (isLong ? PTK.Int64 : PTK.Int32);
+        }
+
+        const result = new IntegralValue(value, type);
         if (result.value !== value) {
             if (accept) {
                 accept('error', `Conversion overflow for type ${PTK[type]}.`, { node: expr });

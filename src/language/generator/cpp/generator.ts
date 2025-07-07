@@ -35,8 +35,8 @@ export type Include = string | ast.Type | ForwardedType | undefined;
 export abstract class CppGenerator implements XsmpGenerator {
     protected static readonly defaultIncludeFolder = 'src';
     protected static readonly defaultSourceFolder = 'src';
-    protected readonly includeFolder = CppGenerator.defaultIncludeFolder;
-    protected readonly sourceFolder = CppGenerator.defaultSourceFolder;
+    protected includeFolder = CppGenerator.defaultIncludeFolder;
+    protected sourceFolder = CppGenerator.defaultSourceFolder;
 
     protected readonly cxxStandard: CxxStandard;
     protected readonly typeProvider: XsmpTypeProvider;
@@ -446,7 +446,13 @@ export abstract class CppGenerator implements XsmpGenerator {
                 const tag = e as JSDocTag;
                 if (!tag.inline && (tag.name === 'uuid' || tag.name === 'id'))
                     return undefined;
-                return ' ' + e.toString().trimEnd().replaceAll('\n', newLine);
+                let text: string;
+                if (tag.name === 'param')
+                    text = `@${tag.name} ${tag.content.toString()}`;
+                else
+                    text = e.toString();
+
+                return ' ' + text.trimEnd().replaceAll('\n', newLine);
             }
             return e.toString().trimEnd().replaceAll('\n', newLine);
         };
@@ -835,11 +841,11 @@ export abstract class CppGenerator implements XsmpGenerator {
     headerIncludesStructure(type: ast.Structure): Include[] {
         return ['Smp/Publication/ITypeRegistry.h', ...type.elements.flatMap(element => this.headerIncludes(element))];
     }
-    headerIncludesInteger(_type: ast.Integer): Include[] {
-        return ['Smp/Publication/ITypeRegistry.h', 'Smp/PrimitiveTypes.h'];
+    headerIncludesInteger(type: ast.Integer): Include[] {
+        return ['Smp/Publication/ITypeRegistry.h', 'Smp/PrimitiveTypes.h', ...this.expressionIncludes(type.minimum), ...this.expressionIncludes(type.maximum)];
     }
-    headerIncludesFloat(_type: ast.Float): Include[] {
-        return ['Smp/Publication/ITypeRegistry.h', 'Smp/PrimitiveTypes.h'];
+    headerIncludesFloat(type: ast.Float): Include[] {
+        return ['Smp/Publication/ITypeRegistry.h', 'Smp/PrimitiveTypes.h', ...this.expressionIncludes(type.minimum), ...this.expressionIncludes(type.maximum)];
     }
     headerIncludesComponent(type: ast.Component): Include[] {
         return ['Smp/Publication/ITypeRegistry.h', ...type.elements.flatMap(element => this.headerIncludes(element)), type.base?.ref, ...type.interface.map(inter => inter.ref), ForwardedType.create(type)];
@@ -854,13 +860,13 @@ export abstract class CppGenerator implements XsmpGenerator {
         return ['Smp/Uuid.h', ...type.elements.flatMap(element => this.headerIncludes(element)), ...type.base.map(inter => inter.ref), ForwardedType.create(type)];
     }
     headerIncludesArray(type: ast.ArrayType): Include[] {
-        return ['Smp/Publication/ITypeRegistry.h', type.itemType.ref];
+        return ['Smp/Publication/ITypeRegistry.h', type.itemType.ref, ...this.expressionIncludes(type.size)];
     }
     headerIncludesEnumeration(_type: ast.Enumeration): Include[] {
         return ['Smp/Publication/ITypeRegistry.h', 'Smp/PrimitiveTypes.h', 'map', 'string'];
     }
-    headerIncludesString(_type: ast.StringType): Include[] {
-        return ['Smp/Publication/ITypeRegistry.h'];
+    headerIncludesString(type: ast.StringType): Include[] {
+        return ['Smp/Publication/ITypeRegistry.h', ...this.expressionIncludes(type.length)];
     }
     headerIncludesNativeType(type: ast.NativeType): Include[] {
         return ['Smp/Publication/ITypeRegistry.h', this.docHelper.getNativeLocation(type)];
@@ -936,14 +942,14 @@ export abstract class CppGenerator implements XsmpGenerator {
         return [];
     }
     sourceIncludesClass(type: ast.Class): Include[] {
-        return this.sourceIncludesStructure(type);
+        return ['cstddef', 'Smp/Publication/IClassType.h', ...type.elements.flatMap(element => this.sourceIncludes(element))];
     }
     sourceIncludesException(type: ast.Exception): Include[] {
         return this.sourceIncludesClass(type);
     }
     sourceIncludesStructure(type: ast.Structure): Include[] {
         //offsetof needs cstddef
-        return ['cstddef', ...type.elements.flatMap(element => this.sourceIncludes(element))];
+        return ['cstddef', 'Smp/Publication/IStructureType.h', ...type.elements.flatMap(element => this.sourceIncludes(element))];
     }
 
     expressionIncludes(expr: ast.Expression | undefined): Include[] {
@@ -991,13 +997,13 @@ export abstract class CppGenerator implements XsmpGenerator {
         return [...type.elements.flatMap(element => this.sourceIncludes(element))];
     }
     sourceIncludesArray(type: ast.ArrayType): Include[] {
-        return this.expressionIncludes(type.size);
+        return ['Smp/Publication/IArrayType.h', ...this.expressionIncludes(type.size)];
     }
     sourceIncludesEnumeration(_type: ast.Enumeration): Include[] {
         return ['Smp/Publication/IEnumerationType.h'];
     }
     sourceIncludesString(type: ast.StringType): Include[] {
-        return this.expressionIncludes(type.length);
+        return ['Smp/Publication/IType.h', ...this.expressionIncludes(type.length)];
     }
     sourceIncludesNativeType(_type: ast.NativeType): Include[] {
         return [];
@@ -1068,6 +1074,11 @@ export abstract class CppGenerator implements XsmpGenerator {
             ${element.name} = nullptr;
             `;
     }
+
+    protected finalizeMembers(container: ast.WithBody): string {
+        return container.elements.map(element => this.finalize(element), this).filter(v => v !== undefined).join('\n');
+    }
+
     protected declareAssociation(_element: ast.Association): string | undefined {
         return undefined;
     }
@@ -1293,11 +1304,11 @@ export abstract class CppGenerator implements XsmpGenerator {
     }
     parameterDirectionKind(param: ast.Parameter | ast.ReturnParameter): string {
         if (ast.isReturnParameter(param)) return 'Smp::Publication::ParameterDirectionKind::PDK_Return';
-        switch (param.direction) {
+        switch (param.direction ?? 'in') {
             case 'out': return 'Smp::Publication::ParameterDirectionKind::PDK_Out';
             case 'inout': return 'Smp::Publication::ParameterDirectionKind::PDK_InOut';
+            case 'in': return 'Smp::Publication::ParameterDirectionKind::PDK_In';
         }
-        return 'Smp::Publication::ParameterDirectionKind::PDK_In';
     }
 
     publishOperation(op: ast.Operation): string | undefined {

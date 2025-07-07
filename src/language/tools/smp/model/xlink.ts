@@ -1,4 +1,4 @@
 export interface Xlink {
-    '@xlink:href': string;
     '@xlink:title'?: string;
+    '@xlink:href': string;
 }

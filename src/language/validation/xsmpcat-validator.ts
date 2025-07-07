@@ -281,8 +281,12 @@ export class XsmpcatValidator {
                         size = collectionSize < arraySize ? collectionSize : arraySize;
                     for (let i = 0; i < size; ++i) { this.checkExpression(type.itemType?.ref, expression.elements[i], accept); }
                     const more = expression.elements.at(Number(arraySize));
-                    if (more) { accept('error', `The array type expect ${arraySize} element(s), got ${collectionSize} element(s).`, { node: more }); }
-                    else if (collectionSize < arraySize) { accept('warning', `Partial initialization, the array type expect ${arraySize} element(s), got ${collectionSize} element(s).`, { node: expression }); }
+                    if (more) {
+                        accept('error', `The array type expect ${arraySize} element(s), got ${collectionSize} element(s).`, { node: more });
+                    }
+                    else if (collectionSize < arraySize && collectionSize !== 0) {
+                        accept('warning', `Partial initialization, the array type expect ${arraySize} element(s), got ${collectionSize} element(s).`, { node: expression });
+                    }
                 }
             }
             else {
@@ -308,8 +312,12 @@ export class XsmpcatValidator {
                     this.checkExpression(field.type?.ref, exp, accept);
                 }
                 const more = expression.elements.at(Number(fieldCount));
-                if (more) { accept('error', `The structure type expect ${fieldCount} element(s), got ${collectionSize} element(s).`, { node: more }); }
-                else if (collectionSize < fieldCount) { accept('warning', `Partial initialization, the structure type expect ${fieldCount} element(s), got ${collectionSize} element(s).`, { node: expression }); }
+                if (more) {
+                    accept('error', `The structure type expect ${fieldCount} element(s), got ${collectionSize} element(s).`, { node: more });
+                }
+                else if (collectionSize < fieldCount && collectionSize !== 0) {
+                    accept('warning', `Partial initialization, the structure type expect ${fieldCount} element(s), got ${collectionSize} element(s).`, { node: expression });
+                }
             }
             else {
                 accept('error', `A ${type.$type} shall be initialized with a collection.`, { node: expression });
@@ -354,7 +362,7 @@ export class XsmpcatValidator {
             literals = new Set<string>();
         for (const literal of enumeration.literal) {
             if (literal.name && literals.has(literal.name)) { accept('error', 'Duplicated literal name.', { node: literal, property: 'name' }); }
-            else { literals.add(literal.name??''); }
+            else { literals.add(literal.name ?? ''); }
 
             const value = this.checkExpression(PTK.Int32, literal.value, accept);
             if (value !== undefined) {
@@ -519,16 +527,16 @@ export class XsmpcatValidator {
         visited.add(type);
 
         if (ast.isInterface(type)) {
-            type.elements.forEach(e => duplicates.add(e.name??'', e));
+            type.elements.forEach(e => duplicates.add(e.name ?? '', e));
             type.base.forEach(b => { this.collectmembers(b.ref, duplicates, visited); }, this);
         }
         else if (ast.isComponent(type)) {
-            type.elements.forEach(e => duplicates.add(e.name??'', e));
+            type.elements.forEach(e => duplicates.add(e.name ?? '', e));
             this.collectmembers(type.base?.ref, duplicates, visited);
             type.interface.forEach(b => { this.collectmembers(b.ref, duplicates, visited); }, this);
         }
         else if (ast.isStructure(type)) {
-            type.elements.forEach(e => duplicates.add(e.name??'', e));
+            type.elements.forEach(e => duplicates.add(e.name ?? '', e));
             if (ast.isClass(type)) { this.collectmembers(type.base?.ref, duplicates, visited); }
         }
     }
@@ -893,8 +901,8 @@ export class XsmpcatValidator {
         // Check that default value of parameters are provided
         let requireDefaultValue = false;
         for (const parameter of operation.parameter) {
-            if (parameterNames.has(parameter.name??'')) { accept('error', 'Duplicated parameter name.', { node: parameter, property: 'name' }); }
-            else { parameterNames.add(parameter.name??''); }
+            if (parameterNames.has(parameter.name ?? '')) { accept('error', 'Duplicated parameter name.', { node: parameter, property: 'name' }); }
+            else { parameterNames.add(parameter.name ?? ''); }
 
             if (parameter.default !== undefined) { requireDefaultValue = true; }
             else if (requireDefaultValue) { accept('error', 'The Parameter requires a default vallue.', { node: parameter, property: 'default', data: diagnosticData(IssueCodes.MissingValue) }); }

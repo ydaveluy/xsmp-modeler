@@ -520,7 +520,10 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
     }*/
 
     initParameter(param: ast.Parameter): string {
-        switch (param.direction) {
+        switch (param.direction ?? 'in') {
+            case 'out':
+                // only declare the parameter
+                return `${this.fqn(param.type.ref)} p_${param.name}${this.directListInitializer(param.default)};`;
             case 'in':
             case 'inout':
                 // declare and initialize the parameter
@@ -528,21 +531,18 @@ export class XsmpSdkGenerator extends GapPatternCppGenerator {
                     return `auto p_${param.name} = ::Xsmp::Request::get<${this.fqn(param.type.ref)}>(component, request, "${param.name}", ${this.primitiveTypeKind(param.type.ref)}${param.default ? `, ${this.expression(param.default)}` : ''});`;
                 }
                 return `auto p_${param.name} = ::Xsmp::Request::get<${this.fqn(param.type.ref)}>(component, request, "${param.name}", ${this.uuid(param.type.ref)}${param.default ? `, ${this.expression(param.default)}` : ''});`;
-            default:
-                // only declare the parameter
-                return `${this.fqn(param.type.ref)} p_${param.name}${this.directListInitializer(param.default)};`;
         }
     }
 
     setParameter(param: ast.Parameter): string | undefined {
-        switch (param.direction) {
+        switch (param.direction ?? 'in') {
             case 'out':
             case 'inout':
                 if (ast.isSimpleType(param.type.ref)) {
                     return `::Xsmp::Request::set(component, request, "${param.name}", ${this.primitiveTypeKind(param.type.ref)}, p_${param.name});`;
                 }
                 return `::Xsmp::Request::set(component, request, "${param.name}", ${this.uuid(param.type.ref)}, p_${param.name});`;
-            default:
+            case 'in':
                 // do nothing
                 return undefined;
         }

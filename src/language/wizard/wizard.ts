@@ -9,7 +9,8 @@ const adocToolId = 'adoc',
     esaCdkProfileId = 'esa-cdk',
     pythonToolId = 'python',
     smpToolId = 'smp',
-    xsmpSdkProfileId = 'xsmp-sdk';
+    xsmpSdkProfileId = 'xsmp-sdk',
+    tasMdkProfileId = 'org.eclipse.xsmp.profile.tas-mdk';
 
 export async function createProjectWizard() {
 
@@ -44,6 +45,7 @@ export async function createProjectWizard() {
     const profiles = [
         { id: xsmpSdkProfileId, label: 'XSMP-SDK Profile' },
         { id: esaCdkProfileId, label: 'ESA-CDK Profile' },
+        { id: tasMdkProfileId, label: 'TAS-MDK Profile' },
     ],
 
         profile = await vscode.window.showQuickPick(profiles, {
@@ -92,7 +94,7 @@ export async function createProjectWizard() {
 }
 
 async function createTemplateProject(projectName: string, dirPath: string,
-    profile: { label: string, id: string }|undefined, tools: Array<{ label: string, id: string }>) {
+    profile: { label: string, id: string } | undefined, tools: Array<{ label: string, id: string }>) {
     fs.mkdirSync(dirPath); // Create project directory
 
     const smdlPath = path.join(dirPath, 'smdl');
@@ -200,6 +202,66 @@ simulus_library(
 )
 target_include_directories(${projectName} PUBLIC src src-gen)
 `);
+    }
+    else if (profile?.id === tasMdkProfileId) {
+        await fs.promises.writeFile(path.join(dirPath, 'Makefile'), `
+COMPONENT_NAME=${projectName}
+
+ifndef COMPILE_CHAIN
+$(error Variable COMPILE_CHAIN is not defined)
+endif
+
+-include $(COMPILE_CHAIN)/component_declaration.mk
+
+CXX_STANDARD=11
+
+LIBRARY_NAME=lib${projectName.toLowerCase()}.so
+
+include $(COMPILE_CHAIN)/rules_libs.mk
+
+$(COMPONENT_NAME)_tests:
+	$(MAKE) -C tests
+	$(MAKE) -C tests tu
+`);
+        await fs.promises.writeFile(path.join(dirPath, 'component.conf'), `
+__LIBRARIES__=TasMdk
+__REFERENCED_LIBRARIES__=
+__INCLUDE_FOLDERS__=include,include-gen
+__SOURCE_FOLDERS__=src,src-gen
+__OPERATIONAL_PYTHON_TOOLS_FOLDER__=helpers
+__VERSION__=1
+`);
+
+        await fs.promises.writeFile(path.join(dirPath, 'tests', 'Makefile'), `
+COMPONENT_NAME=${projectName}--tests
+
+ifndef COMPILE_CHAIN
+$(error Variable COMPILE_CHAIN is not defined)
+endif
+
+-include $(COMPILE_CHAIN)/component_declaration.mk
+
+include $(COMPILE_CHAIN)/rules_variants.mk
+
+$(COMPONENT_NAME)_tests: $(COMPONENT_NAME)_tests_python
+
+$(COMPONENT_NAME)_tests_python:
+	COMPONENT_NAME=$(COMPONENT_NAME) \
+	VT_STDOUT=$(VT_STDOUT) \
+	PATH=\${ROOT_OBJ}/gram_addons--simulator_launcher/BIN:\${PATH} \
+	PYTHONPATH=\${PYTHONPATH} \
+	LD_LIBRARY_PATH=\${LD_LIBRARY_PATH} \
+	python3 -m gram_addons__python_test_suite.runtests $(TEST_ARGS)
+
+`);
+        await fs.promises.writeFile(path.join(dirPath, 'tests', 'component.conf'), `
+__LIBRARIES__=\
+gram_addons--python_test_suite,\
+gram_addons--simulator_launcher,\
+${projectName}
+__COMPONENTS_ROOT_PATH__=.
+`);
+
     }
 
     if (tools.some(t => t.id === pythonToolId)) {

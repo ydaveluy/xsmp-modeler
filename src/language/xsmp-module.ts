@@ -19,6 +19,8 @@ import { DocumentationHelper } from './utils/documentation-helper.js';
 import { AttributeHelper } from './utils/attribute-helper.js';
 import { ProjectManager } from './workspace/project-manager.js';
 import { XsmpLanguageServer } from './lsp/language-server.js';
+import { registerTasMdkValidationChecks } from './profiles/tas-mdk/validator.js';
+import { XsmpDocumentBuilder } from './workspace/document-builder.js';
 
 export type XsmpServices = LangiumServices & { shared: XsmpSharedServices; }
 /**
@@ -63,6 +65,7 @@ export function createXsmpServices(context: DefaultSharedModuleContext): {
     );
     shared.ServiceRegistry.register(xsmpcat);
     registerXsmpcatValidationChecks(xsmpcat);
+    registerTasMdkValidationChecks(xsmpcat);
 
     if (!context.connection) {
         // We don't run inside a language server
@@ -107,5 +110,6 @@ export const XsmpSharedModule: Module<XsmpSharedServices, DeepPartial<XsmpShared
         IndexManager: (services) => new XsmpIndexManager(services),
         WorkspaceManager: (services) => new XsmpWorkspaceManager(services),
         ProjectManager: (services) => new ProjectManager(services),
+        DocumentBuilder: (services) => new XsmpDocumentBuilder(services),
     },
 };

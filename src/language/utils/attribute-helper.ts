@@ -16,7 +16,7 @@ export type Attributes = 'Attributes.Static'
     | 'Attributes.Constructor' | 'Attributes.Forcible'
     | 'Attributes.Failure' | 'Attributes.ConstGetter'
     | 'Attributes.NoConstructor' | 'Attributes.NoDestructor'
-    | 'Attributes.SimpleArray' | 'Attributes.Operator' | 'Attributes.View';
+    | 'Attributes.SimpleArray' | 'Attributes.Operator' | 'Attributes.View' | string;
 
 function kind(parameter: astPartial.Parameter | astPartial.ReturnParameter): ArgKind {
     if (astPartial.isReferenceType(parameter.type?.ref)) {

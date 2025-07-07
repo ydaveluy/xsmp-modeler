@@ -206,7 +206,7 @@ export class SmpGenerator implements XsmpGenerator {
         return {
             ...this.convertNamedElement(eventSource),
             Type: this.convertXlink(eventSource.type, eventSource),
-            '@Multicast': this.docHelper.isMulticast(eventSource),
+            '@Multicast': this.docHelper.isMulticast(eventSource) ? undefined : false,
         };
     }
     protected convertFloat(float: ast.Float): Types.Float {
@@ -378,10 +378,10 @@ export class SmpGenerator implements XsmpGenerator {
             '@xsi:type': 'Types:Exception',
         };
     }
-    protected convertXlink(link: Reference<ast.NamedElement>, context: AstNode): xlink.Xlink {
+    protected convertXlink(link: Reference<ast.NamedElement>, context?: AstNode): xlink.Xlink {
         if (link.ref) {
-            const refDoc = AstUtils.getDocument(link.ref),
-                doc = AstUtils.getDocument(context);
+            const refDoc = AstUtils.getDocument(link.ref);
+            const doc = context ? AstUtils.getDocument(context) : undefined;
 
             let href = `#${this.docHelper.getId(link.ref) ?? XsmpUtils.fqn(link.ref)}`;
             if (doc !== refDoc) {
@@ -506,9 +506,8 @@ export class SmpGenerator implements XsmpGenerator {
     protected async convertPackage(catalogue: ast.Catalogue): Promise<Package.Package> {
         const id = this.docHelper.getId(catalogue) ?? `_${XsmpUtils.fqn(catalogue)}`,
             doc = AstUtils.getDocument(catalogue),
-            prefix = `${UriUtils.basename(doc.uri).replace(/\.xsmpcat$/, '.smpcat')}#`,
-            dependencies = doc.references.map(e => e.ref ? AstUtils.getDocument(e.ref).parseResult.value : undefined).filter(ast.isCatalogue)
-                .filter(e => e !== catalogue && e.name !== 'ecss_smp_smp').sort((l, r) => l.name.localeCompare(r.name));
+            dependencies = [...new Set(doc.references.filter(e => e.ref && !ast.isInterface(e.ref)).map(e => AstUtils.getDocument(e.ref!).parseResult.value).filter(ast.isCatalogue)
+                .filter(e => e !== catalogue && e.name !== 'ecss_smp_smp'))].sort((l, r) => l.name.localeCompare(r.name));
         return {
             '@xmlns:Elements': 'http://www.ecss.nl/smp/2019/Core/Elements',
             '@xmlns:Types': 'http://www.ecss.nl/smp/2019/Core/Types',
@@ -525,12 +524,9 @@ export class SmpGenerator implements XsmpGenerator {
             '@Version': this.docHelper.getVersion(catalogue),
             Description: this.docHelper.getDescription(catalogue),
             Metadata: catalogue.attributes.map(this.convertAttribute, this),
-            Dependency: dependencies.map(e => this.convertXlink({ ref: e, $refText: e.name }, catalogue)),
             Implementation: AstUtils.streamAllContents(catalogue).filter(ast.isType).filter(e => !ast.isInterface(e)).map(e =>
-            ({
-                '@xlink:href': prefix + this.getId(e),
-                '@xlink:title': e.name
-            })).toArray(),
+                this.convertXlink({ ref: e, $refText: e.name })).toArray(),
+            Dependency: dependencies.map(e => ({ '@xlink:title': e.name, '@xlink:href': `${UriUtils.basename(AstUtils.getDocument(e).uri).replace(/\.xsmpcat$/, '.smppkg')}#${this.docHelper.getId(e) ?? '_' + XsmpUtils.fqn(e)}` }), this),
         };
     }
     protected generatedBy(): string | undefined {

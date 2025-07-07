@@ -268,7 +268,7 @@
       <EventSink Id="ns.AModel.int32EventSink" Name="int32EventSink">
         <Type xlink:title="AnIn32EventType" xlink:href="#ns.AnIn32EventType"/>
       </EventSink>
-      <EventSource Id="ns.AModel.voidEventSource" Name="voidEventSource" Multicast="true">
+      <EventSource Id="ns.AModel.voidEventSource" Name="voidEventSource">
         <Type xlink:title="AVoidEventType" xlink:href="#ns.AVoidEventType"/>
       </EventSource>
       <EventSource Id="ns.AModel.int32EventSource" Name="int32EventSource" Multicast="false">

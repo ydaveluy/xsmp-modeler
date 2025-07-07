@@ -13,7 +13,7 @@ terminal fragment FRACTIONALCONSTANT:DIGITSEQUENCE? '.' DIGITSEQUENCE | DIGITSEQ
 terminal fragment DIGITSEQUENCE:/[0-9][0-9']*/;
 terminal fragment EXPONENTPART:/[eE][+-]?[0-9][0-9']*/;
 terminal fragment FLOATINGSUFFIX:/[fF]/;
-terminal INTEGER_LITERAL:/(?:[1-9][0-9']*|0[0-7']*)(?:ns|us|ms|s|mn|h|d|[uU][lL]?|[lL][uU]?)?|(?:0[xX][0-9a-fA-F][0-9a-fA-F']*|0[bB][01]['01]*)(?:[uU][lL]?|[lL][uU]?)?/;
+terminal INTEGER_LITERAL:/(?:0[xX][0-9a-fA-F][0-9a-fA-F']*|0[bB][01]['01]*)(?:[uU][lL]?|[lL][uU]?)?|(?:[1-9][0-9']*|0[0-7']*)(?:ns|us|ms|s|mn|h|d|[uU][lL]?|[lL][uU]?)?/;
 
 ValidID returns string:
     ID | 'extends' | 'implements' | 'in' | 'out' | 'inout' | 'class' | 'struct' | 'exception' | 'model' |

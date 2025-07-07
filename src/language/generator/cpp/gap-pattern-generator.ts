@@ -13,8 +13,8 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
 
     protected static readonly defaultIncludeGenFolder = 'src-gen';
     protected static readonly defaultSourceGenFolder = 'src-gen';
-    protected readonly includeGenFolder = GapPatternCppGenerator.defaultIncludeGenFolder;
-    protected readonly sourceGenFolder = GapPatternCppGenerator.defaultSourceGenFolder;
+    protected includeGenFolder = GapPatternCppGenerator.defaultIncludeGenFolder;
+    protected sourceGenFolder = GapPatternCppGenerator.defaultSourceGenFolder;
     constructor(services: XsmpSharedServices, cxxStandard: CxxStandard) {
         super(services, cxxStandard);
     }
@@ -871,7 +871,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
 
         if (this.cxxStandard < CxxStandard.CXX_STD_17) {
             return s`
-                ${this.comment(element)}static constexpr ${this.fqn(element.type.ref)} ${this.name(element.$container, gen)}::${element.name};
+                ${this.comment(element)}constexpr ${this.fqn(element.type.ref)} ${this.name(element.$container, gen)}::${element.name};
                 `;
         }
         return undefined;
@@ -944,7 +944,7 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
 
     protected declareFieldGen(element: ast.Field, _gen: boolean): string | undefined {
         return s`
-            ${this.comment(element)}${this.attrHelper.isStatic(element) ? 'static ' : ''}${this.attrHelper.isMutable(element) ? 'mutable ' : ''}${this.fqn(element.type.ref)} ${element.name}${element.default && !this.attrHelper.isStatic(element) ? this.directListInitializer(element.default) : ''};
+            ${this.comment(element)}${this.attrHelper.isStatic(element) ? 'static ' : ''}${this.attrHelper.isMutable(element) ? 'mutable ' : ''}${this.fqn(element.type.ref)} ${element.name}${element.default && !ast.isComponent(element.$container) && !this.attrHelper.isStatic(element) ? this.directListInitializer(element.default) : ''};
             `;
     }
     protected defineFieldGen(element: ast.Field, gen: boolean): string | undefined {
@@ -1173,10 +1173,10 @@ export abstract class GapPatternCppGenerator extends CppGenerator {
     }
 
     protected defineMembers(container: ast.WithBody, _useGenPattern: boolean): string {
-        return container.elements.map(this.define, this).join('\n');
+        return container.elements.map(this.define, this).filter(v => v !== undefined).join('\n');
     }
     protected defineMembersGen(container: ast.WithBody, useGenPattern: boolean): string {
-        return container.elements.map(element => this.defineGen(element, useGenPattern), this).join('\n');
+        return container.elements.map(element => this.defineGen(element, useGenPattern), this).filter(v => v !== undefined).join('\n');
     }
 
     protected override declareProperty(element: ast.Property): string | undefined {

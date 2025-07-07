@@ -123,7 +123,6 @@ Upper bound shall be -1 or larger or equal to the lower bound.
 [209:4..209:9]: Missing Type UUID.
 [211:4..211:10]: Missing Type UUID.
 [216:10..216:21]: Duplicated name.
-[234:31..234:33]: Partial initialization, the array type expect 3 element(s), got 0 element(s).
 [235:38..235:39]: The array type expect 3 element(s), got 4 element(s).
 [237:31..237:35]: An array shall be initialized with a collection.
 [238:34..238:35]: Invalid field name, expecting x.
@@ -132,7 +131,7 @@ Upper bound shall be -1 or larger or equal to the lower bound.
 [240:39..240:40]: The structure type expect 3 element(s), got 4 element(s).
 [241:32..241:36]: A Structure shall be initialized with a collection.
 [242:26..242:29]: Int32 cannot be converted to Smp.Int8.
-[244:36..244:50]: Conversion overflow for type Int32.
+[244:36..244:50]: Int64 cannot be converted to Smp.Int32.
 [245:29..245:33]: RangeError: Division by zero
 [249:14..249:18]: The PrimitiveType Smp.Bool is not visible.
 [250:41..250:44]: Unary operator '-' is not supported for operand of type 'String8'.
